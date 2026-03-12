@@ -285,7 +285,7 @@ const fetchStoryline = async (f, setLoading, setStoryline, setError) => {
   const numClips = calcClips(f.grokPlan, f.totalDuration);
   const cs = clipSec(f.grokPlan);
   try {
-    const res = await fetch("https://nodehq2chtxe-u4h3--3000--3b7d1e54.local-corp.webcontainer.io/api/storyline", {
+    const res = await fetch("/api/storyline", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
