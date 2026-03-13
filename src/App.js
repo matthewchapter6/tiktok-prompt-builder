@@ -1,4 +1,4 @@
-import { useState, useRef } from "react";
+import React, { useState, useRef } from "react";
 
 // ── UI primitives ──────────────────────────────────────────────────────────
 const Section = ({ title, emoji, subtitle, children }) => (
@@ -27,8 +27,12 @@ const TextInput = ({ value, onChange, placeholder }) => (
 );
 
 const TextArea = ({ value, onChange, placeholder, rows = 3 }) => (
-  <textarea className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-blue-400 resize-none"
-    value={value} onChange={e => onChange(e.target.value)} placeholder={placeholder} rows={rows} />
+  <textarea
+    className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-blue-400 resize-none overflow-hidden"
+    value={value}
+    onChange={e => { onChange(e.target.value); e.target.style.height = "auto"; e.target.style.height = e.target.scrollHeight + "px"; }}
+    onInput={e => { e.target.style.height = "auto"; e.target.style.height = e.target.scrollHeight + "px"; }}
+    placeholder={placeholder} rows={rows} />
 );
 
 const Select = ({ value, onChange, options }) => (
@@ -52,33 +56,24 @@ const Chips = ({ value, onChange, options }) => {
   );
 };
 
-// ── Options ────────────────────────────────────────────────────────────────
+// ── Funnel options ─────────────────────────────────────────────────────────
 const FUNNEL_OPTIONS = [
   {
-    value: "upper",
-    emoji: "🔺",
-    label: "Upper Funnel",
-    tag: "Awareness",
+    value: "upper", emoji: "🔺", label: "Upper Funnel", tag: "Awareness",
     description: "Pull traffic & build awareness",
     objective: "Reach out to new customers who don't know your product yet",
     examples: ["Relatable problem", "Storytelling", "Point of view (POV)", "Trending hook"],
     color: "blue",
   },
   {
-    value: "middle",
-    emoji: "🔶",
-    label: "Middle Funnel",
-    tag: "Consideration",
+    value: "middle", emoji: "🔶", label: "Middle Funnel", tag: "Consideration",
     description: "Educate & build trust",
     objective: "Gain video views, community interaction and warm up leads",
     examples: ["Review / UGC", "Before & after", "Feature highlight", "Product demo"],
     color: "yellow",
   },
   {
-    value: "lower",
-    emoji: "🔻",
-    label: "Lower Funnel",
-    tag: "Conversion",
+    value: "lower", emoji: "🔻", label: "Lower Funnel", tag: "Conversion",
     description: "Drive purchase & close sales",
     objective: "Promotion, lead generation and direct purchase intent",
     examples: ["Limited offer", "CTA to buy", "Testimonial + price", "Urgency / scarcity"],
@@ -86,18 +81,7 @@ const FUNNEL_OPTIONS = [
   },
 ];
 
-const FUNNEL_HOOK_MAP = {
-  upper: ["question", "bold_claim", "reveal", "before_after"],
-  middle: ["problem_agitate", "before_after", "social_proof", "reveal"],
-  lower: ["bold_claim", "social_proof", "problem_agitate", "question"],
-};
-
-const FUNNEL_CTA_MAP = {
-  upper: ["follow", "save_post", "comment"],
-  middle: ["comment", "save_post", "follow", "shop_link"],
-  lower: ["shop_link", "try_it", "comment"],
-};
-
+// ── Dropdown / chip options ────────────────────────────────────────────────
 const OPTS = {
   platform: [
     { value: "tiktok", label: "TikTok (9:16)" },
@@ -238,29 +222,34 @@ const init = {
 
 // ── Helpers ────────────────────────────────────────────────────────────────
 const clipSec = plan => plan === "pro" ? 10 : 6;
+const calcClips = (plan, dur) => { const cs = clipSec(plan); const total = parseInt(dur) || cs; return Math.ceil(total / cs); };
+const settingLabel = f => { if (f.settingPreset === "custom") return f.settingCustom || "Custom location"; return OPTS.settingPreset.find(o => o.value === f.settingPreset)?.label || "Not specified"; };
+const lightingLabel = f => { if (f.lightingPreset === "custom") return f.lightingCustom || "Custom lighting"; return OPTS.lightingPreset.find(o => o.value === f.lightingPreset)?.label || "Natural daylight"; };
 
-const calcClips = (plan, dur) => {
-  const cs = clipSec(plan);
-  const total = parseInt(dur) || cs;
-  return Math.ceil(total / cs);
+// ── NEW: Assign explicit role to each clip ─────────────────────────────────
+const getClipRole = (clipNum, numClips) => {
+  if (numClips === 1) return {
+    role: "HOOK + CONTENT + CTA",
+    tag: "🎣📖📢",
+    desc: "Single clip — open with hook, show product benefit, end with CTA",
+  };
+  if (numClips === 2) {
+    if (clipNum === 1) return { role: "HOOK + CONTENT", tag: "🎣📖", desc: "Open with hook, introduce problem and product" };
+    return { role: "CONTENT + CTA", tag: "📖📢", desc: "Demonstrate key benefit, end with strong CTA" };
+  }
+  // 3+ clips
+  if (clipNum === 1) return { role: "HOOK", tag: "🎣", desc: "Stop the scroll — grab attention in first 1–2 seconds. Do NOT show product prominently yet." };
+  if (clipNum === numClips) return { role: "CTA", tag: "📢", desc: "Drive action — hero product shot, clear reason to act now." };
+  return { role: "CONTENT", tag: "📖", desc: "Demonstrate the product — show the problem being solved or benefit delivered." };
 };
 
-const settingLabel = f => {
-  if (f.settingPreset === "custom") return f.settingCustom || "Custom location";
-  return OPTS.settingPreset.find(o => o.value === f.settingPreset)?.label || "Not specified";
-};
-const lightingLabel = f => {
-  if (f.lightingPreset === "custom") return f.lightingCustom || "Custom lighting";
-  return OPTS.lightingPreset.find(o => o.value === f.lightingPreset)?.label || "Natural daylight";
-};
-
-// ── Prompt generator ───────────────────────────────────────────────────────
+// ── Prompt generator — with explicit Hook / Content / CTA labels ───────────
 const buildClipPrompts = (f, storyline) => {
   const cs = clipSec(f.grokPlan);
   const total = parseInt(f.totalDuration) || cs;
   const numClips = Math.ceil(total / cs);
   const funnelOpt = FUNNEL_OPTIONS.find(o => o.value === f.funnel);
-  const toneLabel = f.tone.length ? f.tone.join(", ") : "calm & warm";
+  const toneLabel = f.tone.length ? f.tone.map(t => OPTS.tone.find(o => o.value === t)?.label).join(", ") : "calm & warm";
   const camOpt = OPTS.cameraMove.find(o => o.value === f.cameraMove);
   const heroOpt = OPTS.heroAngle.find(o => o.value === f.heroAngle);
   const talentOpt = OPTS.talent.find(o => o.value === f.talent);
@@ -283,73 +272,150 @@ TALENT: ${f.talent !== "no_talent" ? `${talentOpt?.label}${f.talentStyle.length 
 CAMERA: ${camOpt?.label} | HERO ANGLE: ${heroOpt?.label || "45° elevated"}
 ${restrictions ? `RESTRICTIONS: ${restrictions}` : ""}`.trim();
 
-  // Split storyline into clip beats
   const storyLines = storyline ? storyline.split("\n").filter(l => l.trim()) : [];
-  
+
+  // Funnel-specific direction per role
+  const funnelDir = {
+    upper: {
+      hook: "Open with relatable problem or POV. Do NOT mention the product yet. Make viewer say 'that's so me'.",
+      content: "Introduce the product naturally as a discovery. Soft, curious tone — not a hard sell.",
+      cta: "Soft CTA only — follow, save, or comment. No price, no urgency.",
+    },
+    middle: {
+      hook: "Agitate the pain point clearly. Viewer should feel 'yes, that's my problem'.",
+      content: "Show product solving the problem with clear before/after or feature demo. Build trust.",
+      cta: "Mid-strength CTA — link in bio, comment for info, or learn more. Can mention price.",
+    },
+    lower: {
+      hook: "Open with urgency, social proof, or bold claim. Viewer should feel they're missing out.",
+      content: "Highlight key value — price, offer, or transformation. Create strong desire.",
+      cta: "Strong direct CTA — buy now, limited offer, link in bio. Create urgency or scarcity.",
+    },
+  };
+  const fd = funnelDir[f.funnel] || funnelDir.middle;
+
   const clips = [];
   for (let i = 0; i < numClips; i++) {
     const clipNum = i + 1;
     const startSec = i * cs;
     const endSec = Math.min((i + 1) * cs, total);
     const actualDur = endSec - startSec;
-    const isLast = clipNum === numClips;
-    const isFirst = clipNum === 1;
+    const clipRole = getClipRole(clipNum, numClips);
 
-    const beatHint = storyLines[i] ? `SCENE BEAT: ${storyLines[i]}` : 
-      isFirst ? `SCENE BEAT: Hook — grab attention immediately. Show: ${f.problemStatement || f.keyBenefit || f.keyFeatures}` :
-      isLast ? `SCENE BEAT: Close — ${ctaLabel || "hero shot of product, clean and confident"}` :
-      `SCENE BEAT: Middle — demonstrate product benefit naturally. Focus on: ${f.keyBenefit || f.keyFeatures}`;
+    // Clean storyline beat — strip any existing role prefix if AI added one
+    const rawBeat = storyLines[i] || "";
+    const cleanBeat = rawBeat.replace(/^\d+\.\s*\[?(HOOK|CONTENT|CTA)[^\]]*\]?\s*/i, "").trim();
+
+    const sceneBeat = cleanBeat ||
+      (clipRole.role.includes("HOOK") ? `Hook — ${f.problemStatement || "show relatable problem or pattern interrupt"}` :
+       clipRole.role === "CTA" ? `CTA close — ${ctaLabel || "hero shot of product, drive action"}` :
+       `Content — demonstrate: ${f.keyBenefit || f.keyFeatures}`);
+
+    // Role-specific direction blocks
+    const hookDir = clipRole.role.includes("HOOK") ? `
+🎣 HOOK DIRECTION
+• Hook strategy: ${f.hook.map(h => OPTS.hooks.find(o => o.value === h)?.label).filter(Boolean).join(" + ") || "pattern interrupt"}
+• First 1–2 seconds must STOP THE SCROLL — no slow intros
+• ${fd.hook}` : "";
+
+    const contentDir = clipRole.role.includes("CONTENT") ? `
+📖 CONTENT DIRECTION
+• Key benefit to show: ${f.keyBenefit || f.keyFeatures}
+• ${fd.content}
+• Emotional beat: viewer should feel ${f.funnel === "upper" ? "curious and intrigued" : f.funnel === "middle" ? "understood and convinced" : "excited and ready to buy"}` : "";
+
+    const ctaDir = clipRole.role.includes("CTA") ? `
+📢 CTA DIRECTION
+• Action: ${ctaLabel}
+• End on clean hero shot — ${heroOpt?.label || "45° elevated"} — product centered, no distractions
+• ${fd.cta}
+• Last 1–2 seconds must feel conclusive — not abrupt` : "";
 
     clips.push({
       label: `CLIP ${clipNum} of ${numClips}`,
+      role: clipRole.role,
+      tag: clipRole.tag,
       timing: `${startSec}s – ${endSec}s (${actualDur}s)`,
-      isLast,
-      isFirst,
       prompt: `═══════════════════════════════════
 🎬 GROK VIDEO PROMPT — CLIP ${clipNum}/${numClips}
-${f.grokPlan === "pro" ? "⭐ Grok Pro" : "🆓 Grok Free"} | ${actualDur}s clip | Timeline: ${startSec}s–${endSec}s
+${f.grokPlan === "pro" ? "⭐ Grok Pro" : "🆓 Grok Free"} | ${actualDur}s | Timeline: ${startSec}s–${endSec}s
+${clipRole.tag} ROLE: ${clipRole.role}
+${clipRole.desc}
 ═══════════════════════════════════
 
 ${baseContext}
 
-${beatHint}
-
-${isFirst ? `HOOK APPROACH: ${f.hook.map(h => OPTS.hooks.find(o => o.value === h)?.label).filter(Boolean).join(" + ")}
-Open strong — first 1–2 seconds must stop the scroll.` : ""}
-${isLast ? `CTA: ${ctaLabel}
-End on clean hero shot — ${heroOpt?.label || "45° elevated"} — product centered, no distractions.` : ""}
+━━━ SCENE BEAT ━━━
+${sceneBeat}
+${hookDir}${contentDir}${ctaDir}
 ${f.productRules ? `\nPRODUCT RULES:\n${f.productRules.split("\n").map(l => "• " + l).join("\n")}` : ""}
-${f.voLang && f.voLang !== "none" ? `\nAUDIO: Natural audio + voiceover in ${OPTS.voLang.find(o => o.value === f.voLang)?.label}. Tone: ${f.voTone || "conversational, not scripted"}.` : "\nAUDIO: Natural ambient sound only — no music, no voiceover."}
-${clipNum < numClips ? `\n⚡ CONTINUITY NOTE: This clip will be stitched with Clip ${clipNum + 1}. End on a clean frame — avoid abrupt motion cuts.` : ""}
+${f.voLang && f.voLang !== "none" ? `\nAUDIO: Voiceover in ${OPTS.voLang.find(o => o.value === f.voLang)?.label}. Tone: ${f.voTone || "conversational, not scripted"}.` : "\nAUDIO: Natural ambient sound only — no music, no voiceover."}
+${clipNum < numClips ? `\n⚡ CONTINUITY: Stitch with Clip ${clipNum + 1}. End on a clean frame — avoid abrupt cuts.` : ""}
 
-❗ OVERALL: Everything must feel authentic, natural, purposeful. Not staged. Not an ad — even if it is one.
+❗ OVERALL: Authentic, natural, purposeful. Not staged. Not an ad — even if it is one.
 ═══════════════════════════════════`
     });
   }
   return clips;
 };
 
-// ── Creative Director AI call ──────────────────────────────────────────────
+// ── Creative Director AI call — structured Hook/Content/CTA ───────────────
 const fetchStoryline = async (f, setLoading, setStoryline, setError) => {
   setLoading(true); setError("");
   const numClips = calcClips(f.grokPlan, f.totalDuration);
   const cs = clipSec(f.grokPlan);
+
+  // Build explicit clip role map for Claude
+  const clipRoleMap = Array.from({ length: numClips }, (_, i) => {
+    const r = getClipRole(i + 1, numClips);
+    return `Clip ${i + 1}: [${r.role}] — ${r.desc}`;
+  }).join("\n");
+
+  // Funnel-specific per-role guidance for Claude
+  const funnelGuidance = {
+    upper: {
+      hook: "Relatable problem or POV. Do NOT mention the product. Make viewer say 'that's so me'.",
+      content: "Soft product discovery — curious tone, no hard sell.",
+      cta: "Soft only — follow, save, comment. No price or urgency.",
+    },
+    middle: {
+      hook: "Agitate the pain point. Viewer should feel 'yes, that's my problem'.",
+      content: "Show product solving the problem with before/after or feature demo. Build trust.",
+      cta: "Mid-strength — link in bio, comment for info. Can mention price.",
+    },
+    lower: {
+      hook: "Urgency, social proof, or bold claim. Viewer should feel they're missing out.",
+      content: "Highlight value — price, offer, transformation. Create strong desire.",
+      cta: "Strong and direct — buy now, limited offer, link in bio. Urgency or scarcity.",
+    },
+  };
+  const fg = funnelGuidance[f.funnel] || funnelGuidance.middle;
+
   try {
     const res = await fetch("/api/storyline", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         model: "claude-sonnet-4-20250514",
-        max_tokens: 1000,
-        system: `You are a Creative Director specialising in short-form TikTok/social video content. 
-You write punchy, visual, scroll-stopping video storylines. 
-You must return ONLY a plain numbered list — one line per clip beat, no extra commentary, no markdown, no preamble.
-Each line = one clip = exactly ${cs} seconds of visual action. Total clips: ${numClips}.
-Each line should describe: what the CAMERA sees + what HAPPENS + the emotional beat. Be specific and visual.`,
+        max_tokens: 1200,
+        system: `You are a Creative Director specialising in short-form TikTok/social video content.
+You write punchy, visual, scroll-stopping video storylines structured around Hook → Content → CTA.
+
+STRICT OUTPUT FORMAT — follow exactly:
+- Return ONLY a numbered list, one line per clip
+- Each line MUST start with the clip role in brackets: [HOOK], [CONTENT], [CTA], or combined e.g. [HOOK + CONTENT]
+- No extra commentary, no markdown, no preamble, no closing notes
+- Format: "1. [ROLE] <visual scene description>"
+
+Each scene description must include: camera angle + what happens visually + emotional beat. Be specific and concrete. Never generic.`,
         messages: [{
           role: "user",
-          content: `Generate a ${numClips}-beat video storyline for this product:
+          content: `Generate a ${numClips}-beat video storyline with explicit Hook → Content → CTA structure.
 
+CLIP ROLE ASSIGNMENTS — follow these exactly:
+${clipRoleMap}
+
+PRODUCT BRIEF:
 Product: ${f.productName || "unnamed product"}
 Category: ${f.productCategory || "consumer product"}
 Key Features: ${f.keyFeatures || "not specified"}
@@ -357,21 +423,26 @@ USP: ${f.usp || "not specified"}
 Problem Solved: ${f.problemStatement || "not specified"}
 Core Benefit: ${f.keyBenefit || "not specified"}
 Video Style: ${f.videoStyle}
-Tone: ${f.tone.join(", ") || "calm, warm"}
-Hook Strategy: ${f.hook.map(h => OPTS.hooks.find(o => o.value === h)?.label).join(", ") || "not specified"}
-CTA: ${f.cta.map(c => OPTS.cta.find(o => o.value === c)?.label).join(", ") || "not specified"}
+Tone: ${f.tone.map(t => OPTS.tone.find(o => o.value === t)?.label).join(", ") || "calm, warm"}
+Hook Strategy: ${f.hook.map(h => OPTS.hooks.find(o => o.value === h)?.label).join(", ") || "pattern interrupt"}
+CTA: ${f.cta.map(c => OPTS.cta.find(o => o.value === c)?.label).join(", ") || "link in bio"}
 Setting: ${settingLabel(f)}
 Talent: ${f.talent}
-Sales Funnel Stage: ${FUNNEL_OPTIONS.find(o => o.value === f.funnel)?.label || "not specified"}
-Funnel Objective: ${FUNNEL_OPTIONS.find(o => o.value === f.funnel)?.objective || "not specified"}
-Funnel Content Approach: ${FUNNEL_OPTIONS.find(o => o.value === f.funnel)?.examples?.join(", ") || "not specified"}
+Sales Funnel: ${FUNNEL_OPTIONS.find(o => o.value === f.funnel)?.label || "not specified"}
 
-IMPORTANT: The storyline MUST align with the ${FUNNEL_OPTIONS.find(o => o.value === f.funnel)?.label || ""} stage.
-${f.funnel === "upper" ? "Focus on AWARENESS — hook with relatable content, do NOT hard sell. Make viewer curious." : ""}
-${f.funnel === "middle" ? "Focus on CONSIDERATION — show the product solving a real problem, build trust and credibility." : ""}
-${f.funnel === "lower" ? "Focus on CONVERSION — create urgency, give a clear reason to buy NOW, strong CTA." : ""}
+FUNNEL-SPECIFIC DIRECTION PER ROLE:
+[HOOK clips]: ${fg.hook}
+[CONTENT clips]: ${fg.content}
+[CTA clips]: ${fg.cta}
 
-Return exactly ${numClips} lines. One line per clip. Each line = what happens visually in that ${cs}-second clip.`
+RULES:
+- Each clip = exactly ${cs} seconds of visual action
+- HOOK: do NOT show product prominently — tease the problem or emotion first
+- CONTENT: show product solving the problem naturally in context
+- CTA: end clean and purposeful, hero product shot, drive clear action
+- Every line must feel visually distinct
+
+Return exactly ${numClips} lines. One line per clip. Start each line with its role tag in brackets.`
         }]
       })
     });
@@ -397,10 +468,8 @@ export default function App() {
   const outputRef = useRef(null);
 
   const set = k => v => setF(p => ({ ...p, [k]: v }));
-
   const numClips = calcClips(f.grokPlan, f.totalDuration);
   const cs = clipSec(f.grokPlan);
-
   const missingRequired = !f.productName || !f.productCategory || !f.keyFeatures || !f.hook.length || !f.cta.length || !f.funnel;
 
   const generate = () => {
@@ -412,22 +481,14 @@ export default function App() {
 
   const copyClip = (text, idx) => {
     const el = document.createElement("textarea");
-    el.value = text;
-    el.style.position = "fixed";
-    el.style.opacity = "0";
-    document.body.appendChild(el);
-    el.focus();
-    el.select();
+    el.value = text; el.style.position = "fixed"; el.style.opacity = "0";
+    document.body.appendChild(el); el.focus(); el.select();
     try { document.execCommand("copy"); } catch {}
     document.body.removeChild(el);
-    setCopiedIdx(idx);
-    setTimeout(() => setCopiedIdx(null), 2000);
+    setCopiedIdx(idx); setTimeout(() => setCopiedIdx(null), 2000);
   };
 
-  const copyAll = () => {
-    const all = clips.map(c => c.prompt).join("\n\n");
-    copyClip(all, "all");
-  };
+  const copyAll = () => copyClip(clips.map(c => c.prompt).join("\n\n"), "all");
 
   return (
     <div className="min-h-screen bg-gray-50 font-sans">
@@ -450,7 +511,7 @@ export default function App() {
       <div className="max-w-2xl mx-auto px-4 py-6">
         {tab === "builder" && (<>
 
-          {/* Grok Plan */}
+          {/* Grok Settings */}
           <Section emoji="⚙️" title="Grok Settings" subtitle="Select your Grok plan — this determines how many clips will be generated.">
             <Field label="Grok Plan">
               <div className="flex gap-3">
@@ -501,9 +562,7 @@ export default function App() {
                   <p className="text-xs text-gray-500 mb-1">{o.description}</p>
                   <p className="text-xs text-gray-400">📌 {o.objective}</p>
                   <div className="flex flex-wrap gap-1 mt-2">
-                    {o.examples.map(e => (
-                      <span key={e} className="text-xs bg-gray-100 text-gray-600 px-2 py-0.5 rounded-full">{e}</span>
-                    ))}
+                    {o.examples.map(e => <span key={e} className="text-xs bg-gray-100 text-gray-600 px-2 py-0.5 rounded-full">{e}</span>)}
                   </div>
                 </button>
               ))}
@@ -512,9 +571,9 @@ export default function App() {
               <div className={`text-xs px-3 py-2 rounded-lg mt-1 ${
                 f.funnel === "upper" ? "bg-blue-50 text-blue-700" : f.funnel === "middle" ? "bg-yellow-50 text-yellow-700" : "bg-green-50 text-green-700"
               }`}>
-                {f.funnel === "upper" && "✅ Hooks, CTA and storyline will focus on AWARENESS — no hard selling."}
-                {f.funnel === "middle" && "✅ Hooks, CTA and storyline will focus on CONSIDERATION — educate and build trust."}
-                {f.funnel === "lower" && "✅ Hooks, CTA and storyline will focus on CONVERSION — urgency and purchase intent."}
+                {f.funnel === "upper" && "✅ Hook→Content→CTA will focus on AWARENESS — no hard selling."}
+                {f.funnel === "middle" && "✅ Hook→Content→CTA will focus on CONSIDERATION — educate and build trust."}
+                {f.funnel === "lower" && "✅ Hook→Content→CTA will focus on CONVERSION — urgency and purchase intent."}
               </div>
             )}
           </Section>
@@ -641,23 +700,21 @@ export default function App() {
           </Section>
 
           {/* Creative Director */}
-          <Section emoji="🎭" title="Creative Director" subtitle="AI-generated storyline based on your product and goals. Use it as-is or edit freely.">
-            <div className="flex gap-2">
-              <button
-                onClick={() => fetchStoryline(f, setAiLoading, setStoryline, setAiError)}
-                disabled={aiLoading || !f.productName || !f.keyFeatures}
-                className={`flex-1 py-2 rounded-lg text-sm font-medium border transition-all ${
-                  aiLoading || !f.productName || !f.keyFeatures
-                    ? "bg-gray-100 text-gray-400 border-gray-200 cursor-not-allowed"
-                    : "bg-purple-500 text-white border-purple-500 hover:bg-purple-600 active:scale-95"
-                }`}>
-                {aiLoading ? "✨ Thinking..." : storyline ? "🔄 Regenerate Idea" : "✨ Generate Storyline Idea"}
-              </button>
-            </div>
-            {!f.productName && <p className="text-xs text-gray-400">Fill in Product Name and Key Features first.</p>}
+          <Section emoji="🎭" title="Creative Director" subtitle="AI generates a structured Hook → Content → CTA storyline. Edit freely before generating prompts.">
+            <button
+              onClick={() => fetchStoryline(f, setAiLoading, setStoryline, setAiError)}
+              disabled={aiLoading || !f.productName || !f.keyFeatures}
+              className={`w-full py-2 rounded-lg text-sm font-medium border transition-all ${
+                aiLoading || !f.productName || !f.keyFeatures
+                  ? "bg-gray-100 text-gray-400 border-gray-200 cursor-not-allowed"
+                  : "bg-purple-500 text-white border-purple-500 hover:bg-purple-600 active:scale-95"
+              }`}>
+              {aiLoading ? "✨ Thinking..." : storyline ? "🔄 Regenerate Idea" : "✨ Generate Storyline Idea"}
+            </button>
+            {(!f.productName || !f.keyFeatures) && <p className="text-xs text-gray-400">Fill in Product Name and Key Features first.</p>}
             {aiError && <p className="text-xs text-red-400">{aiError}</p>}
             {storyline && (
-              <Field label={`Storyline (${numClips} clips × ${cs}s each)`} hint="Edit freely — one line per clip beat">
+              <Field label={`Storyline (${numClips} clips × ${cs}s each) — Hook → Content → CTA`} hint="Each line starts with [ROLE]. Edit freely before generating.">
                 <TextArea value={storyline} onChange={setStoryline} rows={numClips + 1} placeholder="One line per clip..." />
               </Field>
             )}
@@ -711,30 +768,24 @@ export default function App() {
         {tab === "output" && (
           <div ref={outputRef}>
             {clips.length > 0 ? (<>
-              {/* Summary bar */}
               <div className="bg-blue-50 border border-blue-200 rounded-xl px-4 py-3 mb-4 text-xs text-blue-800">
                 <strong>{clips.length} clip{clips.length > 1 ? "s" : ""} generated</strong> — {f.grokPlan === "pro" ? "⭐ Grok Pro" : "🆓 Grok Free"} · {cs}s per clip · {f.totalDuration}s total
                 {clips.length > 1 && <span className="block mt-1 text-blue-600">Paste each prompt into Grok separately. Stitch clips or use Grok's Extend feature.</span>}
               </div>
-
-              {/* Copy all */}
               {clips.length > 1 && (
-                <button onClick={copyAll}
-                  className="w-full mb-4 py-2 rounded-xl border border-gray-200 text-sm text-gray-600 hover:bg-gray-100 font-medium transition-all">
+                <button onClick={copyAll} className="w-full mb-4 py-2 rounded-xl border border-gray-200 text-sm text-gray-600 hover:bg-gray-100 font-medium transition-all">
                   {copiedIdx === "all" ? "✅ All Copied!" : "📋 Copy All Prompts"}
                 </button>
               )}
-
-              {/* Clip cards */}
               {clips.map((clip, i) => (
                 <div key={i} className="bg-white border border-gray-200 rounded-xl mb-4 overflow-hidden">
                   <div className="flex items-center justify-between px-4 py-3 bg-gray-50 border-b border-gray-100">
                     <div>
                       <span className="text-sm font-bold text-gray-800">{clip.label}</span>
+                      <span className="ml-2 text-xs font-medium text-purple-600">{clip.tag} {clip.role}</span>
                       <span className="ml-2 text-xs text-gray-400">{clip.timing}</span>
                     </div>
-                    <button
-                      onClick={() => copyClip(clip.prompt, i)}
+                    <button onClick={() => copyClip(clip.prompt, i)}
                       className="px-3 py-1 rounded-lg bg-blue-500 text-white text-xs font-medium hover:bg-blue-600 active:scale-95 transition-all">
                       {copiedIdx === i ? "✅ Copied!" : "📋 Copy"}
                     </button>
@@ -742,16 +793,11 @@ export default function App() {
                   <pre className="text-xs text-gray-700 whitespace-pre-wrap leading-relaxed font-mono p-4">{clip.prompt}</pre>
                 </div>
               ))}
-
               <div className="flex gap-3 pb-8">
-                <button onClick={copyAll}
-                  className="flex-1 py-3 rounded-xl bg-green-500 text-white font-bold text-sm hover:bg-green-600 active:scale-95 transition-all">
+                <button onClick={copyAll} className="flex-1 py-3 rounded-xl bg-green-500 text-white font-bold text-sm hover:bg-green-600 active:scale-95 transition-all">
                   {copiedIdx === "all" ? "✅ All Copied!" : "📋 Copy All Prompts"}
                 </button>
-                <button onClick={() => setTab("builder")}
-                  className="px-4 py-3 rounded-xl border border-gray-200 text-sm text-gray-500 hover:bg-gray-100">
-                  ← Edit
-                </button>
+                <button onClick={() => setTab("builder")} className="px-4 py-3 rounded-xl border border-gray-200 text-sm text-gray-500 hover:bg-gray-100">← Edit</button>
               </div>
             </>) : (
               <div className="text-center py-16 text-gray-400">
