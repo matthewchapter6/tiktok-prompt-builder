@@ -799,7 +799,7 @@ export default function App() {
             {aiError && <p className="text-xs text-red-400">{aiError}</p>}
             {storyline && (
               <Field label={`Storyline (${numClips} clips × ${cs}s) — Hook → Content → CTA`} hint="Edit freely — one line per clip beat">
-                <TextArea value={storyline} onChange={setStoryline} rows={numClips + 1} placeholder="One line per clip..." />
+                <TextArea value={storyline} onChange={setStoryline} rows={6} placeholder="One line per clip..." />
               </Field>
             )}
           </Section>
