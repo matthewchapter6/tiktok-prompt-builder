@@ -12,6 +12,7 @@ const getClipRole = (clipNum, numClips) => {
   return { role: "CONTENT", tag: "📖", desc: "Demonstrate the product — show the problem being solved or benefit delivered." };
 };
 
+// ── UI primitives ──────────────────────────────────────────────────────────
 const Section = ({ title, emoji, subtitle, children }) => (
   <div className="mb-5 border border-gray-200 rounded-xl overflow-hidden">
     <div className="bg-gray-50 px-4 py-3 border-b border-gray-200">
@@ -38,7 +39,8 @@ const TextInput = ({ value, onChange, placeholder }) => (
 );
 
 const TextArea = ({ value, onChange, placeholder, rows = 3 }) => (
-  <textarea className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-blue-400 resize-none overflow-hidden"
+  <textarea
+    className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-blue-400 resize-none overflow-hidden"
     value={value}
     onChange={e => { onChange(e.target.value); e.target.style.height = "auto"; e.target.style.height = e.target.scrollHeight + "px"; }}
     onInput={e => { e.target.style.height = "auto"; e.target.style.height = e.target.scrollHeight + "px"; }}
@@ -54,10 +56,11 @@ const Select = ({ value, onChange, options }) => (
 
 const Chips = ({ value, onChange, options, single }) => {
   const toggle = v => {
-    if (single) onChange(value === v ? "" : v);
-    else onChange(value.includes(v) ? value.filter(x => x !== v) : [...value, v]);
+    if (single) { onChange(value === v ? "" : v); return; }
+    const arr = Array.isArray(value) ? value : [];
+    onChange(arr.includes(v) ? arr.filter(x => x !== v) : [...arr, v]);
   };
-  const isSelected = v => single ? value === v : value.includes(v);
+  const isSelected = v => single ? value === v : Array.isArray(value) && value.includes(v);
   return (
     <div className="flex flex-wrap gap-2">
       {options.map(o => (
@@ -353,82 +356,58 @@ const OPTS = {
   ],
 };
 
-
 const init = {
-  // Meta
   campaignName: "",
-  // Platform
   platform: "tiktok", grokPlan: "free", totalDuration: "12",
-  // Funnel
   funnel: "",
-  // Product
   productName: "", productCategory: "", productCategoryCustom: "",
   keyColors: "", keyFeaturesCustom: "", usp: "", productRules: "",
   targetAudience: [],
-  // Style
   videoStyle: "ugc", tone: [], realism: "", colorGrading: [], authenticity: [],
-  // Setting
   settingPreset: "", settingCustom: "", settingDetail: "", bgActivity: "",
   lightingPreset: "", lightingCustom: "",
-  // Talent
   talent: "solo_female", talentStyle: [], talentDetail: "", emotion: [],
-  // Camera
   shotType: [], cameraAngle: "", cameraMove: "gentle_handheld", heroAngle: "", productFraming: [],
-  // Action
   subjectMotion: [], productInteraction: [],
-  // Narrative
   hook: [], problemStatement: "", keyBenefit: "", emotionalArc: "", endingFrame: "", cta: [],
-  // Audio
   audioType: "", voLang: "", voTone: "", speechType: "", bgMusic: "", customVO: "",
-  // Technical
   frameRate: "", resolution: "", depthOfField: "",
-  // References
   referenceUrl: "", brandStyle: "",
-  // Restrictions
   antiHallucination: [], restrictions: [], extraNotes: "",
   storyline: "",
 };
 
+// ── Helpers ────────────────────────────────────────────────────────────────
 const clipSec = plan => plan === "pro" ? 10 : 6;
 const calcClips = (plan, dur) => { const cs = clipSec(plan); const total = parseInt(dur) || cs; return Math.ceil(total / cs); };
 const settingLabel = f => { if (f.settingPreset === "custom") return f.settingCustom || "Custom location"; return OPTS.settingPreset.find(o => o.value === f.settingPreset)?.label || "Not specified"; };
 const lightingLabel = f => { if (f.lightingPreset === "custom") return f.lightingCustom || "Custom lighting"; return OPTS.lightingPreset.find(o => o.value === f.lightingPreset)?.label || "Natural daylight"; };
-const optLabel = (opts, val) => opts.find(o => o.value === val)?.label || val;
-const chipsLabel = (opts, vals) => vals.map(v => optLabel(opts, v)).filter(Boolean).join(", ");
 
+// ── SAFE helpers — never crash on wrong type ───────────────────────────────
+const optLabel = (opts, val) => (Array.isArray(opts) ? opts : []).find(o => o.value === val)?.label || val || "";
+const chipsLabel = (opts, vals) => (Array.isArray(vals) ? vals : []).map(v => optLabel(opts, v)).filter(Boolean).join(", ");
+
+// ── Prompt generator ───────────────────────────────────────────────────────
 const buildClipPrompts = (f, storyline) => {
   const cs = clipSec(f.grokPlan);
   const total = parseInt(f.totalDuration) || cs;
   const numClips = Math.ceil(total / cs);
   const funnelOpt = FUNNEL_OPTIONS.find(o => o.value === f.funnel);
-  const toneLabel = f.tone.length ? chipsLabel(OPTS.tone, f.tone) : "calm & warm";
+  const toneLabel = chipsLabel(OPTS.tone, f.tone) || "calm & warm";
   const camOpt = OPTS.cameraMove.find(o => o.value === f.cameraMove);
   const heroOpt = OPTS.heroAngle.find(o => o.value === f.heroAngle);
   const talentOpt = OPTS.talent.find(o => o.value === f.talent);
   const styleOpt = OPTS.videoStyle.find(o => o.value === f.videoStyle);
   const ctaLabel = chipsLabel(OPTS.cta, f.cta);
-  const catLabel = f.productCategory || "";
-  const restrictions = f.restrictions.map(r => `❌ ${optLabel(OPTS.restrictions, r)}`).join("  ");
-  const antiHalluc = (f.antiHallucination || []).map(r => `❌ ${r}`).join("  ");
+  const catLabel = f.productCategory === "other" ? (f.productCategoryCustom || "") : optLabel(OPTS.productCategory, f.productCategory);
+  const restrictions = (Array.isArray(f.restrictions) ? f.restrictions : []).map(r => `❌ ${optLabel(OPTS.restrictions, r)}`).join("  ");
+  const antiHalluc = (Array.isArray(f.antiHallucination) ? f.antiHallucination : []).map(r => `❌ ${optLabel(OPTS.antiHallucination, r)}`).join("  ");
   const storyLines = storyline ? storyline.split("\n").filter(l => l.trim()) : [];
 
-  // Funnel-specific direction per role
   const funnelDir = {
-    upper: {
-      hook: "Open with relatable problem or POV. Do NOT mention the product yet. Make viewer say 'that's so me'.",
-      content: "Introduce product naturally as a discovery. Soft curious tone — not a hard sell.",
-      cta: "Soft CTA only — follow, save, or comment. No price, no urgency.",
-    },
-    middle: {
-      hook: "Agitate the pain point clearly. Viewer should feel 'yes, that's my problem'.",
-      content: "Show product solving the problem with clear before/after or feature demo. Build trust.",
-      cta: "Mid-strength CTA — link in bio, comment for info. Can mention price.",
-    },
-    lower: {
-      hook: "Open with urgency, social proof, or bold claim. Viewer should feel they're missing out.",
-      content: "Highlight key value — price, offer, or transformation. Create strong desire.",
-      cta: "Strong direct CTA — buy now, limited offer, link in bio. Urgency or scarcity.",
-    },
+    upper: { hook: "Open with relatable problem or POV. Do NOT mention the product yet. Make viewer say 'that's so me'.", content: "Introduce product naturally as a discovery. Soft curious tone — not a hard sell.", cta: "Soft CTA only — follow, save, or comment. No price, no urgency." },
+    middle: { hook: "Agitate the pain point clearly. Viewer should feel 'yes, that's my problem'.", content: "Show product solving the problem with clear before/after or feature demo. Build trust.", cta: "Mid-strength CTA — link in bio, comment for info. Can mention price." },
+    lower: { hook: "Open with urgency, social proof, or bold claim. Viewer should feel they're missing out.", content: "Highlight key value — price, offer, or transformation. Create strong desire.", cta: "Strong direct CTA — buy now, limited offer, link in bio. Urgency or scarcity." },
   };
   const fd = funnelDir[f.funnel] || funnelDir.middle;
 
@@ -438,25 +417,25 @@ PRODUCT: ${f.productName} | ${catLabel}
 COLORS: ${f.keyColors || "as per product"}
 KEY FEATURES: ${f.keyFeaturesCustom || "as specified"}
 USP: ${f.usp || f.keyBenefit || "as specified"}
-TARGET AUDIENCE: ${f.targetAudience.length ? chipsLabel(OPTS.targetAudience, f.targetAudience) : "general audience"}
+TARGET AUDIENCE: ${chipsLabel(OPTS.targetAudience, f.targetAudience) || "general audience"}
 SALES FUNNEL: ${funnelOpt?.label || ""} (${funnelOpt?.tag || ""})
 FUNNEL OBJECTIVE: ${funnelOpt?.objective || ""}
-STYLE: ${styleOpt?.label} | TONE: ${toneLabel}
+STYLE: ${styleOpt?.label || ""} | TONE: ${toneLabel}
 REALISM: ${optLabel(OPTS.realism, f.realism) || "realistic live-action"}
-COLOR GRADING: ${f.colorGrading.length ? chipsLabel(OPTS.colorGrading, f.colorGrading) : "natural"}
-AUTHENTICITY: ${f.authenticity.length ? chipsLabel(OPTS.authenticity, f.authenticity) : "natural, not staged"}
+COLOR GRADING: ${chipsLabel(OPTS.colorGrading, f.colorGrading) || "natural"}
+AUTHENTICITY: ${optLabel(OPTS.authenticity, f.authenticity) || "natural, not staged"}
 LOCATION: ${settingLabel(f)}${f.settingDetail ? ` — ${f.settingDetail}` : ""}
 LIGHTING: ${lightingLabel(f)}
 BACKGROUND ACTIVITY: ${optLabel(OPTS.bgActivity, f.bgActivity) || "calm"}
-TALENT: ${f.talent !== "no_talent" ? `${talentOpt?.label}${f.talentStyle.length ? ", " + chipsLabel(OPTS.talentStyle, f.talentStyle) : ""}${f.talentDetail ? ", " + f.talentDetail : ""}` : "No talent — product only"}
-EMOTION: ${f.emotion.length ? chipsLabel(OPTS.emotion, f.emotion) : "natural"}
-SHOT TYPE: ${f.shotType.length ? chipsLabel(OPTS.shotType, f.shotType) : "medium shot"}
+TALENT: ${f.talent !== "no_talent" ? `${talentOpt?.label || ""}${chipsLabel(OPTS.talentStyle, f.talentStyle) ? ", " + chipsLabel(OPTS.talentStyle, f.talentStyle) : ""}${f.talentDetail ? ", " + f.talentDetail : ""}` : "No talent — product only"}
+EMOTION: ${chipsLabel(OPTS.emotion, f.emotion) || "natural"}
+SHOT TYPE: ${chipsLabel(OPTS.shotType, f.shotType) || "medium shot"}
 CAMERA ANGLE: ${optLabel(OPTS.cameraAngle, f.cameraAngle) || "eye-level"}
 CAMERA MOVEMENT: ${camOpt?.label || "gentle handheld"}
 HERO ANGLE: ${heroOpt?.label || "45° elevated"}
-PRODUCT FRAMING: ${f.productFraming.length ? chipsLabel(OPTS.productFraming, f.productFraming) : "product fully visible, centered"}
-SUBJECT MOTION: ${f.subjectMotion.length ? chipsLabel(OPTS.subjectMotion, f.subjectMotion) : "natural movement"}
-PRODUCT INTERACTION: ${f.productInteraction.length ? chipsLabel(OPTS.productInteraction, f.productInteraction) : "natural use"}
+PRODUCT FRAMING: ${chipsLabel(OPTS.productFraming, f.productFraming) || "product fully visible, centered"}
+SUBJECT MOTION: ${chipsLabel(OPTS.subjectMotion, f.subjectMotion) || "natural movement"}
+PRODUCT INTERACTION: ${chipsLabel(OPTS.productInteraction, f.productInteraction) || "natural use"}
 EMOTIONAL ARC: ${optLabel(OPTS.emotionalArc, f.emotionalArc) || "natural progression"}
 ENDING FRAME: ${optLabel(OPTS.endingFrame, f.endingFrame) || "hero product shot"}
 AUDIO: ${optLabel(OPTS.audioType, f.audioType) || "natural ambient"}${f.bgMusic ? ` | Music: ${optLabel(OPTS.bgMusic, f.bgMusic)}` : ""}
@@ -464,7 +443,7 @@ FRAME RATE: ${optLabel(OPTS.frameRate, f.frameRate) || "30fps"}
 RESOLUTION: ${optLabel(OPTS.resolution, f.resolution) || "1080p"}
 DEPTH OF FIELD: ${optLabel(OPTS.depthOfField, f.depthOfField) || "subject sharp, background slightly blurred"}
 ${f.referenceUrl ? `REFERENCE: ${f.referenceUrl}` : ""}
-${f.brandStyle ? `BRAND STYLE: ${f.brandStyle}` : ""}
+${f.brandStyle ? `BRAND STYLE: ${optLabel([{value:"clean_minimal_tech",label:"Clean minimal tech"},{value:"playful_colorful",label:"Playful & colorful"},{value:"serious_corporate",label:"Serious & corporate"},{value:"warm_lifestyle",label:"Warm lifestyle brand"},{value:"premium_luxury",label:"Premium / luxury"}], f.brandStyle)}` : ""}
 ${restrictions ? `RESTRICTIONS: ${restrictions}` : ""}
 ${antiHalluc ? `ANTI-HALLUCINATION: ${antiHalluc}` : ""}`.trim();
 
@@ -475,8 +454,6 @@ ${antiHalluc ? `ANTI-HALLUCINATION: ${antiHalluc}` : ""}`.trim();
     const endSec = Math.min((i + 1) * cs, total);
     const actualDur = endSec - startSec;
     const clipRole = getClipRole(clipNum, numClips);
-
-    // Strip any role prefix Claude may have added
     const rawBeat = storyLines[i] || "";
     const cleanBeat = rawBeat.replace(/^\d+\.\s*\[?(HOOK|CONTENT|CTA)[^\]]*\]?\s*/i, "").trim();
     const sceneBeat = cleanBeat ||
@@ -484,29 +461,13 @@ ${antiHalluc ? `ANTI-HALLUCINATION: ${antiHalluc}` : ""}`.trim();
        clipRole.role === "CTA" ? `CTA close — ${ctaLabel || "hero shot of product, drive action"}` :
        `Content — demonstrate: ${f.keyBenefit || f.keyFeaturesCustom}`);
 
-    const hookDir = clipRole.role.includes("HOOK") ? `
-🎣 HOOK DIRECTION
-• Hook strategy: ${chipsLabel(OPTS.hooks, f.hook) || "pattern interrupt"}
-• First 1–2 seconds must STOP THE SCROLL — no slow intros
-• ${fd.hook}` : "";
-
-    const contentDir = clipRole.role.includes("CONTENT") ? `
-📖 CONTENT DIRECTION
-• Key benefit to show: ${f.keyBenefit || f.keyFeaturesCustom}
-• ${fd.content}
-• Emotional beat: viewer should feel ${f.funnel === "upper" ? "curious and intrigued" : f.funnel === "middle" ? "understood and convinced" : "excited and ready to buy"}` : "";
-
-    const ctaDir = clipRole.role.includes("CTA") ? `
-📢 CTA DIRECTION
-• Action: ${ctaLabel}
-• End on clean hero shot — ${heroOpt?.label || "45° elevated"} — product centered
-• ${fd.cta}
-• Last 1–2 seconds must feel conclusive — not abrupt` : "";
+    const hookDir = clipRole.role.includes("HOOK") ? `\n🎣 HOOK DIRECTION\n• Hook strategy: ${chipsLabel(OPTS.hooks, f.hook) || "pattern interrupt"}\n• First 1–2 seconds must STOP THE SCROLL — no slow intros\n• ${fd.hook}` : "";
+    const contentDir = clipRole.role.includes("CONTENT") ? `\n📖 CONTENT DIRECTION\n• Key benefit to show: ${f.keyBenefit || f.keyFeaturesCustom}\n• ${fd.content}\n• Emotional beat: viewer should feel ${f.funnel === "upper" ? "curious and intrigued" : f.funnel === "middle" ? "understood and convinced" : "excited and ready to buy"}` : "";
+    const ctaDir = clipRole.role.includes("CTA") ? `\n📢 CTA DIRECTION\n• Action: ${ctaLabel}\n• End on clean hero shot — ${heroOpt?.label || "45° elevated"} — product centered\n• ${fd.cta}\n• Last 1–2 seconds must feel conclusive — not abrupt` : "";
 
     clips.push({
       label: `CLIP ${clipNum} of ${numClips}`,
-      role: clipRole.role,
-      tag: clipRole.tag,
+      role: clipRole.role, tag: clipRole.tag,
       timing: `${startSec}s – ${endSec}s (${actualDur}s)`,
       prompt: `═══════════════════════════════════
 🎬 GROK VIDEO PROMPT — CLIP ${clipNum}/${numClips}
@@ -531,43 +492,68 @@ ${clipNum < numClips ? `\n⚡ CONTINUITY: Stitch with Clip ${clipNum + 1}. End o
   return clips;
 };
 
+// ── Creative Director AI call ──────────────────────────────────────────────
 const fetchStoryline = async (f, setLoading, setStoryline, setError) => {
   setLoading(true); setError("");
   const numClips = calcClips(f.grokPlan, f.totalDuration);
   const cs = clipSec(f.grokPlan);
-  const catLabel = f.productCategory === "other" ? f.productCategoryCustom : optLabel(OPTS.productCategory, f.productCategory);
+  const catLabel = f.productCategory === "other" ? (f.productCategoryCustom || "") : optLabel(OPTS.productCategory, f.productCategory);
+
+  const clipRoleMap = Array.from({ length: numClips }, (_, i) => {
+    const r = getClipRole(i + 1, numClips);
+    return `Clip ${i + 1}: [${r.role}] — ${r.desc}`;
+  }).join("\n");
+
+  const funnelGuidance = {
+    upper: { hook: "Relatable problem or POV — do NOT mention product. Make viewer say 'that's so me'.", content: "Soft product discovery — curious tone, no hard sell.", cta: "Soft only — follow, save, comment. No price or urgency." },
+    middle: { hook: "Agitate the pain point clearly. Viewer should feel 'yes, that's my problem'.", content: "Show product solving problem with before/after or feature demo. Build trust.", cta: "Mid-strength — link in bio, comment for info. Can mention price." },
+    lower: { hook: "Urgency, social proof, or bold claim. Viewer should feel they're missing out.", content: "Highlight value — price, offer, transformation. Create strong desire.", cta: "Strong and direct — buy now, limited offer, link in bio. Urgency or scarcity." },
+  };
+  const fg = funnelGuidance[f.funnel] || funnelGuidance.middle;
+
   try {
     const res = await fetch("/api/storyline", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         model: "claude-sonnet-4-20250514",
-        max_tokens: 1000,
-        system: `You are a Creative Director specialising in short-form TikTok/social video content. 
-You write punchy, visual, scroll-stopping video storylines. 
-You must return ONLY a plain numbered list — one line per clip beat, no extra commentary, no markdown, no preamble.
-Each line = one clip = exactly ${cs} seconds of visual action. Total clips: ${numClips}.
-Each line should describe: what the CAMERA sees + what HAPPENS + the emotional beat. Be specific and visual.`,
+        max_tokens: 1200,
+        system: `You are a Creative Director specialising in short-form TikTok/social video content.
+You write punchy, visual, scroll-stopping video storylines structured around Hook → Content → CTA.
+
+STRICT OUTPUT FORMAT:
+- Return ONLY a numbered list, one line per clip
+- Each line MUST start with the clip role in brackets: [HOOK], [CONTENT], [CTA], or combined e.g. [HOOK + CONTENT]
+- No extra commentary, no markdown, no preamble
+- Format: "1. [ROLE] <visual scene description>"
+Each description must include: camera angle + what happens visually + emotional beat. Be specific.`,
         messages: [{
           role: "user",
-          content: `Generate a ${numClips}-beat video storyline:
-Product: ${f.productName || "unnamed product"} | Category: ${catLabel}
+          content: `Generate a ${numClips}-beat video storyline with Hook → Content → CTA structure.
+
+CLIP ROLE ASSIGNMENTS:
+${clipRoleMap}
+
+PRODUCT BRIEF:
+Product: ${f.productName || "unnamed"} | Category: ${catLabel}
 Features: ${f.keyFeaturesCustom || "not specified"} | USP: ${f.usp || "not specified"}
 Audience: ${chipsLabel(OPTS.targetAudience, f.targetAudience) || "general"}
 Problem: ${f.problemStatement || "not specified"} | Benefit: ${f.keyBenefit || "not specified"}
 Style: ${f.videoStyle} | Tone: ${chipsLabel(OPTS.tone, f.tone) || "calm, warm"}
-Hook: ${chipsLabel(OPTS.hooks, f.hook) || "not specified"} | CTA: ${chipsLabel(OPTS.cta, f.cta) || "not specified"}
-Setting: ${settingLabel(f)} | Talent: ${f.talent} | Emotion: ${chipsLabel(OPTS.emotion, f.emotion) || "natural"}
-Funnel: ${FUNNEL_OPTIONS.find(o => o.value === f.funnel)?.label || "not specified"}
-Objective: ${FUNNEL_OPTIONS.find(o => o.value === f.funnel)?.objective || "not specified"}
+Hook: ${chipsLabel(OPTS.hooks, f.hook) || "pattern interrupt"} | CTA: ${chipsLabel(OPTS.cta, f.cta) || "link in bio"}
+Setting: ${settingLabel(f)} | Talent: ${f.talent}
+Emotion: ${chipsLabel(OPTS.emotion, f.emotion) || "natural"}
 Emotional arc: ${optLabel(OPTS.emotionalArc, f.emotionalArc) || "natural"}
 Ending frame: ${optLabel(OPTS.endingFrame, f.endingFrame) || "hero product shot"}
+Sales Funnel: ${FUNNEL_OPTIONS.find(o => o.value === f.funnel)?.label || "not specified"}
 
-IMPORTANT: Align with ${FUNNEL_OPTIONS.find(o => o.value === f.funnel)?.label || "the funnel stage"}.
-${f.funnel === "upper" ? "Focus on AWARENESS — hook with relatable content, do NOT hard sell. Make viewer curious." : ""}
-${f.funnel === "middle" ? "Focus on CONSIDERATION — show the product solving a real problem, build trust and credibility." : ""}
-${f.funnel === "lower" ? "Focus on CONVERSION — create urgency, give a clear reason to buy NOW, strong CTA." : ""}
-Return exactly ${numClips} lines. One line per clip. Each line = what happens visually in that ${cs}-second clip.`
+FUNNEL DIRECTION PER ROLE:
+[HOOK]: ${fg.hook}
+[CONTENT]: ${fg.content}
+[CTA]: ${fg.cta}
+
+RULES: Each clip = ${cs}s. HOOK = tease problem, not product. CONTENT = show solution. CTA = drive action.
+Return exactly ${numClips} lines. Start each with role tag in brackets.`
         }]
       })
     });
@@ -581,6 +567,7 @@ Return exactly ${numClips} lines. One line per clip. Each line = what happens vi
   }
 };
 
+// ── Main App ───────────────────────────────────────────────────────────────
 export default function App() {
   const [f, setF] = useState(init);
   const [tab, setTab] = useState("builder");
@@ -632,14 +619,12 @@ export default function App() {
       <div className="max-w-2xl mx-auto px-4 py-6">
         {tab === "builder" && (<>
 
-          {/* 1. Project Meta */}
           <Section emoji="📁" title="Project" subtitle="Optional — helps you organise multiple campaigns.">
             <Field label="Campaign / Project Name">
               <TextInput value={f.campaignName} onChange={set("campaignName")} placeholder="e.g. Raya 2025 — Vflow Monitor Launch" />
             </Field>
           </Section>
 
-          {/* 2. Grok Settings */}
           <Section emoji="⚙️" title="Grok Settings" subtitle="Select your plan — determines how many clips are generated.">
             <Field label="Grok Plan">
               <div className="flex gap-3">
@@ -664,7 +649,6 @@ export default function App() {
             </Field>
           </Section>
 
-          {/* 3. Funnel */}
           <Section emoji="🎯" title="Sales Funnel Stage" subtitle="Select your video objective — shapes the entire storyline and strategy.">
             <div className="space-y-2">
               {FUNNEL_OPTIONS.map(o => (
@@ -684,14 +668,13 @@ export default function App() {
             </div>
             {f.funnel && (
               <div className={`text-xs px-3 py-2 rounded-lg mt-1 ${f.funnel === "upper" ? "bg-blue-50 text-blue-700" : f.funnel === "middle" ? "bg-yellow-50 text-yellow-700" : "bg-green-50 text-green-700"}`}>
-                {f.funnel === "upper" && "✅ Storyline will focus on AWARENESS — no hard selling."}
-                {f.funnel === "middle" && "✅ Storyline will focus on CONSIDERATION — educate and build trust."}
-                {f.funnel === "lower" && "✅ Storyline will focus on CONVERSION — urgency and purchase intent."}
+                {f.funnel === "upper" && "✅ Hook→Content→CTA will focus on AWARENESS — no hard selling."}
+                {f.funnel === "middle" && "✅ Hook→Content→CTA will focus on CONSIDERATION — educate and build trust."}
+                {f.funnel === "lower" && "✅ Hook→Content→CTA will focus on CONVERSION — urgency and purchase intent."}
               </div>
             )}
           </Section>
 
-          {/* 4. Product */}
           <Section emoji="📦" title="Product" subtitle="Lock down your product — stays consistent across every clip.">
             <div className="grid grid-cols-2 gap-3">
               <Field label="Product Name" required>
@@ -723,7 +706,6 @@ export default function App() {
             </Field>
           </Section>
 
-          {/* 5. Style & Tone */}
           <Section emoji="🎨" title="Style & Tone">
             <Field label="Video Style">
               <Chips value={f.videoStyle} onChange={set("videoStyle")} options={OPTS.videoStyle} single />
@@ -734,7 +716,7 @@ export default function App() {
             <Field label="Realism Level">
               <Chips value={f.realism} onChange={set("realism")} options={OPTS.realism} single />
             </Field>
-            <Field label="Color Grading / Mood (pick all that apply)">
+            <Field label="Color Grading / Mood">
               <Chips value={f.colorGrading} onChange={set("colorGrading")} options={OPTS.colorGrading} />
             </Field>
             <Field label="Authenticity Feel">
@@ -742,7 +724,6 @@ export default function App() {
             </Field>
           </Section>
 
-          {/* 6. Setting */}
           <Section emoji="🏠" title="Setting & Environment">
             <div className="grid grid-cols-2 gap-3">
               <Field label="Location">
@@ -752,17 +733,9 @@ export default function App() {
                 <Select value={f.lightingPreset} onChange={set("lightingPreset")} options={OPTS.lightingPreset} />
               </Field>
             </div>
-            {f.settingPreset === "custom" && (
-              <Field label="Custom Location">
-                <TextInput value={f.settingCustom} onChange={set("settingCustom")} placeholder="e.g. Rooftop terrace, urban skyline at dusk" />
-              </Field>
-            )}
-            {f.lightingPreset === "custom" && (
-              <Field label="Custom Lighting">
-                <TextInput value={f.lightingCustom} onChange={set("lightingCustom")} placeholder="e.g. Neon-lit night scene, pink accent from left" />
-              </Field>
-            )}
-            <Field label="Environment Details & Props" hint="Describe desk setup, furniture, key props">
+            {f.settingPreset === "custom" && <Field label="Custom Location"><TextInput value={f.settingCustom} onChange={set("settingCustom")} placeholder="e.g. Rooftop terrace, urban skyline at dusk" /></Field>}
+            {f.lightingPreset === "custom" && <Field label="Custom Lighting"><TextInput value={f.lightingCustom} onChange={set("lightingCustom")} placeholder="e.g. Neon-lit night scene, pink accent from left" /></Field>}
+            <Field label="Environment Details & Props">
               <TextInput value={f.settingDetail} onChange={set("settingDetail")} placeholder="e.g. Desk + laptop + coffee, minimal props, clean workspace" />
             </Field>
             <Field label="Background Activity Level">
@@ -770,16 +743,13 @@ export default function App() {
             </Field>
           </Section>
 
-          {/* 7. Talent */}
           <Section emoji="👤" title="Talent & Character">
             <Field label="Talent Type">
               <Chips value={f.talent} onChange={set("talent")} options={OPTS.talent} single />
             </Field>
             {f.talent !== "no_talent" && (<>
-              <Field label="Outfit Style">
-                <Chips value={f.talentStyle} onChange={set("talentStyle")} options={OPTS.talentStyle} />
-              </Field>
-              <Field label="Appearance Details" hint="Outfit color, hair style — keeps character consistent across clips">
+              <Field label="Outfit Style"><Chips value={f.talentStyle} onChange={set("talentStyle")} options={OPTS.talentStyle} /></Field>
+              <Field label="Appearance Details" hint="Outfit color, hair style — keeps character consistent">
                 <TextInput value={f.talentDetail} onChange={set("talentDetail")} placeholder="e.g. White shirt, dark jeans, hair tied back" />
               </Field>
               <Field label="Emotion / Facial Expression">
@@ -788,36 +758,21 @@ export default function App() {
             </>)}
           </Section>
 
-          {/* 8. Camera */}
           <Section emoji="🎥" title="Camera & Framing">
-            <Field label="Shot Type (pick all that apply)">
-              <Chips value={f.shotType} onChange={set("shotType")} options={OPTS.shotType} />
-            </Field>
-            <Field label="Camera Angle">
-              <Chips value={f.cameraAngle} onChange={set("cameraAngle")} options={OPTS.cameraAngle} single />
-            </Field>
-            <Field label="Camera Movement">
-              <Chips value={f.cameraMove} onChange={set("cameraMove")} options={OPTS.cameraMove} single />
-            </Field>
+            <Field label="Shot Type (pick all that apply)"><Chips value={f.shotType} onChange={set("shotType")} options={OPTS.shotType} /></Field>
+            <Field label="Camera Angle"><Chips value={f.cameraAngle} onChange={set("cameraAngle")} options={OPTS.cameraAngle} single /></Field>
+            <Field label="Camera Movement"><Chips value={f.cameraMove} onChange={set("cameraMove")} options={OPTS.cameraMove} single /></Field>
             <Field label="Hero / Product Shot Angle" hint="Final closing shot">
               <Select value={f.heroAngle} onChange={set("heroAngle")} options={OPTS.heroAngle} />
             </Field>
-            <Field label="Product Framing Rules (pick all that apply)">
-              <Chips value={f.productFraming} onChange={set("productFraming")} options={OPTS.productFraming} />
-            </Field>
+            <Field label="Product Framing Rules"><Chips value={f.productFraming} onChange={set("productFraming")} options={OPTS.productFraming} /></Field>
           </Section>
 
-          {/* 9. Action & Motion */}
           <Section emoji="🎬" title="Action & Motion">
-            <Field label="Subject Motion (pick all that apply)">
-              <Chips value={f.subjectMotion} onChange={set("subjectMotion")} options={OPTS.subjectMotion} />
-            </Field>
-            <Field label="Product Interaction (pick all that apply)">
-              <Chips value={f.productInteraction} onChange={set("productInteraction")} options={OPTS.productInteraction} />
-            </Field>
+            <Field label="Subject Motion (pick all that apply)"><Chips value={f.subjectMotion} onChange={set("subjectMotion")} options={OPTS.subjectMotion} /></Field>
+            <Field label="Product Interaction (pick all that apply)"><Chips value={f.productInteraction} onChange={set("productInteraction")} options={OPTS.productInteraction} /></Field>
           </Section>
 
-          {/* 10. Story & Structure */}
           <Section emoji="📖" title="Story & Structure">
             <Field label="Hook Strategy" required hint="How does the video open? Pick 1–2">
               <Chips value={f.hook} onChange={set("hook")} options={OPTS.hooks} />
@@ -828,19 +783,12 @@ export default function App() {
             <Field label="Core Benefit to Show">
               <TextInput value={f.keyBenefit} onChange={set("keyBenefit")} placeholder="e.g. Instant dual-screen setup anywhere in seconds" />
             </Field>
-            <Field label="Emotional Arc">
-              <Chips value={f.emotionalArc} onChange={set("emotionalArc")} options={OPTS.emotionalArc} single />
-            </Field>
-            <Field label="Ending Frame / Last Shot">
-              <Chips value={f.endingFrame} onChange={set("endingFrame")} options={OPTS.endingFrame} single />
-            </Field>
-            <Field label="CTA" required hint="Pick 1–2">
-              <Chips value={f.cta} onChange={set("cta")} options={OPTS.cta} />
-            </Field>
+            <Field label="Emotional Arc"><Chips value={f.emotionalArc} onChange={set("emotionalArc")} options={OPTS.emotionalArc} single /></Field>
+            <Field label="Ending Frame / Last Shot"><Chips value={f.endingFrame} onChange={set("endingFrame")} options={OPTS.endingFrame} single /></Field>
+            <Field label="CTA" required hint="Pick 1–2"><Chips value={f.cta} onChange={set("cta")} options={OPTS.cta} /></Field>
           </Section>
 
-          {/* 11. Creative Director */}
-          <Section emoji="🎭" title="Creative Director" subtitle="AI-generated storyline based on your product and goals. Edit freely before generating.">
+          <Section emoji="🎭" title="Creative Director" subtitle="AI generates a structured Hook → Content → CTA storyline. Edit freely before generating.">
             <button
               onClick={() => fetchStoryline(f, setAiLoading, setStoryline, setAiError)}
               disabled={aiLoading || !f.productName || !f.keyFeaturesCustom}
@@ -850,54 +798,35 @@ export default function App() {
             {(!f.productName || !f.keyFeaturesCustom) && <p className="text-xs text-gray-400">Fill in Product Name and Key Features first.</p>}
             {aiError && <p className="text-xs text-red-400">{aiError}</p>}
             {storyline && (
-              <Field label={`Storyline (${numClips} clips × ${cs}s each)`} hint="Edit freely — one line per clip beat">
+              <Field label={`Storyline (${numClips} clips × ${cs}s) — Hook → Content → CTA`} hint="Edit freely — one line per clip beat">
                 <TextArea value={storyline} onChange={setStoryline} rows={numClips + 1} placeholder="One line per clip..." />
               </Field>
             )}
           </Section>
 
-          {/* 12. Audio */}
           <Section emoji="🎙" title="Audio & Voiceover">
-            <Field label="Audio Type">
-              <Chips value={f.audioType} onChange={set("audioType")} options={OPTS.audioType} single />
-            </Field>
-            <Field label="Background Music">
-              <Chips value={f.bgMusic} onChange={set("bgMusic")} options={OPTS.bgMusic} single />
-            </Field>
+            <Field label="Audio Type"><Chips value={f.audioType} onChange={set("audioType")} options={OPTS.audioType} single /></Field>
+            <Field label="Background Music"><Chips value={f.bgMusic} onChange={set("bgMusic")} options={OPTS.bgMusic} single /></Field>
             {f.audioType !== "silent" && f.audioType !== "ambient_only" && (<>
               <div className="grid grid-cols-2 gap-3">
-                <Field label="Voiceover Language">
-                  <Select value={f.voLang} onChange={set("voLang")} options={OPTS.voLang} />
-                </Field>
-                <Field label="VO Tone">
-                  <TextInput value={f.voTone} onChange={set("voTone")} placeholder="e.g. Friendly, calm" />
-                </Field>
+                <Field label="Voiceover Language"><Select value={f.voLang} onChange={set("voLang")} options={OPTS.voLang} /></Field>
+                <Field label="VO Tone"><TextInput value={f.voTone} onChange={set("voTone")} placeholder="e.g. Friendly, calm" /></Field>
               </div>
-              <Field label="Speech Type">
-                <Chips value={f.speechType} onChange={set("speechType")} options={OPTS.speechType} single />
-              </Field>
+              <Field label="Speech Type"><Chips value={f.speechType} onChange={set("speechType")} options={OPTS.speechType} single /></Field>
               <Field label="Script Guide / Key Lines" hint="Optional talking points">
                 <TextArea value={f.customVO} onChange={set("customVO")} placeholder={"Opening: Hook line\nMiddle: Key benefit\nClose: CTA"} rows={3} />
               </Field>
             </>)}
           </Section>
 
-          {/* 13. Technical */}
           <Section emoji="⚡" title="Technical Settings">
-            <Field label="Frame Rate">
-              <Chips value={f.frameRate} onChange={set("frameRate")} options={OPTS.frameRate} single />
-            </Field>
-            <Field label="Resolution">
-              <Chips value={f.resolution} onChange={set("resolution")} options={OPTS.resolution} single />
-            </Field>
-            <Field label="Focus & Depth of Field">
-              <Chips value={f.depthOfField} onChange={set("depthOfField")} options={OPTS.depthOfField} single />
-            </Field>
+            <Field label="Frame Rate"><Chips value={f.frameRate} onChange={set("frameRate")} options={OPTS.frameRate} single /></Field>
+            <Field label="Resolution"><Chips value={f.resolution} onChange={set("resolution")} options={OPTS.resolution} single /></Field>
+            <Field label="Focus & Depth of Field"><Chips value={f.depthOfField} onChange={set("depthOfField")} options={OPTS.depthOfField} single /></Field>
           </Section>
 
-          {/* 14. References */}
           <Section emoji="🖼" title="References">
-            <Field label="Reference Image URL / Product Link" hint="Link to product image or style reference — dramatically improves accuracy">
+            <Field label="Reference Image URL / Product Link" hint="Dramatically improves accuracy">
               <TextInput value={f.referenceUrl} onChange={set("referenceUrl")} placeholder="e.g. https://yoursite.com/product-image.jpg" />
             </Field>
             <Field label="Brand Style Reference">
@@ -911,16 +840,15 @@ export default function App() {
             </Field>
           </Section>
 
-          {/* 15. Restrictions */}
           <Section emoji="❗" title="Restrictions & Guardrails">
-            <Field label="Anti-Hallucination Rules (pick all that apply)" hint="Prevents common AI video artifacts">
+            <Field label="Anti-Hallucination Rules" hint="Prevents common AI video artifacts">
               <Chips value={f.antiHallucination} onChange={set("antiHallucination")} options={OPTS.antiHallucination} />
             </Field>
             <Field label="Additional Restrictions">
               <Chips value={f.restrictions} onChange={set("restrictions")} options={OPTS.restrictions} />
             </Field>
             <Field label="Additional Notes">
-              <TextArea value={f.extraNotes} onChange={set("extraNotes")} placeholder="e.g. Raya season — festive but not loud. Avoid showing competitor brand X." rows={2} />
+              <TextArea value={f.extraNotes} onChange={set("extraNotes")} placeholder="e.g. Raya season — festive but not loud." rows={2} />
             </Field>
           </Section>
 
