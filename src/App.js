@@ -411,8 +411,9 @@ const buildClipPrompts = (f, storyline) => {
   };
   const fd = funnelDir[f.funnel] || funnelDir.middle;
 
-  const baseContext = `
+const baseContext = `
 CAMPAIGN: ${f.campaignName || "Untitled"}
+PLATFORM: ${optLabel(OPTS.platform, f.platform)}
 PRODUCT: ${f.productName} | ${catLabel}
 COLORS: ${f.keyColors || "as per product"}
 KEY FEATURES: ${f.keyFeaturesCustom || "as specified"}
@@ -438,6 +439,9 @@ SUBJECT MOTION: ${chipsLabel(OPTS.subjectMotion, f.subjectMotion) || "natural mo
 PRODUCT INTERACTION: ${chipsLabel(OPTS.productInteraction, f.productInteraction) || "natural use"}
 EMOTIONAL ARC: ${optLabel(OPTS.emotionalArc, f.emotionalArc) || "natural progression"}
 ENDING FRAME: ${optLabel(OPTS.endingFrame, f.endingFrame) || "hero product shot"}
+PROBLEM BEING SOLVED: ${f.problemStatement || "not specified"}
+HOOK STRATEGY: ${chipsLabel(OPTS.hooks, f.hook) || "pattern interrupt"}
+CTA: ${ctaLabel || "not specified"}
 AUDIO: ${optLabel(OPTS.audioType, f.audioType) || "natural ambient"}${f.bgMusic ? ` | Music: ${optLabel(OPTS.bgMusic, f.bgMusic)}` : ""}
 FRAME RATE: ${optLabel(OPTS.frameRate, f.frameRate) || "30fps"}
 RESOLUTION: ${optLabel(OPTS.resolution, f.resolution) || "1080p"}
@@ -445,7 +449,8 @@ DEPTH OF FIELD: ${optLabel(OPTS.depthOfField, f.depthOfField) || "subject sharp,
 ${f.referenceUrl ? `REFERENCE: ${f.referenceUrl}` : ""}
 ${f.brandStyle ? `BRAND STYLE: ${optLabel([{value:"clean_minimal_tech",label:"Clean minimal tech"},{value:"playful_colorful",label:"Playful & colorful"},{value:"serious_corporate",label:"Serious & corporate"},{value:"warm_lifestyle",label:"Warm lifestyle brand"},{value:"premium_luxury",label:"Premium / luxury"}], f.brandStyle)}` : ""}
 ${restrictions ? `RESTRICTIONS: ${restrictions}` : ""}
-${antiHalluc ? `ANTI-HALLUCINATION: ${antiHalluc}` : ""}`.trim();
+${antiHalluc ? `ANTI-HALLUCINATION: ${antiHalluc}` : ""}
+${f.extraNotes ? `ADDITIONAL NOTES: ${f.extraNotes}` : ""}`.trim();
 
   const clips = [];
   for (let i = 0; i < numClips; i++) {
@@ -482,7 +487,7 @@ ${baseContext}
 ${sceneBeat}
 ${hookDir}${contentDir}${ctaDir}
 ${f.productRules ? `\nPRODUCT RULES:\n${f.productRules.split("\n").map(l => "• " + l).join("\n")}` : ""}
-${f.voLang && f.voLang !== "none" ? `\nVOICEOVER: Language: ${optLabel(OPTS.voLang, f.voLang)} | Type: ${optLabel(OPTS.speechType, f.speechType)} | Tone: ${f.voTone || "conversational, not scripted"}` : ""}
+${f.voLang && f.voLang !== "none" ? `\nVOICEOVER: Language: ${optLabel(OPTS.voLang, f.voLang)} | Type: ${optLabel(OPTS.speechType, f.speechType)} | Tone: ${f.voTone || "conversational, not scripted"}${f.customVO ? `\nVO SCRIPT GUIDE:\n${f.customVO}` : ""}` : ""}
 ${clipNum < numClips ? `\n⚡ CONTINUITY: Stitch with Clip ${clipNum + 1}. End on a clean frame — avoid abrupt cuts.` : ""}
 
 ❗ OVERALL: Authentic, natural, purposeful. Not staged. Not an ad — even if it is one.
