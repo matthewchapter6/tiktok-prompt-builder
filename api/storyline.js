@@ -1,7 +1,4 @@
 export default async function handler(req, res) {
-  console.log('API KEY EXISTS:', !!process.env.ANTHROPIC_API_KEY);
-  console.log('API KEY PREFIX:', process.env.ANTHROPIC_API_KEY?.substring(0, 10));
-
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
@@ -15,15 +12,14 @@ export default async function handler(req, res) {
   }
 
   try {
-    // Build a clean request body — only send what Anthropic expects
+    const { system, messages } = req.body;
+
     const body = {
       model: 'claude-sonnet-4-20250514',
       max_tokens: 1000,
-      system: req.body.system,
-      messages: req.body.messages
+      system: system,
+      messages: messages
     };
-
-    console.log('Sending to Anthropic:', JSON.stringify(body));
 
     const response = await fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST',
@@ -36,14 +32,6 @@ export default async function handler(req, res) {
     });
 
     const data = await response.json();
-    console.log('STATUS:', response.status);
-    console.log('RESPONSE:', JSON.stringify(data));
-    if (!response.ok) {
-      return res.status(response.status).json({ 
-        error: data,
-        sentBody: body 
-      });
-    }
 
     if (!response.ok) {
       return res.status(response.status).json({ error: data });
