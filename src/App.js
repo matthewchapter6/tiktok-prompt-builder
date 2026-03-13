@@ -353,6 +353,7 @@ const OPTS = {
   ],
 };
 
+
 const init = {
   // Meta
   campaignName: "",
@@ -362,7 +363,8 @@ const init = {
   funnel: "",
   // Product
   productName: "", productCategory: "", productCategoryCustom: "",
-  keyColors: "", keyFeatures: [], keyFeaturesCustom: "", usp: "", targetAudience: [], productRules: "",
+  keyColors: "", keyFeaturesCustom: "", usp: "", productRules: "",
+  targetAudience: [],
   // Style
   videoStyle: "ugc", tone: [], realism: "", colorGrading: [], authenticity: [],
   // Setting
@@ -405,9 +407,9 @@ const buildClipPrompts = (f, storyline) => {
   const talentOpt = OPTS.talent.find(o => o.value === f.talent);
   const styleOpt = OPTS.videoStyle.find(o => o.value === f.videoStyle);
   const ctaLabel = chipsLabel(OPTS.cta, f.cta);
-  const catLabel = f.productCategory === "other" ? f.productCategoryCustom : optLabel(OPTS.productCategory, f.productCategory);
+  const catLabel = f.productCategory || "";
   const restrictions = f.restrictions.map(r => `❌ ${optLabel(OPTS.restrictions, r)}`).join("  ");
-  const antiHalluc = f.antiHallucination.map(r => `❌ ${optLabel(OPTS.antiHallucination, r)}`).join("  ");
+  const antiHalluc = (f.antiHallucination || []).map(r => `❌ ${r}`).join("  ");
   const storyLines = storyline ? storyline.split("\n").filter(l => l.trim()) : [];
 
   // Funnel-specific direction per role
