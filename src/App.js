@@ -1,4 +1,4 @@
-import React, { useState, useRef } from "react";
+import { useState, useRef } from "react";
 
 // ── UI primitives ──────────────────────────────────────────────────────────
 const Section = ({ title, emoji, subtitle, children }) => (
@@ -53,6 +53,51 @@ const Chips = ({ value, onChange, options }) => {
 };
 
 // ── Options ────────────────────────────────────────────────────────────────
+const FUNNEL_OPTIONS = [
+  {
+    value: "upper",
+    emoji: "🔺",
+    label: "Upper Funnel",
+    tag: "Awareness",
+    description: "Pull traffic & build awareness",
+    objective: "Reach out to new customers who don't know your product yet",
+    examples: ["Relatable problem", "Storytelling", "Point of view (POV)", "Trending hook"],
+    color: "blue",
+  },
+  {
+    value: "middle",
+    emoji: "🔶",
+    label: "Middle Funnel",
+    tag: "Consideration",
+    description: "Educate & build trust",
+    objective: "Gain video views, community interaction and warm up leads",
+    examples: ["Review / UGC", "Before & after", "Feature highlight", "Product demo"],
+    color: "yellow",
+  },
+  {
+    value: "lower",
+    emoji: "🔻",
+    label: "Lower Funnel",
+    tag: "Conversion",
+    description: "Drive purchase & close sales",
+    objective: "Promotion, lead generation and direct purchase intent",
+    examples: ["Limited offer", "CTA to buy", "Testimonial + price", "Urgency / scarcity"],
+    color: "green",
+  },
+];
+
+const FUNNEL_HOOK_MAP = {
+  upper: ["question", "bold_claim", "reveal", "before_after"],
+  middle: ["problem_agitate", "before_after", "social_proof", "reveal"],
+  lower: ["bold_claim", "social_proof", "problem_agitate", "question"],
+};
+
+const FUNNEL_CTA_MAP = {
+  upper: ["follow", "save_post", "comment"],
+  middle: ["comment", "save_post", "follow", "shop_link"],
+  lower: ["shop_link", "try_it", "comment"],
+};
+
 const OPTS = {
   platform: [
     { value: "tiktok", label: "TikTok (9:16)" },
@@ -178,6 +223,7 @@ const OPTS = {
 
 const init = {
   platform: "tiktok", grokPlan: "free", totalDuration: "12",
+  funnel: "",
   productName: "", productCategory: "", keyColors: "", keyFeatures: "", usp: "", productRules: "",
   videoStyle: "ugc", tone: [],
   settingPreset: "", settingCustom: "", settingDetail: "",
@@ -213,6 +259,7 @@ const buildClipPrompts = (f, storyline) => {
   const cs = clipSec(f.grokPlan);
   const total = parseInt(f.totalDuration) || cs;
   const numClips = Math.ceil(total / cs);
+  const funnelOpt = FUNNEL_OPTIONS.find(o => o.value === f.funnel);
   const toneLabel = f.tone.length ? f.tone.join(", ") : "calm & warm";
   const camOpt = OPTS.cameraMove.find(o => o.value === f.cameraMove);
   const heroOpt = OPTS.heroAngle.find(o => o.value === f.heroAngle);
@@ -226,6 +273,9 @@ PRODUCT: ${f.productName} | ${f.productCategory}
 COLORS: ${f.keyColors || "as per product"}
 KEY FEATURES: ${f.keyFeatures}
 USP: ${f.usp || f.keyBenefit || f.keyFeatures}
+SALES FUNNEL: ${funnelOpt?.label || ""} (${funnelOpt?.tag || ""})
+FUNNEL OBJECTIVE: ${funnelOpt?.objective || ""}
+FUNNEL APPROACH: ${funnelOpt?.examples?.join(", ") || ""}
 STYLE: ${styleOpt?.label} | TONE: ${toneLabel}
 LOCATION: ${settingLabel(f)}${f.settingDetail ? ` — ${f.settingDetail}` : ""}
 LIGHTING: ${lightingLabel(f)}
@@ -285,7 +335,7 @@ const fetchStoryline = async (f, setLoading, setStoryline, setError) => {
   const numClips = calcClips(f.grokPlan, f.totalDuration);
   const cs = clipSec(f.grokPlan);
   try {
-    const res = await fetch("/api/storyline", {
+    const res = await fetch("https://api.anthropic.com/v1/messages", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
@@ -312,6 +362,14 @@ Hook Strategy: ${f.hook.map(h => OPTS.hooks.find(o => o.value === h)?.label).joi
 CTA: ${f.cta.map(c => OPTS.cta.find(o => o.value === c)?.label).join(", ") || "not specified"}
 Setting: ${settingLabel(f)}
 Talent: ${f.talent}
+Sales Funnel Stage: ${FUNNEL_OPTIONS.find(o => o.value === f.funnel)?.label || "not specified"}
+Funnel Objective: ${FUNNEL_OPTIONS.find(o => o.value === f.funnel)?.objective || "not specified"}
+Funnel Content Approach: ${FUNNEL_OPTIONS.find(o => o.value === f.funnel)?.examples?.join(", ") || "not specified"}
+
+IMPORTANT: The storyline MUST align with the ${FUNNEL_OPTIONS.find(o => o.value === f.funnel)?.label || ""} stage.
+${f.funnel === "upper" ? "Focus on AWARENESS — hook with relatable content, do NOT hard sell. Make viewer curious." : ""}
+${f.funnel === "middle" ? "Focus on CONSIDERATION — show the product solving a real problem, build trust and credibility." : ""}
+${f.funnel === "lower" ? "Focus on CONVERSION — create urgency, give a clear reason to buy NOW, strong CTA." : ""}
 
 Return exactly ${numClips} lines. One line per clip. Each line = what happens visually in that ${cs}-second clip.`
         }]
@@ -343,7 +401,7 @@ export default function App() {
   const numClips = calcClips(f.grokPlan, f.totalDuration);
   const cs = clipSec(f.grokPlan);
 
-  const missingRequired = !f.productName || !f.productCategory || !f.keyFeatures || !f.hook.length || !f.cta.length;
+  const missingRequired = !f.productName || !f.productCategory || !f.keyFeatures || !f.hook.length || !f.cta.length || !f.funnel;
 
   const generate = () => {
     const result = buildClipPrompts(f, storyline);
@@ -422,6 +480,43 @@ export default function App() {
                 ))}
               </div>
             </Field>
+          </Section>
+
+          {/* Funnel */}
+          <Section emoji="🎯" title="Sales Funnel Stage" subtitle="Select your video objective — this shapes the entire storyline and strategy.">
+            <div className="space-y-2">
+              {FUNNEL_OPTIONS.map(o => (
+                <button key={o.value} onClick={() => set("funnel")(o.value)}
+                  className={`w-full text-left p-3 rounded-xl border-2 transition-all ${
+                    f.funnel === o.value
+                      ? o.color === "blue" ? "border-blue-500 bg-blue-50" : o.color === "yellow" ? "border-yellow-500 bg-yellow-50" : "border-green-500 bg-green-50"
+                      : "border-gray-200 bg-white hover:border-gray-300"
+                  }`}>
+                  <div className="flex items-center justify-between mb-1">
+                    <span className="font-bold text-sm text-gray-800">{o.emoji} {o.label}</span>
+                    <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${
+                      o.color === "blue" ? "bg-blue-100 text-blue-700" : o.color === "yellow" ? "bg-yellow-100 text-yellow-700" : "bg-green-100 text-green-700"
+                    }`}>{o.tag}</span>
+                  </div>
+                  <p className="text-xs text-gray-500 mb-1">{o.description}</p>
+                  <p className="text-xs text-gray-400">📌 {o.objective}</p>
+                  <div className="flex flex-wrap gap-1 mt-2">
+                    {o.examples.map(e => (
+                      <span key={e} className="text-xs bg-gray-100 text-gray-600 px-2 py-0.5 rounded-full">{e}</span>
+                    ))}
+                  </div>
+                </button>
+              ))}
+            </div>
+            {f.funnel && (
+              <div className={`text-xs px-3 py-2 rounded-lg mt-1 ${
+                f.funnel === "upper" ? "bg-blue-50 text-blue-700" : f.funnel === "middle" ? "bg-yellow-50 text-yellow-700" : "bg-green-50 text-green-700"
+              }`}>
+                {f.funnel === "upper" && "✅ Hooks, CTA and storyline will focus on AWARENESS — no hard selling."}
+                {f.funnel === "middle" && "✅ Hooks, CTA and storyline will focus on CONSIDERATION — educate and build trust."}
+                {f.funnel === "lower" && "✅ Hooks, CTA and storyline will focus on CONVERSION — urgency and purchase intent."}
+              </div>
+            )}
           </Section>
 
           {/* Product */}
@@ -597,7 +692,7 @@ export default function App() {
 
           {missingRequired && (
             <div className="bg-amber-50 border border-amber-200 rounded-lg px-4 py-3 mb-4 text-xs text-amber-700">
-              ⚠️ <strong>Required:</strong> Product Name, Category, Key Features, Hook Strategy, and CTA.
+              ⚠️ <strong>Required:</strong> Funnel Stage, Product Name, Category, Key Features, Hook Strategy, and CTA.
             </div>
           )}
 
