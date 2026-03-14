@@ -434,46 +434,60 @@ const buildClipPrompts = (f, storyline) => {
   };
   const fd = funnelDir[f.funnel] || funnelDir.middle;
 
-const baseContext = `
-CAMPAIGN: ${f.campaignName || "Untitled"}
-PLATFORM: ${optLabel(OPTS.platform, f.platform)}
-PRODUCT: ${f.productName} | ${catLabel}
-COLORS: ${f.keyColors || "as per product"}
-KEY FEATURES: ${f.keyFeaturesCustom || "as specified"}
-USP: ${f.usp || f.keyBenefit || "as specified"}
-TARGET AUDIENCE: ${chipsLabel(OPTS.targetAudience, f.targetAudience) || "general audience"}
-SALES FUNNEL: ${funnelOpt?.label || ""} (${funnelOpt?.tag || ""})
-FUNNEL OBJECTIVE: ${funnelOpt?.objective || ""}
-STYLE: ${styleOpt?.label || ""} | TONE: ${toneLabel}
-REALISM: ${optLabel(OPTS.realism, f.realism) || "realistic live-action"}
-COLOR GRADING: ${chipsLabel(OPTS.colorGrading, f.colorGrading) || "natural"}
-AUTHENTICITY: ${optLabel(OPTS.authenticity, f.authenticity) || "natural, not staged"}
-LOCATION: ${settingLabel(f)}${f.settingDetail ? ` — ${f.settingDetail}` : ""}
-LIGHTING: ${lightingLabel(f)}
-BACKGROUND ACTIVITY: ${optLabel(OPTS.bgActivity, f.bgActivity) || "calm"}
-TALENT: ${f.talent !== "no_talent" ? `${talentOpt?.label || ""}${chipsLabel(OPTS.talentStyle, f.talentStyle) ? ", " + chipsLabel(OPTS.talentStyle, f.talentStyle) : ""}${f.talentDetail ? ", " + f.talentDetail : ""}` : "No talent — product only"}
-EMOTION: ${chipsLabel(OPTS.emotion, f.emotion) || "natural"}
-SHOT TYPE: ${chipsLabel(OPTS.shotType, f.shotType) || "medium shot"}
-CAMERA ANGLE: ${optLabel(OPTS.cameraAngle, f.cameraAngle) || "eye-level"}
-CAMERA MOVEMENT: ${camOpt?.label || "gentle handheld"}
-HERO ANGLE: ${heroOpt?.label || "45° elevated"}
-PRODUCT FRAMING: ${chipsLabel(OPTS.productFraming, f.productFraming) || "product fully visible, centered"}
-SUBJECT MOTION: ${chipsLabel(OPTS.subjectMotion, f.subjectMotion) || "natural movement"}
-PRODUCT INTERACTION: ${chipsLabel(OPTS.productInteraction, f.productInteraction) || "natural use"}
-EMOTIONAL ARC: ${optLabel(OPTS.emotionalArc, f.emotionalArc) || "natural progression"}
-ENDING FRAME: ${optLabel(OPTS.endingFrame, f.endingFrame) || "hero product shot"}
-PROBLEM BEING SOLVED: ${f.problemStatement || "not specified"}
-HOOK STRATEGY: ${chipsLabel(OPTS.hooks, f.hook) || "pattern interrupt"}
-CTA: ${ctaLabel || "not specified"}
-AUDIO: ${optLabel(OPTS.audioType, f.audioType) || "natural ambient"}${f.bgMusic ? ` | Music: ${optLabel(OPTS.bgMusic, f.bgMusic)}` : ""}
-FRAME RATE: ${optLabel(OPTS.frameRate, f.frameRate) || "30fps"}
-RESOLUTION: ${optLabel(OPTS.resolution, f.resolution) || "1080p"}
-DEPTH OF FIELD: ${optLabel(OPTS.depthOfField, f.depthOfField) || "subject sharp, background slightly blurred"}
-${f.referenceUrl ? `REFERENCE: ${f.referenceUrl}` : ""}
-${f.brandStyle ? `BRAND STYLE: ${optLabel([{value:"clean_minimal_tech",label:"Clean minimal tech"},{value:"playful_colorful",label:"Playful & colorful"},{value:"serious_corporate",label:"Serious & corporate"},{value:"warm_lifestyle",label:"Warm lifestyle brand"},{value:"premium_luxury",label:"Premium / luxury"}], f.brandStyle)}` : ""}
-${restrictions ? `RESTRICTIONS: ${restrictions}` : ""}
-${antiHalluc ? `ANTI-HALLUCINATION: ${antiHalluc}` : ""}
-${f.extraNotes ? `ADDITIONAL NOTES: ${f.extraNotes}` : ""}`.trim();
+// Only include a line if the user actually provided a value
+  const opt = (label, val) => val ? `${label}: ${val}` : "";
+  const baseContextLines = [
+    // Always-present basic fields
+    `CAMPAIGN: ${f.campaignName || "Untitled"}`,
+    `PLATFORM: ${optLabel(OPTS.platform, f.platform)}`,
+    `PRODUCT: ${f.productName} | ${catLabel}`,
+    `KEY FEATURES: ${f.keyFeaturesCustom}`,
+    `USP: ${f.usp}`,
+    `PROBLEM BEING SOLVED: ${f.problemStatement}`,
+    `CORE BENEFIT: ${f.keyBenefit}`,
+    `HOOK STRATEGY: ${chipsLabel(OPTS.hooks, f.hook)}`,
+    `CTA: ${ctaLabel}`,
+    funnelOpt ? `SALES FUNNEL: ${funnelOpt.label} (${funnelOpt.tag})` : "",
+    funnelOpt ? `FUNNEL OBJECTIVE: ${funnelOpt.objective}` : "",
+    // Advanced — only if user selected/entered something
+    opt("COLORS", f.keyColors),
+    opt("TARGET AUDIENCE", chipsLabel(OPTS.targetAudience, f.targetAudience)),
+    opt("PRODUCT RULES", f.productRules),
+    opt("STYLE", styleOpt?.label),
+    opt("TONE", chipsLabel(OPTS.tone, f.tone)),
+    opt("REALISM", optLabel(OPTS.realism, f.realism)),
+    opt("COLOR GRADING", chipsLabel(OPTS.colorGrading, f.colorGrading)),
+    opt("AUTHENTICITY", optLabel(OPTS.authenticity, f.authenticity)),
+    f.settingPreset ? `LOCATION: ${settingLabel(f)}${f.settingDetail ? " — " + f.settingDetail : ""}` : opt("LOCATION DETAIL", f.settingDetail),
+    f.lightingPreset ? opt("LIGHTING", lightingLabel(f)) : "",
+    opt("BACKGROUND ACTIVITY", optLabel(OPTS.bgActivity, f.bgActivity)),
+    f.talent ? `TALENT: ${f.talent === "no_talent" ? "No talent — product only" : (talentOpt?.label || "") + (chipsLabel(OPTS.talentStyle, f.talentStyle) ? ", " + chipsLabel(OPTS.talentStyle, f.talentStyle) : "") + (f.talentDetail ? ", " + f.talentDetail : "")}` : "",
+    opt("EMOTION", chipsLabel(OPTS.emotion, f.emotion)),
+    opt("SHOT TYPE", chipsLabel(OPTS.shotType, f.shotType)),
+    opt("CAMERA ANGLE", optLabel(OPTS.cameraAngle, f.cameraAngle)),
+    opt("CAMERA MOVEMENT", camOpt?.label),
+    opt("HERO ANGLE", heroOpt?.label),
+    opt("PRODUCT FRAMING", chipsLabel(OPTS.productFraming, f.productFraming)),
+    opt("SUBJECT MOTION", chipsLabel(OPTS.subjectMotion, f.subjectMotion)),
+    opt("PRODUCT INTERACTION", chipsLabel(OPTS.productInteraction, f.productInteraction)),
+    opt("EMOTIONAL ARC", optLabel(OPTS.emotionalArc, f.emotionalArc)),
+    opt("ENDING FRAME", optLabel(OPTS.endingFrame, f.endingFrame)),
+    opt("AUDIO", optLabel(OPTS.audioType, f.audioType)),
+    f.audioType && f.bgMusic ? opt("MUSIC", optLabel(OPTS.bgMusic, f.bgMusic)) : "",
+    f.audioType && f.voLang && f.voLang !== "none" ? opt("VOICEOVER LANGUAGE", optLabel(OPTS.voLang, f.voLang)) : "",
+    f.audioType && f.speechType ? opt("SPEECH TYPE", optLabel(OPTS.speechType, f.speechType)) : "",
+    f.audioType && f.voTone ? opt("VO TONE", f.voTone) : "",
+    opt("FRAME RATE", optLabel(OPTS.frameRate, f.frameRate)),
+    opt("RESOLUTION", optLabel(OPTS.resolution, f.resolution)),
+    opt("DEPTH OF FIELD", optLabel(OPTS.depthOfField, f.depthOfField)),
+    opt("REFERENCE", f.referenceUrl),
+    f.brandStyle ? opt("BRAND STYLE", optLabel([{value:"clean_minimal_tech",label:"Clean minimal tech"},{value:"playful_colorful",label:"Playful & colorful"},{value:"serious_corporate",label:"Serious & corporate"},{value:"warm_lifestyle",label:"Warm lifestyle brand"},{value:"premium_luxury",label:"Premium / luxury"}], f.brandStyle)) : "",
+    restrictions ? `RESTRICTIONS: ${restrictions}` : "",
+    antiHalluc ? `ANTI-HALLUCINATION: ${antiHalluc}` : "",
+    opt("ADDITIONAL NOTES", f.extraNotes),
+  ].filter(Boolean).join("\n");
+
+  const baseContext = baseContextLines;
 
   const clips = [];
   for (let i = 0; i < numClips; i++) {
@@ -491,7 +505,7 @@ ${f.extraNotes ? `ADDITIONAL NOTES: ${f.extraNotes}` : ""}`.trim();
 
     const hookDir = clipRole.role.includes("HOOK") ? `\n🎣 HOOK DIRECTION\n• Hook strategy: ${chipsLabel(OPTS.hooks, f.hook) || "pattern interrupt"}\n• First 1–2 seconds must STOP THE SCROLL — no slow intros\n• ${fd.hook}` : "";
     const contentDir = clipRole.role.includes("CONTENT") ? `\n📖 CONTENT DIRECTION\n• Key benefit to show: ${f.keyBenefit || f.keyFeaturesCustom}\n• ${fd.content}\n• Emotional beat: viewer should feel ${f.funnel === "upper" ? "curious and intrigued" : f.funnel === "middle" ? "understood and convinced" : "excited and ready to buy"}` : "";
-    const ctaDir = clipRole.role.includes("CTA") ? `\n📢 CTA DIRECTION\n• Action: ${ctaLabel}\n• End on clean hero shot — ${heroOpt?.label || "45° elevated"} — product centered\n• ${fd.cta}\n• Last 1–2 seconds must feel conclusive — not abrupt` : "";
+    const ctaDir = clipRole.role.includes("CTA") ? `\n📢 CTA DIRECTION\n• Action: ${ctaLabel}${heroOpt?.label ? " — End on clean hero shot: " + heroOpt.label + " — product centered" : ""}\n• ${fd.cta}\n• Last 1–2 seconds must feel conclusive — not abrupt` : "";
 
     clips.push({
       label: `CLIP ${clipNum} of ${numClips}`,
@@ -509,8 +523,8 @@ ${baseContext}
 ━━━ SCENE BEAT ━━━
 ${sceneBeat}
 ${hookDir}${contentDir}${ctaDir}
-${f.productRules ? `\nPRODUCT RULES:\n${f.productRules.split("\n").map(l => "• " + l).join("\n")}` : ""}
-${f.voLang && f.voLang !== "none" ? `\nVOICEOVER: Language: ${optLabel(OPTS.voLang, f.voLang)} | Type: ${optLabel(OPTS.speechType, f.speechType)} | Tone: ${f.voTone || "conversational, not scripted"}${f.customVO ? `\nVO SCRIPT GUIDE:\n${f.customVO}` : ""}` : ""}
+
+${f.audioType && f.voLang && f.voLang !== "none" ? `\nVOICEOVER SCRIPT GUIDE:${f.customVO ? "\n" + f.customVO : " (none provided)"}` : ""}
 ${clipNum < numClips ? `\n⚡ CONTINUITY: Stitch with Clip ${clipNum + 1}. End on a clean frame — avoid abrupt cuts.` : ""}
 
 ❗ OVERALL: Authentic, natural, purposeful. Not staged. Not an ad — even if it is one.
