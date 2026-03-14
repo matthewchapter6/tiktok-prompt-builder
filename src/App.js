@@ -386,7 +386,7 @@ const init = {
   productName: "", productCategory: "", productCategoryCustom: "",
   keyColors: "", keyFeaturesCustom: "", usp: "", productRules: "",
   targetAudience: [],
-  videoStyle: "", tone: [], realism: "", colorGrading: [], authenticity: [],
+  videoStyle: "", tone: [], realism: "", colorGrading: [], authenticity: "",
   settingPreset: "", settingCustom: "", settingDetail: "", bgActivity: "",
   lightingPreset: "", lightingCustom: "",
   talent: "", talentStyle: [], talentDetail: "", emotion: [],
@@ -418,7 +418,7 @@ const buildClipPrompts = (f, storyline) => {
   const funnelOpt = FUNNEL_OPTIONS.find(o => o.value === f.funnel);
   const toneLabel = chipsLabel(OPTS.tone, f.tone) || "calm & warm";
   const camOpt = OPTS.cameraMove.find(o => o.value === f.cameraMove);
-  const heroOpt = OPTS.heroAngle.find(o => o.value === f.heroAngle);
+  const heroOpt = f.heroAngle ? OPTS.heroAngle.find(o => o.value === f.heroAngle) : null;
   const talentOpt = OPTS.talent.find(o => o.value === f.talent);
   const styleOpt = OPTS.videoStyle.find(o => o.value === f.videoStyle);
   const ctaLabel = chipsLabel(OPTS.cta, f.cta);
