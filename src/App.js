@@ -73,6 +73,29 @@ const Chips = ({ value, onChange, options, single }) => {
   );
 };
 
+// ── Advanced Section Toggle ────────────────────────────────────────────────
+const AdvancedToggle = ({ isOpen, onToggle, sectionCount }) => (
+  <button
+    onClick={onToggle}
+    className="w-full flex items-center justify-between px-4 py-3 rounded-xl border-2 border-dashed border-gray-300 bg-white hover:border-blue-400 hover:bg-blue-50 transition-all group mb-5"
+  >
+    <div className="flex items-center gap-2">
+      <span className="text-base">{isOpen ? "🔼" : "🔽"}</span>
+      <div className="text-left">
+        <p className="text-sm font-bold text-gray-700 group-hover:text-blue-600 transition-colors">
+          {isOpen ? "Hide Advanced Settings" : "Show Advanced Settings"}
+        </p>
+        <p className="text-xs text-gray-400">
+          {isOpen ? "Collapse optional settings" : `${sectionCount} optional sections — Style, Camera, Audio, Technical & more`}
+        </p>
+      </div>
+    </div>
+    <span className={`text-xs font-semibold px-2 py-1 rounded-full transition-all ${isOpen ? "bg-blue-100 text-blue-600" : "bg-gray-100 text-gray-500 group-hover:bg-blue-100 group-hover:text-blue-600"}`}>
+      {isOpen ? "Hide" : "Optional"}
+    </span>
+  </button>
+);
+
 // ── Funnel ─────────────────────────────────────────────────────────────────
 const FUNNEL_OPTIONS = [
   { value: "upper", emoji: "🔺", label: "Upper Funnel", tag: "Awareness", description: "Pull traffic & build awareness", objective: "Reach out to new customers who don't know your product yet", examples: ["Relatable problem", "Storytelling", "Point of view (POV)", "Trending hook"], color: "blue" },
@@ -363,11 +386,11 @@ const init = {
   productName: "", productCategory: "", productCategoryCustom: "",
   keyColors: "", keyFeaturesCustom: "", usp: "", productRules: "",
   targetAudience: [],
-  videoStyle: "ugc", tone: [], realism: "", colorGrading: [], authenticity: [],
+  videoStyle: "", tone: [], realism: "", colorGrading: [], authenticity: [],
   settingPreset: "", settingCustom: "", settingDetail: "", bgActivity: "",
   lightingPreset: "", lightingCustom: "",
-  talent: "solo_female", talentStyle: [], talentDetail: "", emotion: [],
-  shotType: [], cameraAngle: "", cameraMove: "gentle_handheld", heroAngle: "", productFraming: [],
+  talent: "", talentStyle: [], talentDetail: "", emotion: [],
+  shotType: [], cameraAngle: "", cameraMove: "", heroAngle: "", productFraming: [],
   subjectMotion: [], productInteraction: [],
   hook: [], problemStatement: "", keyBenefit: "", emotionalArc: "", endingFrame: "", cta: [],
   audioType: "", voLang: "", voTone: "", speechType: "", bgMusic: "", customVO: "",
@@ -581,12 +604,13 @@ export default function App() {
   const [aiLoading, setAiLoading] = useState(false);
   const [aiError, setAiError] = useState("");
   const [copiedIdx, setCopiedIdx] = useState(null);
+  const [advancedOpen, setAdvancedOpen] = useState(false);
   const outputRef = useRef(null);
 
   const set = k => v => setF(p => ({ ...p, [k]: v }));
   const numClips = calcClips(f.grokPlan, f.totalDuration);
   const cs = clipSec(f.grokPlan);
-  const missingRequired = !f.productName || !f.productCategory || !f.keyFeaturesCustom || !f.hook.length || !f.cta.length || !f.funnel;
+  const missingRequired = !f.productName || !f.productCategory || !f.keyFeaturesCustom || !f.usp || !f.problemStatement || !f.keyBenefit || !f.hook.length || !f.cta.length || !f.funnel;
 
   const generate = () => {
     const result = buildClipPrompts(f, storyline);
@@ -623,6 +647,14 @@ export default function App() {
 
       <div className="max-w-2xl mx-auto px-4 py-6">
         {tab === "builder" && (<>
+
+          {/* ── BASIC SETTINGS HEADER ── */}
+          <div className="flex items-center gap-2 mb-4">
+            <span className="text-xs font-bold uppercase tracking-widest text-blue-600 bg-blue-50 border border-blue-200 px-3 py-1 rounded-full">
+              ✅ Basic Settings
+            </span>
+            <span className="text-xs text-gray-400">Required to generate prompts</span>
+          </div>
 
           <Section emoji="📁" title="Project" subtitle="Optional — helps you organise multiple campaigns.">
             <Field label="Campaign / Project Name">
@@ -690,106 +722,28 @@ export default function App() {
               </Field>
             </div>
             {f.productCategory === "other" && (
-              <Field label="Custom Category">
+              <Field label="Custom Category" required>
                 <TextInput value={f.productCategoryCustom} onChange={set("productCategoryCustom")} placeholder="Describe your product type" />
               </Field>
             )}
-            <Field label="Key Colors" hint="Exact colors — must not change across clips">
-              <TextInput value={f.keyColors} onChange={set("keyColors")} placeholder="e.g. Matte black body, silver stand" />
-            </Field>
             <Field label="Key Features to Highlight" required hint="Describe what the video must show">
               <TextArea value={f.keyFeaturesCustom} onChange={set("keyFeaturesCustom")} placeholder="e.g. Ultra-slim 15.6 inch, USB-C plug-and-play, 1080p display, foldable stand" rows={2} />
             </Field>
-            <Field label="USP — Unique Selling Point">
+            <Field label="USP — Unique Selling Point" required>
               <TextInput value={f.usp} onChange={set("usp")} placeholder="e.g. Thinnest portable monitor that fits in a laptop bag" />
             </Field>
-            <Field label="Target Audience (pick all that apply)">
-              <Chips value={f.targetAudience} onChange={set("targetAudience")} options={OPTS.targetAudience} />
-            </Field>
-            <Field label="Product Rules" hint="Visual dos and don'ts (optional)">
-              <TextArea value={f.productRules} onChange={set("productRules")} placeholder={"e.g. Always show product screen on\nDo not show product disassembled"} rows={2} />
-            </Field>
-          </Section>
-
-          <Section emoji="🎨" title="Style & Tone">
-            <Field label="Video Style">
-              <Chips value={f.videoStyle} onChange={set("videoStyle")} options={OPTS.videoStyle} single />
-            </Field>
-            <Field label="Tone (pick all that apply)">
-              <Chips value={f.tone} onChange={set("tone")} options={OPTS.tone} />
-            </Field>
-            <Field label="Realism Level">
-              <Chips value={f.realism} onChange={set("realism")} options={OPTS.realism} single />
-            </Field>
-            <Field label="Color Grading / Mood">
-              <Chips value={f.colorGrading} onChange={set("colorGrading")} options={OPTS.colorGrading} />
-            </Field>
-            <Field label="Authenticity Feel">
-              <Chips value={f.authenticity} onChange={set("authenticity")} options={OPTS.authenticity} single />
-            </Field>
-          </Section>
-
-          <Section emoji="🏠" title="Setting & Environment">
-            <div className="grid grid-cols-2 gap-3">
-              <Field label="Location">
-                <Select value={f.settingPreset} onChange={set("settingPreset")} options={OPTS.settingPreset} />
-              </Field>
-              <Field label="Lighting">
-                <Select value={f.lightingPreset} onChange={set("lightingPreset")} options={OPTS.lightingPreset} />
-              </Field>
-            </div>
-            {f.settingPreset === "custom" && <Field label="Custom Location"><TextInput value={f.settingCustom} onChange={set("settingCustom")} placeholder="e.g. Rooftop terrace, urban skyline at dusk" /></Field>}
-            {f.lightingPreset === "custom" && <Field label="Custom Lighting"><TextInput value={f.lightingCustom} onChange={set("lightingCustom")} placeholder="e.g. Neon-lit night scene, pink accent from left" /></Field>}
-            <Field label="Environment Details & Props">
-              <TextInput value={f.settingDetail} onChange={set("settingDetail")} placeholder="e.g. Desk + laptop + coffee, minimal props, clean workspace" />
-            </Field>
-            <Field label="Background Activity Level">
-              <Chips value={f.bgActivity} onChange={set("bgActivity")} options={OPTS.bgActivity} single />
-            </Field>
-          </Section>
-
-          <Section emoji="👤" title="Talent & Character">
-            <Field label="Talent Type">
-              <Chips value={f.talent} onChange={set("talent")} options={OPTS.talent} single />
-            </Field>
-            {f.talent !== "no_talent" && (<>
-              <Field label="Outfit Style"><Chips value={f.talentStyle} onChange={set("talentStyle")} options={OPTS.talentStyle} /></Field>
-              <Field label="Appearance Details" hint="Outfit color, hair style — keeps character consistent">
-                <TextInput value={f.talentDetail} onChange={set("talentDetail")} placeholder="e.g. White shirt, dark jeans, hair tied back" />
-              </Field>
-              <Field label="Emotion / Facial Expression">
-                <Chips value={f.emotion} onChange={set("emotion")} options={OPTS.emotion} />
-              </Field>
-            </>)}
-          </Section>
-
-          <Section emoji="🎥" title="Camera & Framing">
-            <Field label="Shot Type (pick all that apply)"><Chips value={f.shotType} onChange={set("shotType")} options={OPTS.shotType} /></Field>
-            <Field label="Camera Angle"><Chips value={f.cameraAngle} onChange={set("cameraAngle")} options={OPTS.cameraAngle} single /></Field>
-            <Field label="Camera Movement"><Chips value={f.cameraMove} onChange={set("cameraMove")} options={OPTS.cameraMove} single /></Field>
-            <Field label="Hero / Product Shot Angle" hint="Final closing shot">
-              <Select value={f.heroAngle} onChange={set("heroAngle")} options={OPTS.heroAngle} />
-            </Field>
-            <Field label="Product Framing Rules"><Chips value={f.productFraming} onChange={set("productFraming")} options={OPTS.productFraming} /></Field>
-          </Section>
-
-          <Section emoji="🎬" title="Action & Motion">
-            <Field label="Subject Motion (pick all that apply)"><Chips value={f.subjectMotion} onChange={set("subjectMotion")} options={OPTS.subjectMotion} /></Field>
-            <Field label="Product Interaction (pick all that apply)"><Chips value={f.productInteraction} onChange={set("productInteraction")} options={OPTS.productInteraction} /></Field>
           </Section>
 
           <Section emoji="📖" title="Story & Structure">
             <Field label="Hook Strategy" required hint="How does the video open? Pick 1–2">
               <Chips value={f.hook} onChange={set("hook")} options={OPTS.hooks} />
             </Field>
-            <Field label="Problem Being Solved">
+            <Field label="Problem Being Solved" required>
               <TextInput value={f.problemStatement} onChange={set("problemStatement")} placeholder="e.g. Laptop screen too small for multi-tasking" />
             </Field>
-            <Field label="Core Benefit to Show">
+            <Field label="Core Benefit to Show" required>
               <TextInput value={f.keyBenefit} onChange={set("keyBenefit")} placeholder="e.g. Instant dual-screen setup anywhere in seconds" />
             </Field>
-            <Field label="Emotional Arc"><Chips value={f.emotionalArc} onChange={set("emotionalArc")} options={OPTS.emotionalArc} single /></Field>
-            <Field label="Ending Frame / Last Shot"><Chips value={f.endingFrame} onChange={set("endingFrame")} options={OPTS.endingFrame} single /></Field>
             <Field label="CTA" required hint="Pick 1–2"><Chips value={f.cta} onChange={set("cta")} options={OPTS.cta} /></Field>
           </Section>
 
@@ -809,57 +763,167 @@ export default function App() {
             )}
           </Section>
 
-          <Section emoji="🎙" title="Audio & Voiceover">
-            <Field label="Audio Type"><Chips value={f.audioType} onChange={set("audioType")} options={OPTS.audioType} single /></Field>
-            <Field label="Background Music"><Chips value={f.bgMusic} onChange={set("bgMusic")} options={OPTS.bgMusic} single /></Field>
-            {f.audioType !== "silent" && f.audioType !== "ambient_only" && (<>
-              <div className="grid grid-cols-2 gap-3">
-                <Field label="Voiceover Language"><Select value={f.voLang} onChange={set("voLang")} options={OPTS.voLang} /></Field>
-                <Field label="VO Tone"><TextInput value={f.voTone} onChange={set("voTone")} placeholder="e.g. Friendly, calm" /></Field>
-              </div>
-              <Field label="Speech Type"><Chips value={f.speechType} onChange={set("speechType")} options={OPTS.speechType} single /></Field>
-              <Field label="Script Guide / Key Lines" hint="Optional talking points">
-                <TextArea value={f.customVO} onChange={set("customVO")} placeholder={"Opening: Hook line\nMiddle: Key benefit\nClose: CTA"} rows={3} />
-              </Field>
-            </>)}
-          </Section>
+          {/* ── ADVANCED SETTINGS TOGGLE ── */}
+          <div className="flex items-center gap-2 mb-4 mt-2">
+            <span className="text-xs font-bold uppercase tracking-widest text-gray-500 bg-gray-100 border border-gray-200 px-3 py-1 rounded-full">
+              ⚙️ Advanced Settings
+            </span>
+            <span className="text-xs text-gray-400">Optional — fine-tune your output</span>
+          </div>
 
-          <Section emoji="⚡" title="Technical Settings">
-            <Field label="Frame Rate"><Chips value={f.frameRate} onChange={set("frameRate")} options={OPTS.frameRate} single /></Field>
-            <Field label="Resolution"><Chips value={f.resolution} onChange={set("resolution")} options={OPTS.resolution} single /></Field>
-            <Field label="Focus & Depth of Field"><Chips value={f.depthOfField} onChange={set("depthOfField")} options={OPTS.depthOfField} single /></Field>
-          </Section>
+          <AdvancedToggle
+            isOpen={advancedOpen}
+            onToggle={() => setAdvancedOpen(o => !o)}
+            sectionCount={9}
+          />
 
-          <Section emoji="🖼" title="References">
-            <Field label="Reference Image URL / Product Link" hint="Dramatically improves accuracy">
-              <TextInput value={f.referenceUrl} onChange={set("referenceUrl")} placeholder="e.g. https://yoursite.com/product-image.jpg" />
-            </Field>
-            <Field label="Brand Style Reference">
-              <Chips value={f.brandStyle} onChange={set("brandStyle")} options={[
-                { value: "clean_minimal_tech", label: "Clean minimal tech" },
-                { value: "playful_colorful", label: "Playful & colorful" },
-                { value: "serious_corporate", label: "Serious & corporate" },
-                { value: "warm_lifestyle", label: "Warm lifestyle brand" },
-                { value: "premium_luxury", label: "Premium / luxury" },
-              ]} single />
-            </Field>
-          </Section>
+          {advancedOpen && (
+            <div className="space-y-0">
+              <Section emoji="📦" title="Product Details" subtitle="Additional product context — optional but improves output quality.">
+                <Field label="Key Colors" hint="Exact colors — must not change across clips">
+                  <TextInput value={f.keyColors} onChange={set("keyColors")} placeholder="e.g. Matte black body, silver stand" />
+                </Field>
+                <Field label="Target Audience (pick all that apply)">
+                  <Chips value={f.targetAudience} onChange={set("targetAudience")} options={OPTS.targetAudience} />
+                </Field>
+                <Field label="Product Rules" hint="Visual dos and don'ts">
+                  <TextArea value={f.productRules} onChange={set("productRules")} placeholder={"e.g. Always show product screen on\nDo not show product disassembled"} rows={2} />
+                </Field>
+              </Section>
 
-          <Section emoji="❗" title="Restrictions & Guardrails">
-            <Field label="Anti-Hallucination Rules" hint="Prevents common AI video artifacts">
-              <Chips value={f.antiHallucination} onChange={set("antiHallucination")} options={OPTS.antiHallucination} />
-            </Field>
-            <Field label="Additional Restrictions">
-              <Chips value={f.restrictions} onChange={set("restrictions")} options={OPTS.restrictions} />
-            </Field>
-            <Field label="Additional Notes">
-              <TextArea value={f.extraNotes} onChange={set("extraNotes")} placeholder="e.g. Raya season — festive but not loud." rows={2} />
-            </Field>
-          </Section>
+              <Section emoji="📖" title="Story Details" subtitle="Refine the emotional arc and ending of your video.">
+                <Field label="Emotional Arc"><Chips value={f.emotionalArc} onChange={set("emotionalArc")} options={OPTS.emotionalArc} single /></Field>
+                <Field label="Ending Frame / Last Shot"><Chips value={f.endingFrame} onChange={set("endingFrame")} options={OPTS.endingFrame} single /></Field>
+              </Section>
+
+              <Section emoji="🎨" title="Style & Tone">
+                <Field label="Video Style">
+                  <Chips value={f.videoStyle} onChange={set("videoStyle")} options={OPTS.videoStyle} single />
+                </Field>
+                <Field label="Tone (pick all that apply)">
+                  <Chips value={f.tone} onChange={set("tone")} options={OPTS.tone} />
+                </Field>
+                <Field label="Realism Level">
+                  <Chips value={f.realism} onChange={set("realism")} options={OPTS.realism} single />
+                </Field>
+                <Field label="Color Grading / Mood">
+                  <Chips value={f.colorGrading} onChange={set("colorGrading")} options={OPTS.colorGrading} />
+                </Field>
+                <Field label="Authenticity Feel">
+                  <Chips value={f.authenticity} onChange={set("authenticity")} options={OPTS.authenticity} single />
+                </Field>
+              </Section>
+
+              <Section emoji="🏠" title="Setting & Environment">
+                <div className="grid grid-cols-2 gap-3">
+                  <Field label="Location">
+                    <Select value={f.settingPreset} onChange={set("settingPreset")} options={OPTS.settingPreset} />
+                  </Field>
+                  <Field label="Lighting">
+                    <Select value={f.lightingPreset} onChange={set("lightingPreset")} options={OPTS.lightingPreset} />
+                  </Field>
+                </div>
+                {f.settingPreset === "custom" && <Field label="Custom Location"><TextInput value={f.settingCustom} onChange={set("settingCustom")} placeholder="e.g. Rooftop terrace, urban skyline at dusk" /></Field>}
+                {f.lightingPreset === "custom" && <Field label="Custom Lighting"><TextInput value={f.lightingCustom} onChange={set("lightingCustom")} placeholder="e.g. Neon-lit night scene, pink accent from left" /></Field>}
+                <Field label="Environment Details & Props">
+                  <TextInput value={f.settingDetail} onChange={set("settingDetail")} placeholder="e.g. Desk + laptop + coffee, minimal props, clean workspace" />
+                </Field>
+                <Field label="Background Activity Level">
+                  <Chips value={f.bgActivity} onChange={set("bgActivity")} options={OPTS.bgActivity} single />
+                </Field>
+              </Section>
+
+              <Section emoji="👤" title="Talent & Character">
+                <Field label="Talent Type">
+                  <Chips value={f.talent} onChange={set("talent")} options={OPTS.talent} single />
+                </Field>
+                {f.talent !== "no_talent" && (<>
+                  <Field label="Outfit Style"><Chips value={f.talentStyle} onChange={set("talentStyle")} options={OPTS.talentStyle} /></Field>
+                  <Field label="Appearance Details" hint="Outfit color, hair style — keeps character consistent">
+                    <TextInput value={f.talentDetail} onChange={set("talentDetail")} placeholder="e.g. White shirt, dark jeans, hair tied back" />
+                  </Field>
+                  <Field label="Emotion / Facial Expression">
+                    <Chips value={f.emotion} onChange={set("emotion")} options={OPTS.emotion} />
+                  </Field>
+                </>)}
+              </Section>
+
+              <Section emoji="🎥" title="Camera & Framing">
+                <Field label="Shot Type (pick all that apply)"><Chips value={f.shotType} onChange={set("shotType")} options={OPTS.shotType} /></Field>
+                <Field label="Camera Angle"><Chips value={f.cameraAngle} onChange={set("cameraAngle")} options={OPTS.cameraAngle} single /></Field>
+                <Field label="Camera Movement"><Chips value={f.cameraMove} onChange={set("cameraMove")} options={OPTS.cameraMove} single /></Field>
+                <Field label="Hero / Product Shot Angle" hint="Final closing shot">
+                  <Select value={f.heroAngle} onChange={set("heroAngle")} options={OPTS.heroAngle} />
+                </Field>
+                <Field label="Product Framing Rules"><Chips value={f.productFraming} onChange={set("productFraming")} options={OPTS.productFraming} /></Field>
+              </Section>
+
+              <Section emoji="🎬" title="Action & Motion">
+                <Field label="Subject Motion (pick all that apply)"><Chips value={f.subjectMotion} onChange={set("subjectMotion")} options={OPTS.subjectMotion} /></Field>
+                <Field label="Product Interaction (pick all that apply)"><Chips value={f.productInteraction} onChange={set("productInteraction")} options={OPTS.productInteraction} /></Field>
+              </Section>
+
+              <Section emoji="🎙" title="Audio & Voiceover">
+                <Field label="Audio Type"><Chips value={f.audioType} onChange={set("audioType")} options={OPTS.audioType} single /></Field>
+                <Field label="Background Music"><Chips value={f.bgMusic} onChange={set("bgMusic")} options={OPTS.bgMusic} single /></Field>
+                {f.audioType !== "silent" && f.audioType !== "ambient_only" && (<>
+                  <div className="grid grid-cols-2 gap-3">
+                    <Field label="Voiceover Language"><Select value={f.voLang} onChange={set("voLang")} options={OPTS.voLang} /></Field>
+                    <Field label="VO Tone"><TextInput value={f.voTone} onChange={set("voTone")} placeholder="e.g. Friendly, calm" /></Field>
+                  </div>
+                  <Field label="Speech Type"><Chips value={f.speechType} onChange={set("speechType")} options={OPTS.speechType} single /></Field>
+                  <Field label="Script Guide / Key Lines" hint="Optional talking points">
+                    <TextArea value={f.customVO} onChange={set("customVO")} placeholder={"Opening: Hook line\nMiddle: Key benefit\nClose: CTA"} rows={3} />
+                  </Field>
+                </>)}
+              </Section>
+
+              <Section emoji="⚡" title="Technical Settings">
+                <Field label="Frame Rate"><Chips value={f.frameRate} onChange={set("frameRate")} options={OPTS.frameRate} single /></Field>
+                <Field label="Resolution"><Chips value={f.resolution} onChange={set("resolution")} options={OPTS.resolution} single /></Field>
+                <Field label="Focus & Depth of Field"><Chips value={f.depthOfField} onChange={set("depthOfField")} options={OPTS.depthOfField} single /></Field>
+              </Section>
+
+              <Section emoji="🖼" title="References">
+                <Field label="Reference Image URL / Product Link" hint="Dramatically improves accuracy">
+                  <TextInput value={f.referenceUrl} onChange={set("referenceUrl")} placeholder="e.g. https://yoursite.com/product-image.jpg" />
+                </Field>
+                <Field label="Brand Style Reference">
+                  <Chips value={f.brandStyle} onChange={set("brandStyle")} options={[
+                    { value: "clean_minimal_tech", label: "Clean minimal tech" },
+                    { value: "playful_colorful", label: "Playful & colorful" },
+                    { value: "serious_corporate", label: "Serious & corporate" },
+                    { value: "warm_lifestyle", label: "Warm lifestyle brand" },
+                    { value: "premium_luxury", label: "Premium / luxury" },
+                  ]} single />
+                </Field>
+              </Section>
+
+              <Section emoji="❗" title="Restrictions & Guardrails">
+                <Field label="Anti-Hallucination Rules" hint="Prevents common AI video artifacts">
+                  <Chips value={f.antiHallucination} onChange={set("antiHallucination")} options={OPTS.antiHallucination} />
+                </Field>
+                <Field label="Additional Restrictions">
+                  <Chips value={f.restrictions} onChange={set("restrictions")} options={OPTS.restrictions} />
+                </Field>
+                <Field label="Additional Notes">
+                  <TextArea value={f.extraNotes} onChange={set("extraNotes")} placeholder="e.g. Raya season — festive but not loud." rows={2} />
+                </Field>
+              </Section>
+
+              {/* Close advanced toggle at the bottom too */}
+              <button
+                onClick={() => setAdvancedOpen(false)}
+                className="w-full flex items-center justify-center gap-2 px-4 py-3 rounded-xl border-2 border-dashed border-gray-300 bg-white hover:border-blue-400 hover:bg-blue-50 transition-all text-sm text-gray-500 hover:text-blue-600 mb-5"
+              >
+                🔼 <span className="font-medium">Collapse Advanced Settings</span>
+              </button>
+            </div>
+          )}
 
           {missingRequired && (
             <div className="bg-amber-50 border border-amber-200 rounded-lg px-4 py-3 mb-4 text-xs text-amber-700">
-              ⚠️ <strong>Required:</strong> Funnel Stage, Product Name, Category, Key Features, Hook Strategy, and CTA.
+              ⚠️ <strong>Required:</strong> Funnel Stage, Product Name, Category, Key Features, USP, Problem, Core Benefit, Hook Strategy, and CTA.
             </div>
           )}
 
