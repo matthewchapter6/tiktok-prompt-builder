@@ -63,7 +63,8 @@ export default async function handler(req, res) {
     // Do NOT filter on thoughtSignature — Gemini attaches it to the image part
     // itself as metadata, not to indicate a "thought". Only skip text-only
     // thought parts (thought: true with no inline_data).
-    const imagePart = parts_out.find(p => p.inline_data && p.thought !== true);
+    // Gemini REST API returns camelCase `inlineData` (not snake_case `inline_data`)
+    const imagePart = parts_out.find(p => p.inlineData && p.thought !== true);
 
     if (!imagePart) {
       console.error('No image in response. Full data:', JSON.stringify(data));
@@ -74,8 +75,8 @@ export default async function handler(req, res) {
     }
 
     res.status(200).json({
-      imageData: imagePart.inline_data.data,
-      mimeType: imagePart.inline_data.mime_type
+      imageData: imagePart.inlineData.data,
+      mimeType: imagePart.inlineData.mimeType
     });
 
   } catch (error) {
