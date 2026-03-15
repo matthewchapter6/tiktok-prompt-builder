@@ -30,7 +30,7 @@ export default async function handler(req, res) {
     const body = {
       contents: [{ parts }],
       generationConfig: {
-        responseModalities: ["IMAGE"],   // ← IMAGE only, not ["TEXT","IMAGE"]
+        responseModalities: ["TEXT", "IMAGE"],  // TEXT+IMAGE required for imagen flash model
         imageConfig: {
           aspectRatio: aspectRatio || "9:16",
           imageSize: "1K"
@@ -54,26 +54,24 @@ export default async function handler(req, res) {
     }
 
     const data = await response.json();
-
-    // ── Log full response to Vercel logs so you can inspect it ──
     console.log('Gemini full response:', JSON.stringify(data, null, 2));
 
     const parts_out = data.candidates?.[0]?.content?.parts || [];
 
-    // Find ANY inline_data part (thought images also have inline_data but no thought flag in REST)
-    // Skip parts where thought === true
+    // FIX: The REST API marks thought parts with a "thoughtSignature" string field,
+    // NOT with thought === true. Filter out any part that has thoughtSignature set.
     const imagePart = parts_out.find(p => {
       if (!p.inline_data) return false;
-      if (p.thought === true) return false;
+      if (p.thoughtSignature) return false;  // ← skip thought/reasoning parts
+      if (p.thought === true) return false;   // ← keep legacy check just in case
       return true;
     });
 
     if (!imagePart) {
-      // Return the full response so you can see what came back
       console.error('No image in response. Full data:', JSON.stringify(data));
       return res.status(500).json({
         error: 'No image returned from Gemini',
-        debug: data   // ← sends full response to frontend for debugging
+        debug: data
       });
     }
 
