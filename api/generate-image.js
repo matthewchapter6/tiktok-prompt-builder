@@ -30,7 +30,7 @@ export default async function handler(req, res) {
     const body = {
       contents: [{ parts }],
       generationConfig: {
-        responseModalities: ["TEXT", "IMAGE"],  // ← must include TEXT for this model
+        responseModalities: ["TEXT", "IMAGE"],
         imageConfig: {
           aspectRatio: aspectRatio || "9:16",
           imageSize: "1K"
@@ -55,18 +55,15 @@ export default async function handler(req, res) {
 
     const data = await response.json();
 
-    // Log full response to Vercel logs
     console.log('Gemini full response:', JSON.stringify(data, null, 2));
 
     const parts_out = data.candidates?.[0]?.content?.parts || [];
 
-    // Filter out thought parts — REST API marks them with `thoughtSignature` (not `thought: true`)
-    const imagePart = parts_out.find(p => {
-      if (!p.inline_data) return false;
-      if (p.thought === true) return false;       // legacy flag
-      if (p.thoughtSignature) return false;        // ← REST API thought marker
-      return true;
-    });
+    // Find first part that has inline_data (the image).
+    // Do NOT filter on thoughtSignature — Gemini attaches it to the image part
+    // itself as metadata, not to indicate a "thought". Only skip text-only
+    // thought parts (thought: true with no inline_data).
+    const imagePart = parts_out.find(p => p.inline_data && p.thought !== true);
 
     if (!imagePart) {
       console.error('No image in response. Full data:', JSON.stringify(data));
