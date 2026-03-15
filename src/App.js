@@ -483,7 +483,6 @@ const buildClipPrompts = (f, storyline, hasFirstFrame) => {
   const opt = (label, val) => val ? `${label}: ${val}` : "";
   const aspectInfo = PLATFORM_ASPECT[f.platform] || PLATFORM_ASPECT.tiktok;
 
-  // First frame block changes based on whether image was generated
   const firstFrameBlock = hasFirstFrame
     ? `FIRST FRAME IMAGE: ✅ PROVIDED
 • Start the video from the attached reference image exactly
@@ -673,7 +672,6 @@ export default function App() {
   const outputRef = useRef(null);
 
   // First frame state
-  const [useFirstFrame, setUseFirstFrame] = useState(false);
   const [productFile, setProductFile] = useState(null);
   const [talentFile, setTalentFile] = useState(null);
   const [frameLoading, setFrameLoading] = useState(false);
@@ -684,10 +682,10 @@ export default function App() {
   const numClips = calcClips(f.grokPlan, f.totalDuration);
   const cs = clipSec(f.grokPlan);
   const missingRequired = !f.productName || !f.productCategory || !f.keyFeaturesCustom || !f.usp || !f.problemStatement || !f.keyBenefit || !f.hook.length || !f.cta.length || !f.funnel;
-  const hasFirstFrame = useFirstFrame && !!generatedImage;
+  const hasFirstFrame = !!generatedImage;
 
-  const generate = () => {
-    const result = buildClipPrompts(f, storyline, hasFirstFrame);
+  const generate = (withFrame) => {
+    const result = buildClipPrompts(f, storyline, withFrame && hasFirstFrame);
     setClips(result);
     setTab("output");
     setTimeout(() => outputRef.current?.scrollIntoView({ behavior: "smooth" }), 100);
@@ -828,109 +826,6 @@ export default function App() {
             </Field>
           </Section>
 
-          <Section emoji="🎭" title="Creative Director" subtitle="AI generates a structured Hook → Content → CTA storyline. Edit freely before generating.">
-            <button
-              onClick={() => fetchStoryline(f, setAiLoading, setStoryline, setAiError)}
-              disabled={aiLoading || !f.productName || !f.keyFeaturesCustom}
-              className={`w-full py-2 rounded-lg text-sm font-medium border transition-all ${aiLoading || !f.productName || !f.keyFeaturesCustom ? "bg-gray-100 text-gray-400 border-gray-200 cursor-not-allowed" : "bg-purple-500 text-white border-purple-500 hover:bg-purple-600 active:scale-95"}`}>
-              {aiLoading ? "✨ Thinking..." : storyline ? "🔄 Regenerate Idea" : "✨ Generate Storyline Idea"}
-            </button>
-            {(!f.productName || !f.keyFeaturesCustom) && <p className="text-xs text-gray-400">Fill in Product Name and Key Features first.</p>}
-            {aiError && <p className="text-xs text-red-400">{aiError}</p>}
-            {storyline && (
-              <Field label={`Storyline (${numClips} clips × ${cs}s) — Hook → Content → CTA`} hint="Edit freely — one line per clip beat">
-                <TextArea value={storyline} onChange={setStoryline} rows={6} placeholder="One line per clip..." />
-              </Field>
-            )}
-          </Section>
-
-          {/* ── FIRST FRAME GENERATOR ── */}
-          <div className="mb-5 border-2 border-dashed border-indigo-200 rounded-xl overflow-hidden">
-            <div className="bg-indigo-50 px-4 py-3 border-b border-indigo-100">
-              <div className="flex items-center justify-between">
-                <div>
-                  <h2 className="font-bold text-indigo-800 text-sm">🖼 Generate First Frame with Google Gemini</h2>
-                  <p className="text-xs text-indigo-500 mt-0.5">Optional — generates a reference image to upload to Grok for better visual consistency</p>
-                </div>
-                <button
-                  onClick={() => { setUseFirstFrame(!useFirstFrame); setGeneratedImage(null); setFrameError(""); }}
-                  className={`relative w-12 h-6 rounded-full transition-all flex-shrink-0 ${useFirstFrame ? "bg-indigo-500" : "bg-gray-300"}`}>
-                  <span className={`absolute top-1 w-4 h-4 bg-white rounded-full shadow transition-all ${useFirstFrame ? "left-7" : "left-1"}`} />
-                </button>
-              </div>
-            </div>
-
-            {useFirstFrame && (
-              <div className="p-4 space-y-3">
-                <div className={`text-xs px-3 py-2 rounded-lg ${hasFirstFrame ? "bg-green-50 text-green-700" : "bg-indigo-50 text-indigo-700"}`}>
-                  {hasFirstFrame
-                    ? `✅ First frame generated (${(PLATFORM_ASPECT[f.platform] || PLATFORM_ASPECT.tiktok).ratio}) — Grok prompt will reference this image`
-                    : `📐 Will generate a ${(PLATFORM_ASPECT[f.platform] || PLATFORM_ASPECT.tiktok).ratio} image matching your platform: ${optLabel(OPTS.platform, f.platform)}`}
-                </div>
-
-                <div className="grid grid-cols-2 gap-3">
-                  <Field label="Product Image (optional)" hint="Upload a photo of your product">
-                    <label className="flex flex-col items-center justify-center w-full h-24 border-2 border-dashed border-gray-200 rounded-lg cursor-pointer hover:border-indigo-300 hover:bg-indigo-50 transition-all">
-                      {productFile ? (
-                        <div className="text-center px-2">
-                          <p className="text-xs font-medium text-indigo-600 truncate w-full max-w-full">{productFile.name}</p>
-                          <p className="text-xs text-gray-400 mt-1">Click to change</p>
-                        </div>
-                      ) : (
-                        <div className="text-center">
-                          <p className="text-2xl mb-1">📦</p>
-                          <p className="text-xs text-gray-400">Upload product photo</p>
-                        </div>
-                      )}
-                      <input type="file" accept="image/*" className="hidden"
-                        onChange={e => { setProductFile(e.target.files[0] || null); setGeneratedImage(null); }} />
-                    </label>
-                  </Field>
-
-                  <Field label="Talent Image (optional)" hint="Upload a photo of the talent">
-                    <label className="flex flex-col items-center justify-center w-full h-24 border-2 border-dashed border-gray-200 rounded-lg cursor-pointer hover:border-indigo-300 hover:bg-indigo-50 transition-all">
-                      {talentFile ? (
-                        <div className="text-center px-2">
-                          <p className="text-xs font-medium text-indigo-600 truncate w-full max-w-full">{talentFile.name}</p>
-                          <p className="text-xs text-gray-400 mt-1">Click to change</p>
-                        </div>
-                      ) : (
-                        <div className="text-center">
-                          <p className="text-2xl mb-1">👤</p>
-                          <p className="text-xs text-gray-400">Upload talent photo</p>
-                        </div>
-                      )}
-                      <input type="file" accept="image/*" className="hidden"
-                        onChange={e => { setTalentFile(e.target.files[0] || null); setGeneratedImage(null); }} />
-                    </label>
-                  </Field>
-                </div>
-
-                <button
-                  onClick={() => generateFirstFrame(f, productFile, talentFile, setFrameLoading, setGeneratedImage, setFrameError)}
-                  disabled={frameLoading || !f.productName}
-                  className={`w-full py-2 rounded-lg text-sm font-medium border transition-all ${frameLoading || !f.productName ? "bg-gray-100 text-gray-400 border-gray-200 cursor-not-allowed" : "bg-indigo-500 text-white border-indigo-500 hover:bg-indigo-600 active:scale-95"}`}>
-                  {frameLoading ? "🎨 Generating..." : generatedImage ? "🔄 Regenerate First Frame" : "🎨 Generate First Frame Image"}
-                </button>
-
-                {!f.productName && <p className="text-xs text-gray-400">Fill in Product Name first.</p>}
-                {frameError && <p className="text-xs text-red-400">{frameError}</p>}
-
-                {generatedImage && (
-                  <div className="space-y-2">
-                    <img src={`data:${generatedImage.mimeType};base64,${generatedImage.data}`}
-                      alt="Generated first frame" className="w-full rounded-lg border border-gray-200" />
-                    <button onClick={downloadImage}
-                      className="w-full py-2 rounded-lg bg-green-500 text-white text-sm font-medium hover:bg-green-600 active:scale-95 transition-all">
-                      ⬇️ Download First Frame Image
-                    </button>
-                    <p className="text-xs text-gray-500 text-center">Upload this image to Grok along with the prompt below</p>
-                  </div>
-                )}
-              </div>
-            )}
-          </div>
-
           {/* ── ADVANCED SETTINGS ── */}
           <div className="flex items-center gap-2 mb-4 mt-2">
             <span className="text-xs font-bold uppercase tracking-widest text-gray-500 bg-gray-100 border border-gray-200 px-3 py-1 rounded-full">⚙️ Advanced Settings</span>
@@ -1046,28 +941,159 @@ export default function App() {
             </div>
           )}
 
+          {/* ── CREATIVE DIRECTOR ── */}
+          <Section emoji="🎭" title="Creative Director" subtitle="AI generates a structured Hook → Content → CTA storyline based on all your settings above. Edit freely before generating.">
+            <button
+              onClick={() => fetchStoryline(f, setAiLoading, setStoryline, setAiError)}
+              disabled={aiLoading || !f.productName || !f.keyFeaturesCustom}
+              className={`w-full py-2 rounded-lg text-sm font-medium border transition-all ${aiLoading || !f.productName || !f.keyFeaturesCustom ? "bg-gray-100 text-gray-400 border-gray-200 cursor-not-allowed" : "bg-purple-500 text-white border-purple-500 hover:bg-purple-600 active:scale-95"}`}>
+              {aiLoading ? "✨ Thinking..." : storyline ? "🔄 Regenerate Storyline" : "✨ Generate Storyline Idea"}
+            </button>
+            {(!f.productName || !f.keyFeaturesCustom) && <p className="text-xs text-gray-400">Fill in Product Name and Key Features first.</p>}
+            {aiError && <p className="text-xs text-red-400">{aiError}</p>}
+            {storyline && (
+              <Field label={`Storyline (${numClips} clips × ${cs}s) — Hook → Content → CTA`} hint="Edit freely — one line per clip beat">
+                <TextArea value={storyline} onChange={setStoryline} rows={6} placeholder="One line per clip..." />
+              </Field>
+            )}
+          </Section>
+
+          {/* ── GENERATE SECTION ── */}
           {missingRequired && (
             <div className="bg-amber-50 border border-amber-200 rounded-lg px-4 py-3 mb-4 text-xs text-amber-700">
               ⚠️ <strong>Required:</strong> Funnel Stage, Product Name, Category, Key Features, USP, Problem, Core Benefit, Hook Strategy, and CTA.
             </div>
           )}
 
-          {hasFirstFrame && (
-            <div className="bg-indigo-50 border border-indigo-200 rounded-lg px-4 py-3 mb-4 text-xs text-indigo-700">
-              🖼 <strong>First frame ready</strong> — prompts will be optimised for image-to-video generation in Grok.
+          {/* Step 1 — First Frame */}
+          <div className="mb-3">
+            <div className="flex items-center gap-2 mb-3">
+              <span className="flex items-center justify-center w-6 h-6 rounded-full bg-indigo-500 text-white text-xs font-bold flex-shrink-0">1</span>
+              <div>
+                <p className="text-sm font-bold text-gray-700">Generate First Frame <span className="text-xs font-normal text-gray-400 ml-1">Optional</span></p>
+                <p className="text-xs text-gray-400">Use Gemini to create a reference image — then review before generating prompts</p>
+              </div>
             </div>
-          )}
 
-          <div className="flex gap-3 pb-8">
-            <button onClick={generate} disabled={missingRequired}
-              className={`flex-1 py-3 rounded-xl font-bold text-sm transition-all ${missingRequired ? "bg-gray-200 text-gray-400 cursor-not-allowed" : "bg-blue-500 text-white hover:bg-blue-600 active:scale-95"}`}>
-              Generate {numClips} Prompt{numClips > 1 ? "s" : ""} →
-            </button>
-            <button onClick={() => { setF(init); setClips([]); setStoryline(""); setTab("builder"); setGeneratedImage(null); setProductFile(null); setTalentFile(null); setUseFirstFrame(false); }}
-              className="px-4 py-3 rounded-xl border border-gray-200 text-sm text-gray-500 hover:bg-gray-100">
-              Reset
+            <div className="border-2 border-dashed border-indigo-200 rounded-xl overflow-hidden">
+              <div className="p-4 space-y-3">
+                <div className={`text-xs px-3 py-2 rounded-lg ${hasFirstFrame ? "bg-green-50 text-green-700" : "bg-indigo-50 text-indigo-700"}`}>
+                  {hasFirstFrame
+                    ? `✅ First frame ready (${(PLATFORM_ASPECT[f.platform] || PLATFORM_ASPECT.tiktok).ratio}) — Step 2 prompts will be optimised for image-to-video`
+                    : `📐 Will generate a ${(PLATFORM_ASPECT[f.platform] || PLATFORM_ASPECT.tiktok).ratio} reference image for ${optLabel(OPTS.platform, f.platform)}`}
+                </div>
+
+                <div className="grid grid-cols-2 gap-3">
+                  <Field label="Product Image (optional)" hint="Upload a photo of your product">
+                    <label className="flex flex-col items-center justify-center w-full h-24 border-2 border-dashed border-gray-200 rounded-lg cursor-pointer hover:border-indigo-300 hover:bg-indigo-50 transition-all">
+                      {productFile ? (
+                        <div className="text-center px-2">
+                          <p className="text-xs font-medium text-indigo-600 truncate w-full max-w-full">{productFile.name}</p>
+                          <p className="text-xs text-gray-400 mt-1">Click to change</p>
+                        </div>
+                      ) : (
+                        <div className="text-center">
+                          <p className="text-2xl mb-1">📦</p>
+                          <p className="text-xs text-gray-400">Upload product photo</p>
+                        </div>
+                      )}
+                      <input type="file" accept="image/*" className="hidden"
+                        onChange={e => { setProductFile(e.target.files[0] || null); setGeneratedImage(null); }} />
+                    </label>
+                  </Field>
+
+                  <Field label="Talent Image (optional)" hint="Upload a photo of the talent">
+                    <label className="flex flex-col items-center justify-center w-full h-24 border-2 border-dashed border-gray-200 rounded-lg cursor-pointer hover:border-indigo-300 hover:bg-indigo-50 transition-all">
+                      {talentFile ? (
+                        <div className="text-center px-2">
+                          <p className="text-xs font-medium text-indigo-600 truncate w-full max-w-full">{talentFile.name}</p>
+                          <p className="text-xs text-gray-400 mt-1">Click to change</p>
+                        </div>
+                      ) : (
+                        <div className="text-center">
+                          <p className="text-2xl mb-1">👤</p>
+                          <p className="text-xs text-gray-400">Upload talent photo</p>
+                        </div>
+                      )}
+                      <input type="file" accept="image/*" className="hidden"
+                        onChange={e => { setTalentFile(e.target.files[0] || null); setGeneratedImage(null); }} />
+                    </label>
+                  </Field>
+                </div>
+
+                <button
+                  onClick={() => generateFirstFrame(f, productFile, talentFile, setFrameLoading, setGeneratedImage, setFrameError)}
+                  disabled={frameLoading || !f.productName}
+                  className={`w-full py-2 rounded-lg text-sm font-medium border transition-all ${frameLoading || !f.productName ? "bg-gray-100 text-gray-400 border-gray-200 cursor-not-allowed" : "bg-indigo-500 text-white border-indigo-500 hover:bg-indigo-600 active:scale-95"}`}>
+                  {frameLoading ? "🎨 Generating..." : generatedImage ? "🔄 Regenerate First Frame" : "🎨 Generate First Frame Image"}
+                </button>
+
+                {!f.productName && <p className="text-xs text-gray-400">Fill in Product Name first.</p>}
+                {frameError && <p className="text-xs text-red-400">{frameError}</p>}
+
+                {generatedImage && (
+                  <div className="space-y-2">
+                    <img src={`data:${generatedImage.mimeType};base64,${generatedImage.data}`}
+                      alt="Generated first frame" className="w-full rounded-lg border border-gray-200" />
+                    <button onClick={downloadImage}
+                      className="w-full py-2 rounded-lg bg-green-500 text-white text-sm font-medium hover:bg-green-600 active:scale-95 transition-all">
+                      ⬇️ Download First Frame Image
+                    </button>
+                    <p className="text-xs text-gray-500 text-center">Upload this image to Grok along with the Step 2 prompts below</p>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+
+          {/* Step 2 — Generate Prompts */}
+          <div className="mb-8">
+            <div className="flex items-center gap-2 mb-3">
+              <span className="flex items-center justify-center w-6 h-6 rounded-full bg-blue-500 text-white text-xs font-bold flex-shrink-0">2</span>
+              <div>
+                <p className="text-sm font-bold text-gray-700">Generate Prompts</p>
+                <p className="text-xs text-gray-400">
+                  {hasFirstFrame
+                    ? "First frame ready — choose text-only or image-to-video mode"
+                    : "Generate text-only prompts, or complete Step 1 first for image-to-video"}
+                </p>
+              </div>
+            </div>
+
+            <div className="flex gap-3">
+              {/* Text-only button — always available */}
+              <button
+                onClick={() => generate(false)}
+                disabled={missingRequired}
+                className={`flex-1 py-3 rounded-xl font-bold text-sm transition-all ${missingRequired ? "bg-gray-200 text-gray-400 cursor-not-allowed" : "bg-blue-500 text-white hover:bg-blue-600 active:scale-95"}`}>
+                📝 Text-Only Prompts
+              </button>
+
+              {/* Image-to-video button — only enabled when first frame exists */}
+              <button
+                onClick={() => generate(true)}
+                disabled={missingRequired || !hasFirstFrame}
+                title={!hasFirstFrame ? "Complete Step 1 first" : ""}
+                className={`flex-1 py-3 rounded-xl font-bold text-sm transition-all border-2 ${
+                  missingRequired || !hasFirstFrame
+                    ? "bg-gray-100 text-gray-400 border-gray-200 cursor-not-allowed"
+                    : "bg-indigo-500 text-white border-indigo-500 hover:bg-indigo-600 active:scale-95"
+                }`}>
+                {hasFirstFrame ? "🖼 Image-to-Video Prompts ✅" : "🖼 Image-to-Video Prompts"}
+              </button>
+            </div>
+
+            {!hasFirstFrame && !missingRequired && (
+              <p className="text-xs text-gray-400 text-center mt-2">🖼 Image-to-Video unlocks after Step 1 is complete</p>
+            )}
+
+            <button
+              onClick={() => { setF(init); setClips([]); setStoryline(""); setTab("builder"); setGeneratedImage(null); setProductFile(null); setTalentFile(null); }}
+              className="w-full mt-3 py-2 rounded-xl border border-gray-200 text-sm text-gray-500 hover:bg-gray-100 transition-all">
+              Reset All
             </button>
           </div>
+
         </>)}
 
         {tab === "output" && (
