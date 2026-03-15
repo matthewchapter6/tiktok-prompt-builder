@@ -30,7 +30,7 @@ export default async function handler(req, res) {
     const body = {
       contents: [{ parts }],
       generationConfig: {
-        responseModalities: ["TEXT", "IMAGE"],  // TEXT+IMAGE required for imagen flash model
+        responseModalities: ["TEXT", "IMAGE"],  // ← must include TEXT for this model
         imageConfig: {
           aspectRatio: aspectRatio || "9:16",
           imageSize: "1K"
@@ -54,16 +54,17 @@ export default async function handler(req, res) {
     }
 
     const data = await response.json();
+
+    // Log full response to Vercel logs
     console.log('Gemini full response:', JSON.stringify(data, null, 2));
 
     const parts_out = data.candidates?.[0]?.content?.parts || [];
 
-    // FIX: The REST API marks thought parts with a "thoughtSignature" string field,
-    // NOT with thought === true. Filter out any part that has thoughtSignature set.
+    // Filter out thought parts — REST API marks them with `thoughtSignature` (not `thought: true`)
     const imagePart = parts_out.find(p => {
       if (!p.inline_data) return false;
-      if (p.thoughtSignature) return false;  // ← skip thought/reasoning parts
-      if (p.thought === true) return false;   // ← keep legacy check just in case
+      if (p.thought === true) return false;       // legacy flag
+      if (p.thoughtSignature) return false;        // ← REST API thought marker
       return true;
     });
 
