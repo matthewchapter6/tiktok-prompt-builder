@@ -12,23 +12,25 @@ export default async function handler(req, res) {
     const parts = [];
 
     if (productImage) {
-      parts.push({ inline_data: { mime_type: productImage.mimeType, data: productImage.data } });
+      parts.push({
+        inline_data: { mime_type: productImage.mimeType, data: productImage.data }
+      });
       parts.push({ text: "This is the product reference image. Use this exact product appearance." });
     }
 
     if (talentImage) {
-      parts.push({ inline_data: { mime_type: talentImage.mimeType, data: talentImage.data } });
+      parts.push({
+        inline_data: { mime_type: talentImage.mimeType, data: talentImage.data }
+      });
       parts.push({ text: "This is the talent/character reference image. Use this exact person's appearance." });
     }
 
     parts.push({ text: prompt });
 
-    // Valid aspectRatio values: "1:1","9:16","16:9","3:4","4:3","2:3","3:2", etc.
-    // Valid imageSize values: "512px", "1K", "2K", "4K" — uppercase K required
     const body = {
       contents: [{ parts }],
       generationConfig: {
-        responseModalities: ["TEXT", "IMAGE"],
+        responseModalities: ["IMAGE"],   // ← IMAGE only, not ["TEXT","IMAGE"]
         imageConfig: {
           aspectRatio: aspectRatio || "9:16",
           imageSize: "1K"
@@ -52,14 +54,27 @@ export default async function handler(req, res) {
     }
 
     const data = await response.json();
-    const candidate = data.candidates?.[0];
-    
-    // Skip thought parts, find the actual output image
-    const imagePart = candidate?.content?.parts?.find(p => p.inline_data && !p.thought);
+
+    // ── Log full response to Vercel logs so you can inspect it ──
+    console.log('Gemini full response:', JSON.stringify(data, null, 2));
+
+    const parts_out = data.candidates?.[0]?.content?.parts || [];
+
+    // Find ANY inline_data part (thought images also have inline_data but no thought flag in REST)
+    // Skip parts where thought === true
+    const imagePart = parts_out.find(p => {
+      if (!p.inline_data) return false;
+      if (p.thought === true) return false;
+      return true;
+    });
 
     if (!imagePart) {
-      console.error('No image in response:', JSON.stringify(data));
-      return res.status(500).json({ error: 'No image returned from Gemini' });
+      // Return the full response so you can see what came back
+      console.error('No image in response. Full data:', JSON.stringify(data));
+      return res.status(500).json({
+        error: 'No image returned from Gemini',
+        debug: data   // ← sends full response to frontend for debugging
+      });
     }
 
     res.status(200).json({
