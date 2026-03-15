@@ -9,7 +9,6 @@ export default async function handler(req, res) {
   try {
     const { prompt, productImage, talentImage, aspectRatio } = req.body;
 
-    // Build contents array
     const parts = [];
 
     if (productImage) {
@@ -24,19 +23,16 @@ export default async function handler(req, res) {
 
     parts.push({ text: prompt });
 
-    // Map aspect ratio to Gemini's accepted image_size format
-    const sizeMap = {
-      "9:16": "1024x1792",
-      "16:9": "1792x1024",
-      "1:1":  "1024x1024",
-    };
-    const imageSize = sizeMap[aspectRatio] || "1024x1792";
-
+    // Valid aspectRatio values: "1:1","9:16","16:9","3:4","4:3","2:3","3:2", etc.
+    // Valid imageSize values: "512px", "1K", "2K", "4K" — uppercase K required
     const body = {
       contents: [{ parts }],
       generationConfig: {
-        responseModalities: ["IMAGE", "TEXT"],
-        image: { imageSize }
+        responseModalities: ["TEXT", "IMAGE"],
+        imageConfig: {
+          aspectRatio: aspectRatio || "9:16",
+          imageSize: "1K"
+        }
       }
     };
 
@@ -57,7 +53,9 @@ export default async function handler(req, res) {
 
     const data = await response.json();
     const candidate = data.candidates?.[0];
-    const imagePart = candidate?.content?.parts?.find(p => p.inline_data);
+    
+    // Skip thought parts, find the actual output image
+    const imagePart = candidate?.content?.parts?.find(p => p.inline_data && !p.thought);
 
     if (!imagePart) {
       console.error('No image in response:', JSON.stringify(data));
