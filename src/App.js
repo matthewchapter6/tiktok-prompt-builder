@@ -682,7 +682,17 @@ const PLATFORM_ASPECT = {
 };
 
 // ── Options (labels stay in English — these are technical terms for Grok) ──
+// ── Helper: resolve per-language opts array ────────────────────────────────
+// If an OPTS key is a plain array it's language-neutral; if it's an object, pick the right lang.
+const o = (key, lang) => {
+  const v = OPTS[key];
+  if (!v) return [];
+  if (Array.isArray(v)) return v;
+  return v[lang] || v.en || [];
+};
+
 const OPTS = {
+  // Platform & plan labels are proper nouns — keep as-is
   platform: [
     { value: "tiktok", label: "TikTok (9:16)" },
     { value: "reels", label: "Instagram Reels (9:16)" },
@@ -690,10 +700,20 @@ const OPTS = {
     { value: "youtube_main", label: "YouTube Main (16:9)" },
     { value: "feed_square", label: "Feed Post (1:1)" },
   ],
-  grokPlan: [
-    { value: "free", label: "🆓 Grok Free (6s per clip)" },
-    { value: "pro", label: "⭐ Grok Pro (10s per clip)" },
-  ],
+  grokPlan: {
+    en: [
+      { value: "free", label: "🆓 Grok Free (6s per clip)" },
+      { value: "pro", label: "⭐ Grok Pro (10s per clip)" },
+    ],
+    zh: [
+      { value: "free", label: "🆓 Grok 免费版（每片段6秒）" },
+      { value: "pro", label: "⭐ Grok Pro（每片段10秒）" },
+    ],
+    bm: [
+      { value: "free", label: "🆓 Grok Percuma (6s setiap klip)" },
+      { value: "pro", label: "⭐ Grok Pro (10s setiap klip)" },
+    ],
+  },
   productCategory: {
     en: [
       { value: "", label: "— Select category —" },
@@ -738,253 +758,811 @@ const OPTS = {
       { value: "other", label: "Lain-lain — taip di bawah" },
     ],
   },
-  targetAudience: [
-    { value: "students", label: "Students" },
-    { value: "young_professionals", label: "Young professionals" },
-    { value: "remote_workers", label: "Remote workers" },
-    { value: "gamers", label: "Gamers" },
-    { value: "business_exec", label: "Business users" },
-    { value: "homemakers", label: "Homemakers" },
-    { value: "parents", label: "Parents" },
-    { value: "general", label: "General audience" },
-  ],
-  videoStyle: [
-    { value: "ugc", label: "UGC — authentic, shot-on-phone" },
-    { value: "commercial", label: "Commercial — polished, studio-lite" },
-    { value: "lifestyle", label: "Lifestyle — candid, everyday" },
-    { value: "tutorial", label: "Tutorial / How-to" },
-    { value: "testimonial", label: "Testimonial — talking to camera" },
-    { value: "unboxing", label: "Unboxing — reveal & first impression" },
-    { value: "animated", label: "Animated / motion graphic" },
-    { value: "minimal_clean", label: "Minimal, clean, modern" },
-  ],
-  tone: [
-    { value: "calm_warm", label: "Calm & warm" },
-    { value: "energetic", label: "Energetic & upbeat" },
-    { value: "trustworthy", label: "Trustworthy" },
-    { value: "friendly", label: "Friendly" },
-    { value: "professional", label: "Professional" },
-    { value: "fun_playful", label: "Fun & playful" },
-    { value: "inspirational", label: "Inspirational" },
-    { value: "relatable", label: "Relatable & everyday" },
-  ],
-  realism: [
-    { value: "realistic", label: "Realistic live-action" },
-    { value: "stylized", label: "Stylized but realistic" },
-    { value: "animated", label: "Cartoon / fully animated" },
-  ],
-  colorGrading: [
-    { value: "warm_golden", label: "Warm / golden hour" },
-    { value: "cool_blue", label: "Cool / bluish tech" },
-    { value: "neutral_natural", label: "Neutral / natural" },
-    { value: "high_contrast", label: "High contrast / punchy" },
-    { value: "soft_pastel", label: "Soft / pastel" },
-  ],
-  authenticity: [
-    { value: "natural_not_staged", label: "Natural, not staged" },
-    { value: "real_user_video", label: "Looks like a real user's video" },
-    { value: "casual_vlog", label: "Feels like a casual vlog" },
-    { value: "polished_professional", label: "Polished and professional" },
-  ],
-  settingPreset: [
-    { value: "", label: "— Select preset —" },
-    { value: "home_kitchen", label: "Home — kitchen" },
-    { value: "home_living", label: "Home — living room" },
-    { value: "home_bedroom", label: "Home — bedroom" },
-    { value: "home_outdoor", label: "Home — outdoor / garden" },
-    { value: "cafe", label: "Café / coffee shop" },
-    { value: "office", label: "Office / workspace" },
-    { value: "outdoor_urban", label: "Outdoor — urban street" },
-    { value: "outdoor_nature", label: "Outdoor — nature / park" },
-    { value: "gym", label: "Gym / fitness space" },
-    { value: "studio_neutral", label: "Studio — neutral background" },
-    { value: "custom", label: "✏️ Custom (type below)" },
-  ],
-  lightingPreset: [
-    { value: "", label: "— Select preset —" },
-    { value: "natural_day", label: "Natural daylight (bright, airy)" },
-    { value: "golden_hour", label: "Golden hour / warm afternoon" },
-    { value: "indoor_warm", label: "Indoor warm artificial light" },
-    { value: "indoor_cool", label: "Indoor cool / neutral light" },
-    { value: "studio_soft", label: "Studio soft box (clean, even)" },
-    { value: "moody_low", label: "Moody low light (dramatic)" },
-    { value: "custom", label: "✏️ Custom (type below)" },
-  ],
-  bgActivity: [
-    { value: "calm_still", label: "Calm, almost no movement" },
-    { value: "light_activity", label: "Light activity, not distracting" },
-    { value: "busy_dynamic", label: "Busy / dynamic background" },
-  ],
-  talent: [
-    { value: "solo_female", label: "Solo female (25–35)" },
-    { value: "solo_male", label: "Solo male (25–35)" },
-    { value: "solo_female_mature", label: "Solo female (40–55)" },
-    { value: "solo_male_mature", label: "Solo male (40–55)" },
-    { value: "couple", label: "Couple" },
-    { value: "group_friends", label: "Group of friends" },
-    { value: "family", label: "Family (adult + child)" },
-    { value: "no_talent", label: "No talent — product only" },
-  ],
-  talentStyle: [
-    { value: "casual", label: "Casual" },
-    { value: "smart_casual", label: "Smart casual" },
-    { value: "modest", label: "Modest / conservative" },
-    { value: "sporty", label: "Sporty / activewear" },
-    { value: "professional", label: "Professional" },
-    { value: "cultural", label: "Cultural / traditional" },
-  ],
-  emotion: [
-    { value: "frustrated_stressed", label: "Frustrated / stressed" },
-    { value: "focused", label: "Focused / concentrating" },
-    { value: "happy_relieved", label: "Happy / relieved" },
-    { value: "excited", label: "Excited" },
-    { value: "calm_relaxed", label: "Calm / relaxed" },
-    { value: "arc_frustrated_relieved", label: "Arc: frustrated → relieved" },
-    { value: "arc_curious_impressed", label: "Arc: curious → impressed" },
-    { value: "arc_neutral_excited", label: "Arc: neutral → excited" },
-  ],
-  shotType: [
-    { value: "close_up", label: "Close-up" },
-    { value: "medium_shot", label: "Medium shot (waist up)" },
-    { value: "wide_shot", label: "Wide shot (full body + env)" },
-    { value: "product_closeup", label: "Product close-up" },
-  ],
-  cameraAngle: [
-    { value: "eye_level", label: "Eye-level" },
-    { value: "slight_high", label: "Slight high angle" },
-    { value: "slight_low", label: "Slight low angle" },
-    { value: "top_down", label: "Top-down" },
-  ],
-  cameraMove: [
-    { value: "static", label: "Mostly static" },
-    { value: "gentle_handheld", label: "Gentle handheld" },
-    { value: "slow_push_in", label: "Slow push-in" },
-    { value: "slow_pull_back", label: "Slow pull-back" },
-    { value: "pan_follow", label: "Pan / follow subject" },
-    { value: "mixed", label: "Mixed" },
-  ],
-  heroAngle: [
-    { value: "", label: "— Select —" },
-    { value: "45_elevated", label: "45° elevated (recommended)" },
-    { value: "eye_level", label: "Eye-level straight-on" },
-    { value: "top_down", label: "Top-down / flat-lay" },
-    { value: "low_angle", label: "Low angle (prestige)" },
-    { value: "close_up_detail", label: "Close-up on key detail" },
-  ],
-  productFraming: [
-    { value: "fully_visible", label: "Product fully visible" },
-    { value: "centered", label: "Product centered" },
-    { value: "rule_of_thirds", label: "Rule of thirds" },
-    { value: "bg_blurred", label: "Background blurred, product sharp" },
-  ],
-  subjectMotion: [
-    { value: "typing_clicking", label: "Typing / clicking" },
-    { value: "looking_around", label: "Looking around stressed, then relaxing" },
-    { value: "picking_up_product", label: "Picking up & using product" },
-    { value: "pointing_at_screen", label: "Pointing at screen" },
-    { value: "walking_moving", label: "Walking / moving naturally" },
-  ],
-  productInteraction: [
-    { value: "plug_in", label: "Plug into laptop / phone" },
-    { value: "turn_on", label: "Turn product on" },
-    { value: "drag_windows", label: "Drag apps / windows onto screen" },
-    { value: "hold_in_hand", label: "Hold in hand while moving" },
-    { value: "unbox_reveal", label: "Unbox / reveal product" },
-    { value: "apply_use", label: "Apply / use on skin / body" },
-  ],
-  emotionalArc: [
-    { value: "frustrated_relieved", label: "Frustrated → relieved" },
-    { value: "curious_impressed", label: "Curious → impressed" },
-    { value: "neutral_excited", label: "Neutral → excited" },
-    { value: "calm_confident", label: "Calm → confident" },
-  ],
-  endingFrame: [
-    { value: "hero_product", label: "Hero product shot" },
-    { value: "user_happy", label: "User happily using product" },
-    { value: "product_branding", label: "Product + subtle branding" },
-    { value: "cta_frame", label: "CTA-focused final frame" },
-  ],
-  hooks: [
-    { value: "question", label: "Open with a question" },
-    { value: "bold_claim", label: "Bold claim / statement" },
-    { value: "problem_agitate", label: "Problem → agitate → solve" },
-    { value: "reveal", label: "Unexpected reveal" },
-    { value: "social_proof", label: "Social proof opener" },
-    { value: "before_after", label: "Before & after contrast" },
-    { value: "pov", label: "POV (point-of-view) shot" },
-  ],
-  cta: [
-    { value: "shop_link", label: "Shop via link in bio" },
-    { value: "comment", label: "Comment for more info" },
-    { value: "follow", label: "Follow for more" },
-    { value: "save_post", label: "Save this post" },
-    { value: "try_it", label: "Try it yourself" },
-    { value: "visit_website", label: "Visit website" },
-    { value: "sign_up", label: "Sign up now" },
-    { value: "no_cta", label: "No explicit CTA" },
-  ],
-  audioType: [
-    { value: "silent", label: "No audio (silent)" },
-    { value: "ambient_only", label: "Natural ambient sound only" },
-    { value: "vo_only", label: "Voiceover only" },
-    { value: "ambient_vo", label: "Ambient + voiceover" },
-  ],
-  voLang: [
-    { value: "", label: "— Select —" },
-    { value: "english", label: "English" },
-    { value: "bm", label: "Bahasa Malaysia" },
-    { value: "mandarin", label: "Mandarin" },
-    { value: "tamil", label: "Tamil" },
-    { value: "codemix_bm_en", label: "BM + English (code-switch)" },
-    { value: "none", label: "No voiceover (visual only)" },
-  ],
-  speechType: [
-    { value: "no_speech", label: "No one speaking on camera" },
-    { value: "on_camera", label: "Subject speaking on camera" },
-    { value: "offscreen_vo", label: "Off-screen voiceover only" },
-  ],
-  bgMusic: [
-    { value: "no_music", label: "No music" },
-    { value: "soft_bg", label: "Soft background music" },
-    { value: "upbeat", label: "Upbeat background music" },
-    { value: "dramatic", label: "Dramatic / cinematic music" },
-  ],
-  frameRate: [
-    { value: "24fps", label: "24fps — cinematic" },
-    { value: "30fps", label: "30fps — standard" },
-    { value: "60fps", label: "60fps — very smooth" },
-  ],
-  resolution: [
-    { value: "1080p", label: "1080p Full HD" },
-    { value: "1440p", label: "1440p" },
-    { value: "720p", label: "720p" },
-    { value: "best", label: "Best quality available" },
-  ],
-  depthOfField: [
-    { value: "subject_sharp_bg_blur", label: "Subject & product sharp, BG slightly blurred" },
-    { value: "everything_sharp", label: "Everything in focus" },
-    { value: "product_sharp", label: "Product sharp, BG blurred" },
-  ],
-  antiHallucination: [
-    { value: "no_extra_limbs", label: "No extra limbs / fingers" },
-    { value: "no_warped_faces", label: "No warped faces" },
-    { value: "no_floating_objects", label: "No floating objects" },
-    { value: "no_random_ui", label: "No random UI / screens floating" },
-    { value: "no_fictional_features", label: "No fictional product features" },
-  ],
-  restrictions: [
-    { value: "no_text_overlay", label: "No text overlay" },
-    { value: "no_effects", label: "No artificial effects" },
-    { value: "no_exaggerated_acting", label: "No exaggerated acting" },
-    { value: "no_influencer_vibe", label: "No influencer vibe" },
-    { value: "no_branded_bg", label: "No branded items in BG" },
-    { value: "no_children", label: "No children in frame" },
-    { value: "halal_visual", label: "Visually halal-compliant" },
-    { value: "no_male_talent", label: "No male talent" },
-    { value: "no_competitor", label: "No competitor products" },
-    { value: "match_reference", label: "Product must match reference image" },
-    { value: "no_logo_change", label: "No changes to logo" },
-  ],
+  targetAudience: {
+    en: [
+      { value: "students", label: "Students" },
+      { value: "young_professionals", label: "Young professionals" },
+      { value: "remote_workers", label: "Remote workers" },
+      { value: "gamers", label: "Gamers" },
+      { value: "business_exec", label: "Business users" },
+      { value: "homemakers", label: "Homemakers" },
+      { value: "parents", label: "Parents" },
+      { value: "general", label: "General audience" },
+    ],
+    zh: [
+      { value: "students", label: "学生" },
+      { value: "young_professionals", label: "年轻职场人士" },
+      { value: "remote_workers", label: "远程工作者" },
+      { value: "gamers", label: "游戏玩家" },
+      { value: "business_exec", label: "商务用户" },
+      { value: "homemakers", label: "家庭主妇/主夫" },
+      { value: "parents", label: "父母" },
+      { value: "general", label: "大众受众" },
+    ],
+    bm: [
+      { value: "students", label: "Pelajar" },
+      { value: "young_professionals", label: "Profesional muda" },
+      { value: "remote_workers", label: "Pekerja jauh" },
+      { value: "gamers", label: "Gamer" },
+      { value: "business_exec", label: "Pengguna perniagaan" },
+      { value: "homemakers", label: "Suri rumah" },
+      { value: "parents", label: "Ibu bapa" },
+      { value: "general", label: "Audiens umum" },
+    ],
+  },
+  videoStyle: {
+    en: [
+      { value: "ugc", label: "UGC — authentic, shot-on-phone" },
+      { value: "commercial", label: "Commercial — polished, studio-lite" },
+      { value: "lifestyle", label: "Lifestyle — candid, everyday" },
+      { value: "tutorial", label: "Tutorial / How-to" },
+      { value: "testimonial", label: "Testimonial — talking to camera" },
+      { value: "unboxing", label: "Unboxing — reveal & first impression" },
+      { value: "animated", label: "Animated / motion graphic" },
+      { value: "minimal_clean", label: "Minimal, clean, modern" },
+    ],
+    zh: [
+      { value: "ugc", label: "UGC — 真实感，手机拍摄" },
+      { value: "commercial", label: "商业广告 — 精致，轻商业" },
+      { value: "lifestyle", label: "生活方式 — 随性，日常" },
+      { value: "tutorial", label: "教程 / 操作说明" },
+      { value: "testimonial", label: "见证式 — 对着镜头讲话" },
+      { value: "unboxing", label: "开箱 — 揭秘与第一印象" },
+      { value: "animated", label: "动画 / 动态图形" },
+      { value: "minimal_clean", label: "简洁，干净，现代" },
+    ],
+    bm: [
+      { value: "ugc", label: "UGC — autentik, rakaman telefon" },
+      { value: "commercial", label: "Komersial — halus, studio-lite" },
+      { value: "lifestyle", label: "Gaya hidup — candid, harian" },
+      { value: "tutorial", label: "Tutorial / Cara-cara" },
+      { value: "testimonial", label: "Testimoni — bercakap ke kamera" },
+      { value: "unboxing", label: "Unboxing — pendedahan & kesan pertama" },
+      { value: "animated", label: "Animasi / grafik bergerak" },
+      { value: "minimal_clean", label: "Minimalis, bersih, moden" },
+    ],
+  },
+  tone: {
+    en: [
+      { value: "calm_warm", label: "Calm & warm" },
+      { value: "energetic", label: "Energetic & upbeat" },
+      { value: "trustworthy", label: "Trustworthy" },
+      { value: "friendly", label: "Friendly" },
+      { value: "professional", label: "Professional" },
+      { value: "fun_playful", label: "Fun & playful" },
+      { value: "inspirational", label: "Inspirational" },
+      { value: "relatable", label: "Relatable & everyday" },
+    ],
+    zh: [
+      { value: "calm_warm", label: "平静温暖" },
+      { value: "energetic", label: "充满活力" },
+      { value: "trustworthy", label: "值得信赖" },
+      { value: "friendly", label: "亲切友好" },
+      { value: "professional", label: "专业" },
+      { value: "fun_playful", label: "有趣活泼" },
+      { value: "inspirational", label: "励志感人" },
+      { value: "relatable", label: "贴近生活" },
+    ],
+    bm: [
+      { value: "calm_warm", label: "Tenang & mesra" },
+      { value: "energetic", label: "Bertenaga & ceria" },
+      { value: "trustworthy", label: "Boleh dipercayai" },
+      { value: "friendly", label: "Mesra" },
+      { value: "professional", label: "Profesional" },
+      { value: "fun_playful", label: "Seronok & playful" },
+      { value: "inspirational", label: "Inspirasi" },
+      { value: "relatable", label: "Mudah dikaitkan & harian" },
+    ],
+  },
+  realism: {
+    en: [
+      { value: "realistic", label: "Realistic live-action" },
+      { value: "stylized", label: "Stylized but realistic" },
+      { value: "animated", label: "Cartoon / fully animated" },
+    ],
+    zh: [
+      { value: "realistic", label: "写实真人拍摄" },
+      { value: "stylized", label: "风格化但写实" },
+      { value: "animated", label: "卡通 / 全动画" },
+    ],
+    bm: [
+      { value: "realistic", label: "Aksi sebenar yang realistik" },
+      { value: "stylized", label: "Bergaya tetapi realistik" },
+      { value: "animated", label: "Kartun / animasi penuh" },
+    ],
+  },
+  colorGrading: {
+    en: [
+      { value: "warm_golden", label: "Warm / golden hour" },
+      { value: "cool_blue", label: "Cool / bluish tech" },
+      { value: "neutral_natural", label: "Neutral / natural" },
+      { value: "high_contrast", label: "High contrast / punchy" },
+      { value: "soft_pastel", label: "Soft / pastel" },
+    ],
+    zh: [
+      { value: "warm_golden", label: "暖色 / 黄金时段" },
+      { value: "cool_blue", label: "冷色 / 科技蓝" },
+      { value: "neutral_natural", label: "中性 / 自然" },
+      { value: "high_contrast", label: "高对比 / 强烈" },
+      { value: "soft_pastel", label: "柔和 / 粉彩" },
+    ],
+    bm: [
+      { value: "warm_golden", label: "Hangat / waktu emas" },
+      { value: "cool_blue", label: "Sejuk / teknologi kebiruan" },
+      { value: "neutral_natural", label: "Neutral / semula jadi" },
+      { value: "high_contrast", label: "Kontras tinggi / bertenaga" },
+      { value: "soft_pastel", label: "Lembut / pastel" },
+    ],
+  },
+  authenticity: {
+    en: [
+      { value: "natural_not_staged", label: "Natural, not staged" },
+      { value: "real_user_video", label: "Looks like a real user's video" },
+      { value: "casual_vlog", label: "Feels like a casual vlog" },
+      { value: "polished_professional", label: "Polished and professional" },
+    ],
+    zh: [
+      { value: "natural_not_staged", label: "自然，非刻意摆拍" },
+      { value: "real_user_video", label: "看起来像真实用户的视频" },
+      { value: "casual_vlog", label: "像随性的Vlog" },
+      { value: "polished_professional", label: "精致专业" },
+    ],
+    bm: [
+      { value: "natural_not_staged", label: "Semula jadi, tidak berlakon" },
+      { value: "real_user_video", label: "Kelihatan seperti video pengguna sebenar" },
+      { value: "casual_vlog", label: "Terasa seperti vlog santai" },
+      { value: "polished_professional", label: "Halus dan profesional" },
+    ],
+  },
+  settingPreset: {
+    en: [
+      { value: "", label: "— Select preset —" },
+      { value: "home_kitchen", label: "Home — kitchen" },
+      { value: "home_living", label: "Home — living room" },
+      { value: "home_bedroom", label: "Home — bedroom" },
+      { value: "home_outdoor", label: "Home — outdoor / garden" },
+      { value: "cafe", label: "Café / coffee shop" },
+      { value: "office", label: "Office / workspace" },
+      { value: "outdoor_urban", label: "Outdoor — urban street" },
+      { value: "outdoor_nature", label: "Outdoor — nature / park" },
+      { value: "gym", label: "Gym / fitness space" },
+      { value: "studio_neutral", label: "Studio — neutral background" },
+      { value: "custom", label: "✏️ Custom (type below)" },
+    ],
+    zh: [
+      { value: "", label: "— 选择预设 —" },
+      { value: "home_kitchen", label: "家 — 厨房" },
+      { value: "home_living", label: "家 — 客厅" },
+      { value: "home_bedroom", label: "家 — 卧室" },
+      { value: "home_outdoor", label: "家 — 户外/花园" },
+      { value: "cafe", label: "咖啡馆" },
+      { value: "office", label: "办公室/工作空间" },
+      { value: "outdoor_urban", label: "户外 — 城市街道" },
+      { value: "outdoor_nature", label: "户外 — 自然/公园" },
+      { value: "gym", label: "健身房" },
+      { value: "studio_neutral", label: "影棚 — 中性背景" },
+      { value: "custom", label: "✏️ 自定义（在下方填写）" },
+    ],
+    bm: [
+      { value: "", label: "— Pilih pratetap —" },
+      { value: "home_kitchen", label: "Rumah — dapur" },
+      { value: "home_living", label: "Rumah — ruang tamu" },
+      { value: "home_bedroom", label: "Rumah — bilik tidur" },
+      { value: "home_outdoor", label: "Rumah — luar/taman" },
+      { value: "cafe", label: "Kafe / kedai kopi" },
+      { value: "office", label: "Pejabat / ruang kerja" },
+      { value: "outdoor_urban", label: "Luar — jalan bandar" },
+      { value: "outdoor_nature", label: "Luar — alam semula jadi / taman" },
+      { value: "gym", label: "Gim / ruang kecergasan" },
+      { value: "studio_neutral", label: "Studio — latar belakang neutral" },
+      { value: "custom", label: "✏️ Tersuai (taip di bawah)" },
+    ],
+  },
+  lightingPreset: {
+    en: [
+      { value: "", label: "— Select preset —" },
+      { value: "natural_day", label: "Natural daylight (bright, airy)" },
+      { value: "golden_hour", label: "Golden hour / warm afternoon" },
+      { value: "indoor_warm", label: "Indoor warm artificial light" },
+      { value: "indoor_cool", label: "Indoor cool / neutral light" },
+      { value: "studio_soft", label: "Studio soft box (clean, even)" },
+      { value: "moody_low", label: "Moody low light (dramatic)" },
+      { value: "custom", label: "✏️ Custom (type below)" },
+    ],
+    zh: [
+      { value: "", label: "— 选择预设 —" },
+      { value: "natural_day", label: "自然日光（明亮通透）" },
+      { value: "golden_hour", label: "黄金时段 / 温暖下午" },
+      { value: "indoor_warm", label: "室内暖色人工光" },
+      { value: "indoor_cool", label: "室内冷色/中性光" },
+      { value: "studio_soft", label: "影棚柔光（干净均匀）" },
+      { value: "moody_low", label: "低调昏暗光（戏剧感）" },
+      { value: "custom", label: "✏️ 自定义（在下方填写）" },
+    ],
+    bm: [
+      { value: "", label: "— Pilih pratetap —" },
+      { value: "natural_day", label: "Cahaya siang semula jadi (cerah, lapang)" },
+      { value: "golden_hour", label: "Waktu emas / petang hangat" },
+      { value: "indoor_warm", label: "Cahaya buatan dalam hangat" },
+      { value: "indoor_cool", label: "Cahaya dalam sejuk / neutral" },
+      { value: "studio_soft", label: "Soft box studio (bersih, sekata)" },
+      { value: "moody_low", label: "Cahaya rendah dramatik" },
+      { value: "custom", label: "✏️ Tersuai (taip di bawah)" },
+    ],
+  },
+  bgActivity: {
+    en: [
+      { value: "calm_still", label: "Calm, almost no movement" },
+      { value: "light_activity", label: "Light activity, not distracting" },
+      { value: "busy_dynamic", label: "Busy / dynamic background" },
+    ],
+    zh: [
+      { value: "calm_still", label: "平静，几乎没有动作" },
+      { value: "light_activity", label: "轻微活动，不分散注意力" },
+      { value: "busy_dynamic", label: "繁忙 / 动态背景" },
+    ],
+    bm: [
+      { value: "calm_still", label: "Tenang, hampir tiada pergerakan" },
+      { value: "light_activity", label: "Aktiviti ringan, tidak mengganggu" },
+      { value: "busy_dynamic", label: "Sibuk / latar belakang dinamik" },
+    ],
+  },
+  talent: {
+    en: [
+      { value: "solo_female", label: "Solo female (25–35)" },
+      { value: "solo_male", label: "Solo male (25–35)" },
+      { value: "solo_female_mature", label: "Solo female (40–55)" },
+      { value: "solo_male_mature", label: "Solo male (40–55)" },
+      { value: "couple", label: "Couple" },
+      { value: "group_friends", label: "Group of friends" },
+      { value: "family", label: "Family (adult + child)" },
+      { value: "no_talent", label: "No talent — product only" },
+    ],
+    zh: [
+      { value: "solo_female", label: "单人女性（25–35岁）" },
+      { value: "solo_male", label: "单人男性（25–35岁）" },
+      { value: "solo_female_mature", label: "单人女性（40–55岁）" },
+      { value: "solo_male_mature", label: "单人男性（40–55岁）" },
+      { value: "couple", label: "情侣" },
+      { value: "group_friends", label: "朋友群体" },
+      { value: "family", label: "家庭（成人+儿童）" },
+      { value: "no_talent", label: "无演员 — 仅展示产品" },
+    ],
+    bm: [
+      { value: "solo_female", label: "Perempuan solo (25–35)" },
+      { value: "solo_male", label: "Lelaki solo (25–35)" },
+      { value: "solo_female_mature", label: "Perempuan solo (40–55)" },
+      { value: "solo_male_mature", label: "Lelaki solo (40–55)" },
+      { value: "couple", label: "Pasangan" },
+      { value: "group_friends", label: "Kumpulan kawan" },
+      { value: "family", label: "Keluarga (dewasa + kanak-kanak)" },
+      { value: "no_talent", label: "Tiada pelakon — produk sahaja" },
+    ],
+  },
+  talentStyle: {
+    en: [
+      { value: "casual", label: "Casual" },
+      { value: "smart_casual", label: "Smart casual" },
+      { value: "modest", label: "Modest / conservative" },
+      { value: "sporty", label: "Sporty / activewear" },
+      { value: "professional", label: "Professional" },
+      { value: "cultural", label: "Cultural / traditional" },
+    ],
+    zh: [
+      { value: "casual", label: "休闲" },
+      { value: "smart_casual", label: "时尚休闲" },
+      { value: "modest", label: "端庄保守" },
+      { value: "sporty", label: "运动风" },
+      { value: "professional", label: "职业装" },
+      { value: "cultural", label: "民族/传统服饰" },
+    ],
+    bm: [
+      { value: "casual", label: "Kasual" },
+      { value: "smart_casual", label: "Smart kasual" },
+      { value: "modest", label: "Sopan / konservatif" },
+      { value: "sporty", label: "Sukan / pakaian aktif" },
+      { value: "professional", label: "Profesional" },
+      { value: "cultural", label: "Budaya / tradisional" },
+    ],
+  },
+  emotion: {
+    en: [
+      { value: "frustrated_stressed", label: "Frustrated / stressed" },
+      { value: "focused", label: "Focused / concentrating" },
+      { value: "happy_relieved", label: "Happy / relieved" },
+      { value: "excited", label: "Excited" },
+      { value: "calm_relaxed", label: "Calm / relaxed" },
+      { value: "arc_frustrated_relieved", label: "Arc: frustrated → relieved" },
+      { value: "arc_curious_impressed", label: "Arc: curious → impressed" },
+      { value: "arc_neutral_excited", label: "Arc: neutral → excited" },
+    ],
+    zh: [
+      { value: "frustrated_stressed", label: "沮丧 / 焦虑" },
+      { value: "focused", label: "专注 / 集中" },
+      { value: "happy_relieved", label: "开心 / 释然" },
+      { value: "excited", label: "兴奋" },
+      { value: "calm_relaxed", label: "平静 / 放松" },
+      { value: "arc_frustrated_relieved", label: "弧线：沮丧 → 释然" },
+      { value: "arc_curious_impressed", label: "弧线：好奇 → 印象深刻" },
+      { value: "arc_neutral_excited", label: "弧线：平淡 → 兴奋" },
+    ],
+    bm: [
+      { value: "frustrated_stressed", label: "Kecewa / tertekan" },
+      { value: "focused", label: "Fokus / menumpukan" },
+      { value: "happy_relieved", label: "Gembira / lega" },
+      { value: "excited", label: "Teruja" },
+      { value: "calm_relaxed", label: "Tenang / relaks" },
+      { value: "arc_frustrated_relieved", label: "Lengkok: kecewa → lega" },
+      { value: "arc_curious_impressed", label: "Lengkok: ingin tahu → terkesan" },
+      { value: "arc_neutral_excited", label: "Lengkok: neutral → teruja" },
+    ],
+  },
+  shotType: {
+    en: [
+      { value: "close_up", label: "Close-up" },
+      { value: "medium_shot", label: "Medium shot (waist up)" },
+      { value: "wide_shot", label: "Wide shot (full body + env)" },
+      { value: "product_closeup", label: "Product close-up" },
+    ],
+    zh: [
+      { value: "close_up", label: "特写" },
+      { value: "medium_shot", label: "中景（腰部以上）" },
+      { value: "wide_shot", label: "远景（全身+环境）" },
+      { value: "product_closeup", label: "产品特写" },
+    ],
+    bm: [
+      { value: "close_up", label: "Close-up" },
+      { value: "medium_shot", label: "Tembakan sederhana (pinggang ke atas)" },
+      { value: "wide_shot", label: "Tembakan lebar (seluruh badan + persekitaran)" },
+      { value: "product_closeup", label: "Close-up produk" },
+    ],
+  },
+  cameraAngle: {
+    en: [
+      { value: "eye_level", label: "Eye-level" },
+      { value: "slight_high", label: "Slight high angle" },
+      { value: "slight_low", label: "Slight low angle" },
+      { value: "top_down", label: "Top-down" },
+    ],
+    zh: [
+      { value: "eye_level", label: "平视角" },
+      { value: "slight_high", label: "略高俯角" },
+      { value: "slight_low", label: "略低仰角" },
+      { value: "top_down", label: "俯拍" },
+    ],
+    bm: [
+      { value: "eye_level", label: "Paras mata" },
+      { value: "slight_high", label: "Sudut tinggi sedikit" },
+      { value: "slight_low", label: "Sudut rendah sedikit" },
+      { value: "top_down", label: "Dari atas ke bawah" },
+    ],
+  },
+  cameraMove: {
+    en: [
+      { value: "static", label: "Mostly static" },
+      { value: "gentle_handheld", label: "Gentle handheld" },
+      { value: "slow_push_in", label: "Slow push-in" },
+      { value: "slow_pull_back", label: "Slow pull-back" },
+      { value: "pan_follow", label: "Pan / follow subject" },
+      { value: "mixed", label: "Mixed" },
+    ],
+    zh: [
+      { value: "static", label: "基本静止" },
+      { value: "gentle_handheld", label: "轻微手持" },
+      { value: "slow_push_in", label: "缓慢推进" },
+      { value: "slow_pull_back", label: "缓慢后拉" },
+      { value: "pan_follow", label: "摇镜/跟拍主体" },
+      { value: "mixed", label: "混合" },
+    ],
+    bm: [
+      { value: "static", label: "Kebanyakannya statik" },
+      { value: "gentle_handheld", label: "Genggaman tangan lembut" },
+      { value: "slow_push_in", label: "Tolak masuk perlahan" },
+      { value: "slow_pull_back", label: "Tarik balik perlahan" },
+      { value: "pan_follow", label: "Pan / ikut subjek" },
+      { value: "mixed", label: "Campuran" },
+    ],
+  },
+  heroAngle: {
+    en: [
+      { value: "", label: "— Select —" },
+      { value: "45_elevated", label: "45° elevated (recommended)" },
+      { value: "eye_level", label: "Eye-level straight-on" },
+      { value: "top_down", label: "Top-down / flat-lay" },
+      { value: "low_angle", label: "Low angle (prestige)" },
+      { value: "close_up_detail", label: "Close-up on key detail" },
+    ],
+    zh: [
+      { value: "", label: "— 选择 —" },
+      { value: "45_elevated", label: "45°仰角（推荐）" },
+      { value: "eye_level", label: "平视正面" },
+      { value: "top_down", label: "俯拍 / 平铺" },
+      { value: "low_angle", label: "低角度（高级感）" },
+      { value: "close_up_detail", label: "关键细节特写" },
+    ],
+    bm: [
+      { value: "", label: "— Pilih —" },
+      { value: "45_elevated", label: "45° tinggi (disyorkan)" },
+      { value: "eye_level", label: "Paras mata terus" },
+      { value: "top_down", label: "Dari atas / flat-lay" },
+      { value: "low_angle", label: "Sudut rendah (prestij)" },
+      { value: "close_up_detail", label: "Close-up pada butiran utama" },
+    ],
+  },
+  productFraming: {
+    en: [
+      { value: "fully_visible", label: "Product fully visible" },
+      { value: "centered", label: "Product centered" },
+      { value: "rule_of_thirds", label: "Rule of thirds" },
+      { value: "bg_blurred", label: "Background blurred, product sharp" },
+    ],
+    zh: [
+      { value: "fully_visible", label: "产品完整可见" },
+      { value: "centered", label: "产品居中" },
+      { value: "rule_of_thirds", label: "三分法构图" },
+      { value: "bg_blurred", label: "背景虚化，产品清晰" },
+    ],
+    bm: [
+      { value: "fully_visible", label: "Produk kelihatan sepenuhnya" },
+      { value: "centered", label: "Produk di tengah" },
+      { value: "rule_of_thirds", label: "Peraturan sepertiga" },
+      { value: "bg_blurred", label: "Latar kabur, produk tajam" },
+    ],
+  },
+  subjectMotion: {
+    en: [
+      { value: "typing_clicking", label: "Typing / clicking" },
+      { value: "looking_around", label: "Looking around stressed, then relaxing" },
+      { value: "picking_up_product", label: "Picking up & using product" },
+      { value: "pointing_at_screen", label: "Pointing at screen" },
+      { value: "walking_moving", label: "Walking / moving naturally" },
+    ],
+    zh: [
+      { value: "typing_clicking", label: "打字 / 点击" },
+      { value: "looking_around", label: "焦虑地环顾四周，然后放松" },
+      { value: "picking_up_product", label: "拿起并使用产品" },
+      { value: "pointing_at_screen", label: "指向屏幕" },
+      { value: "walking_moving", label: "自然走动" },
+    ],
+    bm: [
+      { value: "typing_clicking", label: "Menaip / mengklik" },
+      { value: "looking_around", label: "Melihat sekeliling dengan tekanan, kemudian relaks" },
+      { value: "picking_up_product", label: "Mengambil & menggunakan produk" },
+      { value: "pointing_at_screen", label: "Menunjuk ke skrin" },
+      { value: "walking_moving", label: "Berjalan / bergerak secara semula jadi" },
+    ],
+  },
+  productInteraction: {
+    en: [
+      { value: "plug_in", label: "Plug into laptop / phone" },
+      { value: "turn_on", label: "Turn product on" },
+      { value: "drag_windows", label: "Drag apps / windows onto screen" },
+      { value: "hold_in_hand", label: "Hold in hand while moving" },
+      { value: "unbox_reveal", label: "Unbox / reveal product" },
+      { value: "apply_use", label: "Apply / use on skin / body" },
+    ],
+    zh: [
+      { value: "plug_in", label: "插入笔记本/手机" },
+      { value: "turn_on", label: "开启产品" },
+      { value: "drag_windows", label: "将应用/窗口拖到屏幕上" },
+      { value: "hold_in_hand", label: "边走边手持" },
+      { value: "unbox_reveal", label: "开箱/揭示产品" },
+      { value: "apply_use", label: "涂抹/在皮肤/身体上使用" },
+    ],
+    bm: [
+      { value: "plug_in", label: "Pasang ke laptop / telefon" },
+      { value: "turn_on", label: "Hidupkan produk" },
+      { value: "drag_windows", label: "Seret apl / tetingkap ke skrin" },
+      { value: "hold_in_hand", label: "Pegang di tangan semasa bergerak" },
+      { value: "unbox_reveal", label: "Unbox / dedahkan produk" },
+      { value: "apply_use", label: "Sapu / guna pada kulit / badan" },
+    ],
+  },
+  emotionalArc: {
+    en: [
+      { value: "frustrated_relieved", label: "Frustrated → relieved" },
+      { value: "curious_impressed", label: "Curious → impressed" },
+      { value: "neutral_excited", label: "Neutral → excited" },
+      { value: "calm_confident", label: "Calm → confident" },
+    ],
+    zh: [
+      { value: "frustrated_relieved", label: "沮丧 → 释然" },
+      { value: "curious_impressed", label: "好奇 → 印象深刻" },
+      { value: "neutral_excited", label: "平淡 → 兴奋" },
+      { value: "calm_confident", label: "平静 → 自信" },
+    ],
+    bm: [
+      { value: "frustrated_relieved", label: "Kecewa → lega" },
+      { value: "curious_impressed", label: "Ingin tahu → terkesan" },
+      { value: "neutral_excited", label: "Neutral → teruja" },
+      { value: "calm_confident", label: "Tenang → yakin" },
+    ],
+  },
+  endingFrame: {
+    en: [
+      { value: "hero_product", label: "Hero product shot" },
+      { value: "user_happy", label: "User happily using product" },
+      { value: "product_branding", label: "Product + subtle branding" },
+      { value: "cta_frame", label: "CTA-focused final frame" },
+    ],
+    zh: [
+      { value: "hero_product", label: "产品主镜头" },
+      { value: "user_happy", label: "用户愉快使用产品" },
+      { value: "product_branding", label: "产品+subtle品牌" },
+      { value: "cta_frame", label: "以CTA为重点的最终帧" },
+    ],
+    bm: [
+      { value: "hero_product", label: "Tembakan hero produk" },
+      { value: "user_happy", label: "Pengguna gembira menggunakan produk" },
+      { value: "product_branding", label: "Produk + jenama halus" },
+      { value: "cta_frame", label: "Bingkai akhir berfokus CTA" },
+    ],
+  },
+  hooks: {
+    en: [
+      { value: "question", label: "Open with a question" },
+      { value: "bold_claim", label: "Bold claim / statement" },
+      { value: "problem_agitate", label: "Problem → agitate → solve" },
+      { value: "reveal", label: "Unexpected reveal" },
+      { value: "social_proof", label: "Social proof opener" },
+      { value: "before_after", label: "Before & after contrast" },
+      { value: "pov", label: "POV (point-of-view) shot" },
+    ],
+    zh: [
+      { value: "question", label: "以问题开场" },
+      { value: "bold_claim", label: "大胆声明/陈述" },
+      { value: "problem_agitate", label: "问题 → 激化 → 解决" },
+      { value: "reveal", label: "意外揭示" },
+      { value: "social_proof", label: "社会证明开场" },
+      { value: "before_after", label: "前后对比" },
+      { value: "pov", label: "第一视角镜头" },
+    ],
+    bm: [
+      { value: "question", label: "Buka dengan soalan" },
+      { value: "bold_claim", label: "Dakwaan / kenyataan berani" },
+      { value: "problem_agitate", label: "Masalah → galakkan → selesai" },
+      { value: "reveal", label: "Pendedahan mengejut" },
+      { value: "social_proof", label: "Pembuka bukti sosial" },
+      { value: "before_after", label: "Kontras sebelum & selepas" },
+      { value: "pov", label: "Tembakan POV (sudut pandang)" },
+    ],
+  },
+  cta: {
+    en: [
+      { value: "shop_link", label: "Shop via link in bio" },
+      { value: "comment", label: "Comment for more info" },
+      { value: "follow", label: "Follow for more" },
+      { value: "save_post", label: "Save this post" },
+      { value: "try_it", label: "Try it yourself" },
+      { value: "visit_website", label: "Visit website" },
+      { value: "sign_up", label: "Sign up now" },
+      { value: "no_cta", label: "No explicit CTA" },
+    ],
+    zh: [
+      { value: "shop_link", label: "通过简介链接购买" },
+      { value: "comment", label: "评论获取更多信息" },
+      { value: "follow", label: "关注以获取更多" },
+      { value: "save_post", label: "收藏此帖子" },
+      { value: "try_it", label: "自己试试" },
+      { value: "visit_website", label: "访问网站" },
+      { value: "sign_up", label: "立即注册" },
+      { value: "no_cta", label: "无明确CTA" },
+    ],
+    bm: [
+      { value: "shop_link", label: "Beli melalui pautan di bio" },
+      { value: "comment", label: "Komen untuk maklumat lanjut" },
+      { value: "follow", label: "Ikuti untuk lebih banyak" },
+      { value: "save_post", label: "Simpan siaran ini" },
+      { value: "try_it", label: "Cuba sendiri" },
+      { value: "visit_website", label: "Lawati laman web" },
+      { value: "sign_up", label: "Daftar sekarang" },
+      { value: "no_cta", label: "Tiada CTA yang jelas" },
+    ],
+  },
+  audioType: {
+    en: [
+      { value: "silent", label: "No audio (silent)" },
+      { value: "ambient_only", label: "Natural ambient sound only" },
+      { value: "vo_only", label: "Voiceover only" },
+      { value: "ambient_vo", label: "Ambient + voiceover" },
+    ],
+    zh: [
+      { value: "silent", label: "无音频（静音）" },
+      { value: "ambient_only", label: "仅自然环境音" },
+      { value: "vo_only", label: "仅配音" },
+      { value: "ambient_vo", label: "环境音+配音" },
+    ],
+    bm: [
+      { value: "silent", label: "Tiada audio (senyap)" },
+      { value: "ambient_only", label: "Bunyi ambien semula jadi sahaja" },
+      { value: "vo_only", label: "Suara latar sahaja" },
+      { value: "ambient_vo", label: "Ambien + suara latar" },
+    ],
+  },
+  voLang: {
+    en: [
+      { value: "", label: "— Select —" },
+      { value: "english", label: "English" },
+      { value: "bm", label: "Bahasa Malaysia" },
+      { value: "mandarin", label: "Mandarin" },
+      { value: "tamil", label: "Tamil" },
+      { value: "codemix_bm_en", label: "BM + English (code-switch)" },
+      { value: "none", label: "No voiceover (visual only)" },
+    ],
+    zh: [
+      { value: "", label: "— 选择 —" },
+      { value: "english", label: "英语" },
+      { value: "bm", label: "马来语" },
+      { value: "mandarin", label: "普通话" },
+      { value: "tamil", label: "泰米尔语" },
+      { value: "codemix_bm_en", label: "马来语+英语（混搭）" },
+      { value: "none", label: "无配音（纯视觉）" },
+    ],
+    bm: [
+      { value: "", label: "— Pilih —" },
+      { value: "english", label: "Bahasa Inggeris" },
+      { value: "bm", label: "Bahasa Malaysia" },
+      { value: "mandarin", label: "Mandarin" },
+      { value: "tamil", label: "Tamil" },
+      { value: "codemix_bm_en", label: "BM + Inggeris (code-switch)" },
+      { value: "none", label: "Tiada suara latar (visual sahaja)" },
+    ],
+  },
+  speechType: {
+    en: [
+      { value: "no_speech", label: "No one speaking on camera" },
+      { value: "on_camera", label: "Subject speaking on camera" },
+      { value: "offscreen_vo", label: "Off-screen voiceover only" },
+    ],
+    zh: [
+      { value: "no_speech", label: "镜头前无人说话" },
+      { value: "on_camera", label: "主体对着镜头说话" },
+      { value: "offscreen_vo", label: "仅画外音配音" },
+    ],
+    bm: [
+      { value: "no_speech", label: "Tiada yang bercakap di kamera" },
+      { value: "on_camera", label: "Subjek bercakap di kamera" },
+      { value: "offscreen_vo", label: "Suara latar luar skrin sahaja" },
+    ],
+  },
+  bgMusic: {
+    en: [
+      { value: "no_music", label: "No music" },
+      { value: "soft_bg", label: "Soft background music" },
+      { value: "upbeat", label: "Upbeat background music" },
+      { value: "dramatic", label: "Dramatic / cinematic music" },
+    ],
+    zh: [
+      { value: "no_music", label: "无音乐" },
+      { value: "soft_bg", label: "轻柔背景音乐" },
+      { value: "upbeat", label: "欢快背景音乐" },
+      { value: "dramatic", label: "戏剧性/电影感音乐" },
+    ],
+    bm: [
+      { value: "no_music", label: "Tiada muzik" },
+      { value: "soft_bg", label: "Muzik latar lembut" },
+      { value: "upbeat", label: "Muzik latar ceria" },
+      { value: "dramatic", label: "Muzik dramatik / sinematik" },
+    ],
+  },
+  frameRate: {
+    en: [
+      { value: "24fps", label: "24fps — cinematic" },
+      { value: "30fps", label: "30fps — standard" },
+      { value: "60fps", label: "60fps — very smooth" },
+    ],
+    zh: [
+      { value: "24fps", label: "24fps — 电影感" },
+      { value: "30fps", label: "30fps — 标准" },
+      { value: "60fps", label: "60fps — 非常流畅" },
+    ],
+    bm: [
+      { value: "24fps", label: "24fps — sinematik" },
+      { value: "30fps", label: "30fps — standard" },
+      { value: "60fps", label: "60fps — sangat lancar" },
+    ],
+  },
+  resolution: {
+    en: [
+      { value: "1080p", label: "1080p Full HD" },
+      { value: "1440p", label: "1440p" },
+      { value: "720p", label: "720p" },
+      { value: "best", label: "Best quality available" },
+    ],
+    zh: [
+      { value: "1080p", label: "1080p 全高清" },
+      { value: "1440p", label: "1440p" },
+      { value: "720p", label: "720p" },
+      { value: "best", label: "最高可用画质" },
+    ],
+    bm: [
+      { value: "1080p", label: "1080p Full HD" },
+      { value: "1440p", label: "1440p" },
+      { value: "720p", label: "720p" },
+      { value: "best", label: "Kualiti terbaik yang tersedia" },
+    ],
+  },
+  depthOfField: {
+    en: [
+      { value: "subject_sharp_bg_blur", label: "Subject & product sharp, BG slightly blurred" },
+      { value: "everything_sharp", label: "Everything in focus" },
+      { value: "product_sharp", label: "Product sharp, BG blurred" },
+    ],
+    zh: [
+      { value: "subject_sharp_bg_blur", label: "主体和产品清晰，背景略微虚化" },
+      { value: "everything_sharp", label: "全部清晰对焦" },
+      { value: "product_sharp", label: "产品清晰，背景虚化" },
+    ],
+    bm: [
+      { value: "subject_sharp_bg_blur", label: "Subjek & produk tajam, latar sedikit kabur" },
+      { value: "everything_sharp", label: "Semua dalam fokus" },
+      { value: "product_sharp", label: "Produk tajam, latar kabur" },
+    ],
+  },
+  antiHallucination: {
+    en: [
+      { value: "no_extra_limbs", label: "No extra limbs / fingers" },
+      { value: "no_warped_faces", label: "No warped faces" },
+      { value: "no_floating_objects", label: "No floating objects" },
+      { value: "no_random_ui", label: "No random UI / screens floating" },
+      { value: "no_fictional_features", label: "No fictional product features" },
+    ],
+    zh: [
+      { value: "no_extra_limbs", label: "无多余肢体/手指" },
+      { value: "no_warped_faces", label: "无扭曲面孔" },
+      { value: "no_floating_objects", label: "无漂浮物体" },
+      { value: "no_random_ui", label: "无随机浮动的UI/屏幕" },
+      { value: "no_fictional_features", label: "无虚构产品功能" },
+    ],
+    bm: [
+      { value: "no_extra_limbs", label: "Tiada anggota / jari tambahan" },
+      { value: "no_warped_faces", label: "Tiada muka yang herot" },
+      { value: "no_floating_objects", label: "Tiada objek terapung" },
+      { value: "no_random_ui", label: "Tiada UI / skrin terapung rawak" },
+      { value: "no_fictional_features", label: "Tiada ciri produk rekaan" },
+    ],
+  },
+  restrictions: {
+    en: [
+      { value: "no_text_overlay", label: "No text overlay" },
+      { value: "no_effects", label: "No artificial effects" },
+      { value: "no_exaggerated_acting", label: "No exaggerated acting" },
+      { value: "no_influencer_vibe", label: "No influencer vibe" },
+      { value: "no_branded_bg", label: "No branded items in BG" },
+      { value: "no_children", label: "No children in frame" },
+      { value: "halal_visual", label: "Visually halal-compliant" },
+      { value: "no_male_talent", label: "No male talent" },
+      { value: "no_competitor", label: "No competitor products" },
+      { value: "match_reference", label: "Product must match reference image" },
+      { value: "no_logo_change", label: "No changes to logo" },
+    ],
+    zh: [
+      { value: "no_text_overlay", label: "无文字叠加" },
+      { value: "no_effects", label: "无人工特效" },
+      { value: "no_exaggerated_acting", label: "无夸张表演" },
+      { value: "no_influencer_vibe", label: "无网红风格" },
+      { value: "no_branded_bg", label: "背景无品牌物品" },
+      { value: "no_children", label: "画面中无儿童" },
+      { value: "halal_visual", label: "视觉符合清真要求" },
+      { value: "no_male_talent", label: "无男性演员" },
+      { value: "no_competitor", label: "无竞争对手产品" },
+      { value: "match_reference", label: "产品必须与参考图像一致" },
+      { value: "no_logo_change", label: "不得更改Logo" },
+    ],
+    bm: [
+      { value: "no_text_overlay", label: "Tiada teks tindanan" },
+      { value: "no_effects", label: "Tiada kesan buatan" },
+      { value: "no_exaggerated_acting", label: "Tiada lakonan berlebihan" },
+      { value: "no_influencer_vibe", label: "Tiada gaya influencer" },
+      { value: "no_branded_bg", label: "Tiada item berjenama di latar" },
+      { value: "no_children", label: "Tiada kanak-kanak dalam bingkai" },
+      { value: "halal_visual", label: "Patuh halal secara visual" },
+      { value: "no_male_talent", label: "Tiada pelakon lelaki" },
+      { value: "no_competitor", label: "Tiada produk pesaing" },
+      { value: "match_reference", label: "Produk mesti sepadan dengan imej rujukan" },
+      { value: "no_logo_change", label: "Tiada perubahan pada logo" },
+    ],
+  },
 };
 
 const init = {
@@ -1011,8 +1589,8 @@ const init = {
 // ── Helpers ────────────────────────────────────────────────────────────────
 const clipSec = plan => plan === "pro" ? 10 : 6;
 const calcClips = (plan, dur) => { const cs = clipSec(plan); const total = parseInt(dur) || cs; return Math.ceil(total / cs); };
-const settingLabel = f => { if (f.settingPreset === "custom") return f.settingCustom || "Custom location"; return OPTS.settingPreset.find(o => o.value === f.settingPreset)?.label || "Not specified"; };
-const lightingLabel = f => { if (f.lightingPreset === "custom") return f.lightingCustom || "Custom lighting"; return OPTS.lightingPreset.find(o => o.value === f.lightingPreset)?.label || "Natural daylight"; };
+const settingLabel = (f, lang = "en") => { if (f.settingPreset === "custom") return f.settingCustom || "Custom location"; return o("settingPreset", lang).find(x => x.value === f.settingPreset)?.label || "Not specified"; };
+const lightingLabel = (f, lang = "en") => { if (f.lightingPreset === "custom") return f.lightingCustom || "Custom lighting"; return o("lightingPreset", lang).find(x => x.value === f.lightingPreset)?.label || "Natural daylight"; };
 const optLabel = (opts, val) => (Array.isArray(opts) ? opts : []).find(o => o.value === val)?.label || val || "";
 const chipsLabel = (opts, vals) => (Array.isArray(vals) ? vals : []).map(v => optLabel(opts, v)).filter(Boolean).join(", ");
 const productCatOpts = (lang) => OPTS.productCategory[lang] || OPTS.productCategory.en;
@@ -1032,10 +1610,10 @@ const fileToBase64 = file => new Promise((resolve, reject) => {
 // ── Build Gemini first frame prompt (always English for best image quality) ─
 const buildImagePrompt = (f, lang) => {
   const funnelOpt = { upper: "Upper Funnel — Awareness", middle: "Middle Funnel — Consideration", lower: "Lower Funnel — Conversion" }[f.funnel] || "";
-  const talentOpt = OPTS.talent.find(o => o.value === f.talent);
+  const talentOpt = o("talent",lang).find(x => o.value === f.talent);
   const aspectInfo = PLATFORM_ASPECT[f.platform] || PLATFORM_ASPECT.tiktok;
-  const styleOpt = OPTS.videoStyle.find(o => o.value === f.videoStyle);
-  const toneLabel = chipsLabel(OPTS.tone, f.tone) || "calm, warm";
+  const styleOpt = o("videoStyle",lang).find(x => o.value === f.videoStyle);
+  const toneLabel = chipsLabel(o("tone",lang), f.tone) || "calm, warm";
   const catLabel = productCatLabel(f, lang);
 
   return `Generate a single cinematic first frame image for a ${aspectInfo.label} ${styleOpt?.label || "UGC"} video ad.
@@ -1043,12 +1621,12 @@ const buildImagePrompt = (f, lang) => {
 PRODUCT: ${f.productName}${catLabel ? ` (${catLabel})` : ""}
 ${f.keyColors ? `PRODUCT COLORS: ${f.keyColors}` : ""}
 ${f.keyFeaturesCustom ? `KEY FEATURES: ${f.keyFeaturesCustom}` : ""}
-SETTING: ${settingLabel(f)}${f.settingDetail ? ` — ${f.settingDetail}` : ""}
-LIGHTING: ${lightingLabel(f)}
-TALENT: ${f.talent && f.talent !== "no_talent" ? `${talentOpt?.label || ""}${chipsLabel(OPTS.talentStyle, f.talentStyle) ? " — " + chipsLabel(OPTS.talentStyle, f.talentStyle) : ""}${f.talentDetail ? " — " + f.talentDetail : ""}` : "No people — product only"}
+SETTING: ${settingLabel(f,lang)}${f.settingDetail ? ` — ${f.settingDetail}` : ""}
+LIGHTING: ${lightingLabel(f,lang)}
+TALENT: ${f.talent && f.talent !== "no_talent" ? `${talentOpt?.label || ""}${chipsLabel(o("talentStyle",lang), f.talentStyle) ? " — " + chipsLabel(o("talentStyle",lang), f.talentStyle) : ""}${f.talentDetail ? " — " + f.talentDetail : ""}` : "No people — product only"}
 TONE: ${toneLabel}
 FUNNEL STAGE: ${funnelOpt}
-HOOK INTENT: ${chipsLabel(OPTS.hooks, f.hook) || "grab attention"}
+HOOK INTENT: ${chipsLabel(o("hooks",lang), f.hook) || "grab attention"}
 PROBLEM TO HINT AT: ${f.problemStatement || "not specified"}
 
 REQUIREMENTS:
@@ -1069,15 +1647,15 @@ const buildClipPrompts = (f, storyline, hasFirstFrame, lang) => {
   const cs = clipSec(f.grokPlan);
   const total = parseInt(f.totalDuration) || cs;
   const numClips = Math.ceil(total / cs);
-  const toneLabel = chipsLabel(OPTS.tone, f.tone) || "calm & warm";
-  const camOpt = OPTS.cameraMove.find(o => o.value === f.cameraMove);
-  const heroOpt = f.heroAngle ? OPTS.heroAngle.find(o => o.value === f.heroAngle) : null;
-  const talentOpt = OPTS.talent.find(o => o.value === f.talent);
-  const styleOpt = OPTS.videoStyle.find(o => o.value === f.videoStyle);
-  const ctaLabel = chipsLabel(OPTS.cta, f.cta);
+  const toneLabel = chipsLabel(o("tone",lang), f.tone) || "calm & warm";
+  const camOpt = o("cameraMove",lang).find(x => o.value === f.cameraMove);
+  const heroOpt = f.heroAngle ? o("heroAngle",lang).find(x => o.value === f.heroAngle) : null;
+  const talentOpt = o("talent",lang).find(x => o.value === f.talent);
+  const styleOpt = o("videoStyle",lang).find(x => o.value === f.videoStyle);
+  const ctaLabel = chipsLabel(o("cta",lang), f.cta);
   const catLabel = productCatLabel(f, lang);
-  const restrictions = (Array.isArray(f.restrictions) ? f.restrictions : []).map(r => `❌ ${optLabel(OPTS.restrictions, r)}`).join("  ");
-  const antiHalluc = (Array.isArray(f.antiHallucination) ? f.antiHallucination : []).map(r => `❌ ${optLabel(OPTS.antiHallucination, r)}`).join("  ");
+  const restrictions = (Array.isArray(f.restrictions) ? f.restrictions : []).map(r => `❌ ${optLabel(o("restrictions",lang), r)}`).join("  ");
+  const antiHalluc = (Array.isArray(f.antiHallucination) ? f.antiHallucination : []).map(r => `❌ ${optLabel(o("antiHallucination",lang), r)}`).join("  ");
   const storyLines = storyline ? storyline.split("\n").filter(l => l.trim()) : [];
 
   const funnelDir = {
@@ -1113,40 +1691,40 @@ const buildClipPrompts = (f, storyline, hasFirstFrame, lang) => {
     `USP: ${f.usp}`,
     `PROBLEM BEING SOLVED: ${f.problemStatement}`,
     `CORE BENEFIT: ${f.keyBenefit}`,
-    `HOOK STRATEGY: ${chipsLabel(OPTS.hooks, f.hook)}`,
+    `HOOK STRATEGY: ${chipsLabel(o("hooks",lang), f.hook)}`,
     `CTA: ${ctaLabel}`,
     funnelOpt ? `SALES FUNNEL: ${funnelOpt.label} (${funnelOpt.tag})` : "",
     funnelOpt ? `FUNNEL OBJECTIVE: ${funnelOpt.objective}` : "",
     opt("COLORS", f.keyColors),
-    opt("TARGET AUDIENCE", chipsLabel(OPTS.targetAudience, f.targetAudience)),
+    opt("TARGET AUDIENCE", chipsLabel(o("targetAudience",lang), f.targetAudience)),
     opt("PRODUCT RULES", f.productRules),
     opt("STYLE", styleOpt?.label),
     opt("TONE", toneLabel),
-    opt("REALISM", optLabel(OPTS.realism, f.realism)),
-    opt("COLOR GRADING", chipsLabel(OPTS.colorGrading, f.colorGrading)),
-    opt("AUTHENTICITY", optLabel(OPTS.authenticity, f.authenticity)),
-    f.settingPreset ? `LOCATION: ${settingLabel(f)}${f.settingDetail ? " — " + f.settingDetail : ""}` : opt("LOCATION DETAIL", f.settingDetail),
-    f.lightingPreset ? opt("LIGHTING", lightingLabel(f)) : "",
-    opt("BACKGROUND ACTIVITY", optLabel(OPTS.bgActivity, f.bgActivity)),
-    f.talent ? `TALENT: ${f.talent === "no_talent" ? "No talent — product only" : (talentOpt?.label || "") + (chipsLabel(OPTS.talentStyle, f.talentStyle) ? ", " + chipsLabel(OPTS.talentStyle, f.talentStyle) : "") + (f.talentDetail ? ", " + f.talentDetail : "")}` : "",
-    opt("EMOTION", chipsLabel(OPTS.emotion, f.emotion)),
-    opt("SHOT TYPE", chipsLabel(OPTS.shotType, f.shotType)),
-    opt("CAMERA ANGLE", optLabel(OPTS.cameraAngle, f.cameraAngle)),
+    opt("REALISM", optLabel(o("realism",lang), f.realism)),
+    opt("COLOR GRADING", chipsLabel(o("colorGrading",lang), f.colorGrading)),
+    opt("AUTHENTICITY", optLabel(o("authenticity",lang), f.authenticity)),
+    f.settingPreset ? `LOCATION: ${settingLabel(f,lang)}${f.settingDetail ? " — " + f.settingDetail : ""}` : opt("LOCATION DETAIL", f.settingDetail),
+    f.lightingPreset ? opt("LIGHTING", lightingLabel(f,lang)) : "",
+    opt("BACKGROUND ACTIVITY", optLabel(o("bgActivity",lang), f.bgActivity)),
+    f.talent ? `TALENT: ${f.talent === "no_talent" ? "No talent — product only" : (talentOpt?.label || "") + (chipsLabel(o("talentStyle",lang), f.talentStyle) ? ", " + chipsLabel(o("talentStyle",lang), f.talentStyle) : "") + (f.talentDetail ? ", " + f.talentDetail : "")}` : "",
+    opt("EMOTION", chipsLabel(o("emotion",lang), f.emotion)),
+    opt("SHOT TYPE", chipsLabel(o("shotType",lang), f.shotType)),
+    opt("CAMERA ANGLE", optLabel(o("cameraAngle",lang), f.cameraAngle)),
     opt("CAMERA MOVEMENT", camOpt?.label),
     opt("HERO ANGLE", heroOpt?.label),
-    opt("PRODUCT FRAMING", chipsLabel(OPTS.productFraming, f.productFraming)),
-    opt("SUBJECT MOTION", chipsLabel(OPTS.subjectMotion, f.subjectMotion)),
-    opt("PRODUCT INTERACTION", chipsLabel(OPTS.productInteraction, f.productInteraction)),
-    opt("EMOTIONAL ARC", optLabel(OPTS.emotionalArc, f.emotionalArc)),
-    opt("ENDING FRAME", optLabel(OPTS.endingFrame, f.endingFrame)),
-    opt("AUDIO", optLabel(OPTS.audioType, f.audioType)),
-    f.audioType && f.bgMusic ? opt("MUSIC", optLabel(OPTS.bgMusic, f.bgMusic)) : "",
-    f.audioType && f.voLang && f.voLang !== "none" ? opt("VOICEOVER LANGUAGE", optLabel(OPTS.voLang, f.voLang)) : "",
-    f.audioType && f.speechType ? opt("SPEECH TYPE", optLabel(OPTS.speechType, f.speechType)) : "",
+    opt("PRODUCT FRAMING", chipsLabel(o("productFraming",lang), f.productFraming)),
+    opt("SUBJECT MOTION", chipsLabel(o("subjectMotion",lang), f.subjectMotion)),
+    opt("PRODUCT INTERACTION", chipsLabel(o("productInteraction",lang), f.productInteraction)),
+    opt("EMOTIONAL ARC", optLabel(o("emotionalArc",lang), f.emotionalArc)),
+    opt("ENDING FRAME", optLabel(o("endingFrame",lang), f.endingFrame)),
+    opt("AUDIO", optLabel(o("audioType",lang), f.audioType)),
+    f.audioType && f.bgMusic ? opt("MUSIC", optLabel(o("bgMusic",lang), f.bgMusic)) : "",
+    f.audioType && f.voLang && f.voLang !== "none" ? opt("VOICEOVER LANGUAGE", optLabel(o("voLang",lang), f.voLang)) : "",
+    f.audioType && f.speechType ? opt("SPEECH TYPE", optLabel(o("speechType",lang), f.speechType)) : "",
     f.audioType && f.voTone ? opt("VO TONE", f.voTone) : "",
-    opt("FRAME RATE", optLabel(OPTS.frameRate, f.frameRate)),
-    opt("RESOLUTION", optLabel(OPTS.resolution, f.resolution)),
-    opt("DEPTH OF FIELD", optLabel(OPTS.depthOfField, f.depthOfField)),
+    opt("FRAME RATE", optLabel(o("frameRate",lang), f.frameRate)),
+    opt("RESOLUTION", optLabel(o("resolution",lang), f.resolution)),
+    opt("DEPTH OF FIELD", optLabel(o("depthOfField",lang), f.depthOfField)),
     opt("REFERENCE", f.referenceUrl),
     f.brandStyle ? opt("BRAND STYLE", optLabel([{value:"clean_minimal_tech",label:"Clean minimal tech"},{value:"playful_colorful",label:"Playful & colorful"},{value:"serious_corporate",label:"Serious & corporate"},{value:"warm_lifestyle",label:"Warm lifestyle brand"},{value:"premium_luxury",label:"Premium / luxury"}], f.brandStyle)) : "",
     restrictions ? `RESTRICTIONS: ${restrictions}` : "",
@@ -1171,7 +1749,7 @@ const buildClipPrompts = (f, storyline, hasFirstFrame, lang) => {
        `Content — demonstrate: ${f.keyBenefit || f.keyFeaturesCustom}`);
 
     const hookDir = (clipRole.role.includes("HOOK") || clipRole.role.includes("钩子") || clipRole.role.includes("HOOK"))
-      ? `\n🎣 HOOK DIRECTION\n• Hook strategy: ${chipsLabel(OPTS.hooks, f.hook) || "pattern interrupt"}\n• First 1–2 seconds must STOP THE SCROLL — no slow intros\n• ${fd.hook}${hasFirstFrame ? "\n• Animate naturally from your first frame reference image" : ""}` : "";
+      ? `\n🎣 HOOK DIRECTION\n• Hook strategy: ${chipsLabel(o("hooks",lang), f.hook) || "pattern interrupt"}\n• First 1–2 seconds must STOP THE SCROLL — no slow intros\n• ${fd.hook}${hasFirstFrame ? "\n• Animate naturally from your first frame reference image" : ""}` : "";
     const contentDir = (clipRole.role.includes("CONTENT") || clipRole.role.includes("内容") || clipRole.role.includes("KANDUNGAN"))
       ? `\n📖 CONTENT DIRECTION\n• Key benefit to show: ${f.keyBenefit || f.keyFeaturesCustom}\n• ${fd.content}\n• Emotional beat: viewer should feel ${f.funnel === "upper" ? "curious and intrigued" : f.funnel === "middle" ? "understood and convinced" : "excited and ready to buy"}` : "";
     const ctaDir = (clipRole.role === "CTA" || clipRole.role.includes("CTA"))
@@ -1237,9 +1815,9 @@ CLIP ROLES:\n${clipRoleMap}
 Product: ${f.productName} | Category: ${catLabel}
 Features: ${f.keyFeaturesCustom} | USP: ${f.usp}
 Problem: ${f.problemStatement} | Benefit: ${f.keyBenefit}
-Style: ${f.videoStyle} | Tone: ${chipsLabel(OPTS.tone, f.tone) || "calm, warm"}
-Hook: ${chipsLabel(OPTS.hooks, f.hook)} | CTA: ${chipsLabel(OPTS.cta, f.cta)}
-Setting: ${settingLabel(f)} | Talent: ${f.talent}
+Style: ${f.videoStyle} | Tone: ${chipsLabel(o("tone",lang), f.tone) || "calm, warm"}
+Hook: ${chipsLabel(o("hooks",lang), f.hook)} | CTA: ${chipsLabel(o("cta",lang), f.cta)}
+Setting: ${settingLabel(f,lang)} | Talent: ${f.talent}
 Funnel: ${funnelLabels[f.funnel] || "not specified"}
 [HOOK]: ${fg.hook}
 [CONTENT]: ${fg.content}
@@ -1381,7 +1959,7 @@ export default function App() {
           <Section emoji="⚙️" title={t.sGrok} subtitle={t.sGrokSub}>
             <Field label={t.fGrokPlan}>
               <div className="flex gap-3">
-                {OPTS.grokPlan.map(o => (
+                {o("grokPlan", lang).map(o => (
                   <button key={o.value} onClick={() => set("grokPlan")(o.value)}
                     className={`flex-1 py-2 rounded-lg text-sm font-medium border transition-all ${f.grokPlan === o.value ? "bg-blue-500 text-white border-blue-500" : "bg-white text-gray-600 border-gray-200 hover:border-blue-300"}`}>
                     {o.label}
@@ -1455,7 +2033,7 @@ export default function App() {
           {/* Story & Structure */}
           <Section emoji="📖" title={t.sStory}>
             <Field label={t.fHook} required hint={t.fHookHint}>
-              <Chips value={f.hook} onChange={set("hook")} options={OPTS.hooks} />
+              <Chips value={f.hook} onChange={set("hook")} options={o("hooks", lang)} />
             </Field>
             <Field label={t.fProblem} required>
               <TextInput value={f.problemStatement} onChange={set("problemStatement")} placeholder={t.fProblemPh} />
@@ -1464,7 +2042,7 @@ export default function App() {
               <TextInput value={f.keyBenefit} onChange={set("keyBenefit")} placeholder={t.fBenefitPh} />
             </Field>
             <Field label={t.fCTA} required hint={t.fCTAHint}>
-              <Chips value={f.cta} onChange={set("cta")} options={OPTS.cta} />
+              <Chips value={f.cta} onChange={set("cta")} options={o("cta", lang)} />
             </Field>
           </Section>
 
@@ -1483,7 +2061,7 @@ export default function App() {
                   <TextInput value={f.keyColors} onChange={set("keyColors")} placeholder={t.fColorsPh} />
                 </Field>
                 <Field label={t.fAudience}>
-                  <Chips value={f.targetAudience} onChange={set("targetAudience")} options={OPTS.targetAudience} />
+                  <Chips value={f.targetAudience} onChange={set("targetAudience")} options={o("targetAudience", lang)} />
                 </Field>
                 <Field label={t.fProductRules} hint={t.fProductRulesHint}>
                   <TextArea value={f.productRules} onChange={set("productRules")} placeholder={t.fProductRulesPh} rows={2} />
@@ -1491,68 +2069,68 @@ export default function App() {
               </Section>
 
               <Section emoji="📖" title={t.sAdvStory}>
-                <Field label={t.fEmotionalArc}><Chips value={f.emotionalArc} onChange={set("emotionalArc")} options={OPTS.emotionalArc} single /></Field>
-                <Field label={t.fEndingFrame}><Chips value={f.endingFrame} onChange={set("endingFrame")} options={OPTS.endingFrame} single /></Field>
+                <Field label={t.fEmotionalArc}><Chips value={f.emotionalArc} onChange={set("emotionalArc")} options={o("emotionalArc", lang)} single /></Field>
+                <Field label={t.fEndingFrame}><Chips value={f.endingFrame} onChange={set("endingFrame")} options={o("endingFrame", lang)} single /></Field>
               </Section>
 
               <Section emoji="🎨" title={t.sStyle}>
-                <Field label={t.fVideoStyle}><Chips value={f.videoStyle} onChange={set("videoStyle")} options={OPTS.videoStyle} single /></Field>
-                <Field label={t.fTone}><Chips value={f.tone} onChange={set("tone")} options={OPTS.tone} /></Field>
-                <Field label={t.fRealism}><Chips value={f.realism} onChange={set("realism")} options={OPTS.realism} single /></Field>
-                <Field label={t.fColorGrading}><Chips value={f.colorGrading} onChange={set("colorGrading")} options={OPTS.colorGrading} /></Field>
-                <Field label={t.fAuthenticity}><Chips value={f.authenticity} onChange={set("authenticity")} options={OPTS.authenticity} single /></Field>
+                <Field label={t.fVideoStyle}><Chips value={f.videoStyle} onChange={set("videoStyle")} options={o("videoStyle", lang)} single /></Field>
+                <Field label={t.fTone}><Chips value={f.tone} onChange={set("tone")} options={o("tone", lang)} /></Field>
+                <Field label={t.fRealism}><Chips value={f.realism} onChange={set("realism")} options={o("realism", lang)} single /></Field>
+                <Field label={t.fColorGrading}><Chips value={f.colorGrading} onChange={set("colorGrading")} options={o("colorGrading", lang)} /></Field>
+                <Field label={t.fAuthenticity}><Chips value={f.authenticity} onChange={set("authenticity")} options={o("authenticity", lang)} single /></Field>
               </Section>
 
               <Section emoji="🏠" title={t.sSetting}>
                 <div className="grid grid-cols-2 gap-3">
-                  <Field label={t.fLocation}><Select value={f.settingPreset} onChange={set("settingPreset")} options={OPTS.settingPreset} /></Field>
-                  <Field label={t.fLighting}><Select value={f.lightingPreset} onChange={set("lightingPreset")} options={OPTS.lightingPreset} /></Field>
+                  <Field label={t.fLocation}><Select value={f.settingPreset} onChange={set("settingPreset")} options={o("settingPreset", lang)} /></Field>
+                  <Field label={t.fLighting}><Select value={f.lightingPreset} onChange={set("lightingPreset")} options={o("lightingPreset", lang)} /></Field>
                 </div>
                 {f.settingPreset === "custom" && <Field label={t.fCustomLocation}><TextInput value={f.settingCustom} onChange={set("settingCustom")} placeholder={t.fCustomLocationPh} /></Field>}
                 {f.lightingPreset === "custom" && <Field label={t.fCustomLighting}><TextInput value={f.lightingCustom} onChange={set("lightingCustom")} placeholder={t.fCustomLightingPh} /></Field>}
                 <Field label={t.fEnvDetail}><TextInput value={f.settingDetail} onChange={set("settingDetail")} placeholder={t.fEnvDetailPh} /></Field>
-                <Field label={t.fBgActivity}><Chips value={f.bgActivity} onChange={set("bgActivity")} options={OPTS.bgActivity} single /></Field>
+                <Field label={t.fBgActivity}><Chips value={f.bgActivity} onChange={set("bgActivity")} options={o("bgActivity", lang)} single /></Field>
               </Section>
 
               <Section emoji="👤" title={t.sTalent}>
-                <Field label={t.fTalentType}><Chips value={f.talent} onChange={set("talent")} options={OPTS.talent} single /></Field>
+                <Field label={t.fTalentType}><Chips value={f.talent} onChange={set("talent")} options={o("talent", lang)} single /></Field>
                 {f.talent && f.talent !== "no_talent" && (<>
-                  <Field label={t.fOutfit}><Chips value={f.talentStyle} onChange={set("talentStyle")} options={OPTS.talentStyle} /></Field>
+                  <Field label={t.fOutfit}><Chips value={f.talentStyle} onChange={set("talentStyle")} options={o("talentStyle", lang)} /></Field>
                   <Field label={t.fAppearance}><TextInput value={f.talentDetail} onChange={set("talentDetail")} placeholder={t.fAppearancePh} /></Field>
-                  <Field label={t.fEmotion}><Chips value={f.emotion} onChange={set("emotion")} options={OPTS.emotion} /></Field>
+                  <Field label={t.fEmotion}><Chips value={f.emotion} onChange={set("emotion")} options={o("emotion", lang)} /></Field>
                 </>)}
               </Section>
 
               <Section emoji="🎥" title={t.sCamera}>
-                <Field label={t.fShotType}><Chips value={f.shotType} onChange={set("shotType")} options={OPTS.shotType} /></Field>
-                <Field label={t.fCamAngle}><Chips value={f.cameraAngle} onChange={set("cameraAngle")} options={OPTS.cameraAngle} single /></Field>
-                <Field label={t.fCamMove}><Chips value={f.cameraMove} onChange={set("cameraMove")} options={OPTS.cameraMove} single /></Field>
-                <Field label={t.fHeroAngle} hint={t.fHeroAngleHint}><Select value={f.heroAngle} onChange={set("heroAngle")} options={OPTS.heroAngle} /></Field>
-                <Field label={t.fProductFraming}><Chips value={f.productFraming} onChange={set("productFraming")} options={OPTS.productFraming} /></Field>
+                <Field label={t.fShotType}><Chips value={f.shotType} onChange={set("shotType")} options={o("shotType", lang)} /></Field>
+                <Field label={t.fCamAngle}><Chips value={f.cameraAngle} onChange={set("cameraAngle")} options={o("cameraAngle", lang)} single /></Field>
+                <Field label={t.fCamMove}><Chips value={f.cameraMove} onChange={set("cameraMove")} options={o("cameraMove", lang)} single /></Field>
+                <Field label={t.fHeroAngle} hint={t.fHeroAngleHint}><Select value={f.heroAngle} onChange={set("heroAngle")} options={o("heroAngle", lang)} /></Field>
+                <Field label={t.fProductFraming}><Chips value={f.productFraming} onChange={set("productFraming")} options={o("productFraming", lang)} /></Field>
               </Section>
 
               <Section emoji="🎬" title={t.sAction}>
-                <Field label={t.fSubjectMotion}><Chips value={f.subjectMotion} onChange={set("subjectMotion")} options={OPTS.subjectMotion} /></Field>
-                <Field label={t.fProductInteraction}><Chips value={f.productInteraction} onChange={set("productInteraction")} options={OPTS.productInteraction} /></Field>
+                <Field label={t.fSubjectMotion}><Chips value={f.subjectMotion} onChange={set("subjectMotion")} options={o("subjectMotion", lang)} /></Field>
+                <Field label={t.fProductInteraction}><Chips value={f.productInteraction} onChange={set("productInteraction")} options={o("productInteraction", lang)} /></Field>
               </Section>
 
               <Section emoji="🎙" title={t.sAudio}>
-                <Field label={t.fAudioType}><Chips value={f.audioType} onChange={set("audioType")} options={OPTS.audioType} single /></Field>
-                <Field label={t.fBgMusic}><Chips value={f.bgMusic} onChange={set("bgMusic")} options={OPTS.bgMusic} single /></Field>
+                <Field label={t.fAudioType}><Chips value={f.audioType} onChange={set("audioType")} options={o("audioType", lang)} single /></Field>
+                <Field label={t.fBgMusic}><Chips value={f.bgMusic} onChange={set("bgMusic")} options={o("bgMusic", lang)} single /></Field>
                 {f.audioType !== "silent" && f.audioType !== "ambient_only" && (<>
                   <div className="grid grid-cols-2 gap-3">
-                    <Field label={t.fVoLang}><Select value={f.voLang} onChange={set("voLang")} options={OPTS.voLang} /></Field>
+                    <Field label={t.fVoLang}><Select value={f.voLang} onChange={set("voLang")} options={o("voLang", lang)} /></Field>
                     <Field label={t.fVoTone}><TextInput value={f.voTone} onChange={set("voTone")} placeholder={t.fVoTonePh} /></Field>
                   </div>
-                  <Field label={t.fSpeechType}><Chips value={f.speechType} onChange={set("speechType")} options={OPTS.speechType} single /></Field>
+                  <Field label={t.fSpeechType}><Chips value={f.speechType} onChange={set("speechType")} options={o("speechType", lang)} single /></Field>
                   <Field label={t.fScript}><TextArea value={f.customVO} onChange={set("customVO")} placeholder={t.fScriptPh} rows={3} /></Field>
                 </>)}
               </Section>
 
               <Section emoji="⚡" title={t.sTech}>
-                <Field label={t.fFrameRate}><Chips value={f.frameRate} onChange={set("frameRate")} options={OPTS.frameRate} single /></Field>
-                <Field label={t.fResolution}><Chips value={f.resolution} onChange={set("resolution")} options={OPTS.resolution} single /></Field>
-                <Field label={t.fDOF}><Chips value={f.depthOfField} onChange={set("depthOfField")} options={OPTS.depthOfField} single /></Field>
+                <Field label={t.fFrameRate}><Chips value={f.frameRate} onChange={set("frameRate")} options={o("frameRate", lang)} single /></Field>
+                <Field label={t.fResolution}><Chips value={f.resolution} onChange={set("resolution")} options={o("resolution", lang)} single /></Field>
+                <Field label={t.fDOF}><Chips value={f.depthOfField} onChange={set("depthOfField")} options={o("depthOfField", lang)} single /></Field>
               </Section>
 
               <Section emoji="🖼" title={t.sRef}>
@@ -1571,8 +2149,8 @@ export default function App() {
               </Section>
 
               <Section emoji="❗" title={t.sRestrict}>
-                <Field label={t.fAntiHalluc}><Chips value={f.antiHallucination} onChange={set("antiHallucination")} options={OPTS.antiHallucination} /></Field>
-                <Field label={t.fRestrictions}><Chips value={f.restrictions} onChange={set("restrictions")} options={OPTS.restrictions} /></Field>
+                <Field label={t.fAntiHalluc}><Chips value={f.antiHallucination} onChange={set("antiHallucination")} options={o("antiHallucination", lang)} /></Field>
+                <Field label={t.fRestrictions}><Chips value={f.restrictions} onChange={set("restrictions")} options={o("restrictions", lang)} /></Field>
                 <Field label={t.fNotes}><TextArea value={f.extraNotes} onChange={set("extraNotes")} placeholder={t.fNotesPh} rows={2} /></Field>
               </Section>
 
