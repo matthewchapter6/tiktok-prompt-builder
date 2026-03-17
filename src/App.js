@@ -7,6 +7,7 @@ const TRANSLATIONS = {
     // Header
     appTitle: "🎬 TikTok UGC Prompt Builder",
     appSubtitle: "Powered for Grok — any product, any brand",
+    tabSora: "🎬 Sora",
     tabBuilder: "📝 Builder",
     tabOutput: "📋 Output",
 
@@ -194,6 +195,7 @@ const TRANSLATIONS = {
   zh: {
     appTitle: "🎬 TikTok UGC 提示词生成器",
     appSubtitle: "由 Grok 驱动 — 适用于任何产品和品牌",
+    tabSora: "🎬 Sora",
     tabBuilder: "📝 构建器",
     tabOutput: "📋 输出",
 
@@ -370,6 +372,7 @@ const TRANSLATIONS = {
   bm: {
     appTitle: "🎬 Pembina Prompt UGC TikTok",
     appSubtitle: "Dikuasakan oleh Grok — mana-mana produk, mana-mana jenama",
+    tabSora: "🎬 Sora",
     tabBuilder: "📝 Pembina",
     tabOutput: "📋 Output",
 
@@ -682,9 +685,6 @@ const PLATFORM_ASPECT = {
   feed_square: { ratio: "1:1", label: "1:1 square", gemini: "1:1" },
 };
 
-// ── Options (labels stay in English — these are technical terms for Grok) ──
-// ── Helper: resolve per-language opts array ────────────────────────────────
-// If an OPTS key is a plain array it's language-neutral; if it's an object, pick the right lang.
 const o = (key, lang) => {
   const v = OPTS[key];
   if (!v) return [];
@@ -693,7 +693,6 @@ const o = (key, lang) => {
 };
 
 const OPTS = {
-  // Platform & plan labels are proper nouns — keep as-is
   platform: [
     { value: "tiktok", label: "TikTok (9:16)" },
     { value: "reels", label: "Instagram Reels (9:16)" },
@@ -1587,6 +1586,19 @@ const init = {
   storyline: "",
 };
 
+// ── Sora form state ────────────────────────────────────────────────────────
+const soraInit = {
+  videoRatio: "9_16",
+  videoLength: "10",
+  productDescription: "",
+  productUSP: "",
+  storyline: "",
+  aiDecideStoryline: false,
+  advancedOpen: false,
+  cameraMotion: "",
+  lightingStyle: "",
+};
+
 // ── Helpers ────────────────────────────────────────────────────────────────
 const clipSec = plan => plan === "pro" ? 10 : 6;
 const calcClips = (plan, dur) => { const cs = clipSec(plan); const total = parseInt(dur) || cs; return Math.ceil(total / cs); };
@@ -1608,7 +1620,7 @@ const fileToBase64 = file => new Promise((resolve, reject) => {
   r.readAsDataURL(file);
 });
 
-// ── Build Gemini first frame prompt (always English for best image quality) ─
+// ── Build Gemini first frame prompt ───────────────────────────────────────
 const buildImagePrompt = (f, lang) => {
   const funnelOpt = { upper: "Upper Funnel — Awareness", middle: "Middle Funnel — Consideration", lower: "Lower Funnel — Conversion" }[f.funnel] || "";
   const talentOpt = o("talent",lang).find(x => o.value === f.talent);
@@ -1857,6 +1869,7 @@ const generateFirstFrame = async (f, lang, productFile, talentFile, setLoading, 
     setLoading(false);
   }
 };
+
 // ── Login Screen ───────────────────────────────────────────────────────────
 const LoginScreen = () => {
   const [loading, setLoading] = useState(false);
@@ -1896,6 +1909,7 @@ const LoginScreen = () => {
     </div>
   );
 };
+
 // ── Main App ───────────────────────────────────────────────────────────────
 export default function App() {
   const [lang, setLang] = useState("en");
@@ -1916,6 +1930,10 @@ export default function App() {
   const [generatedImage, setGeneratedImage] = useState(null);
   const [user, setUser] = useState(null);
   const [authLoading, setAuthLoading] = useState(true);
+
+  // ── Sora tab state ──
+  const [sora, setSora] = useState(soraInit);
+  const setSoraField = k => v => setSora(p => ({ ...p, [k]: v }));
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
@@ -2024,7 +2042,7 @@ export default function App() {
 
       {/* ── Tabs ── */}
       <div className="flex border-b border-gray-200 bg-white px-4">
-        {[["builder", t.tabBuilder], ["output", t.tabOutput]].map(([v, l]) => (
+        {[["sora", t.tabSora], ["builder", t.tabBuilder], ["output", t.tabOutput]].map(([v, l]) => (
           <button key={v} onClick={() => setTab(v)}
             className={`px-4 py-2 text-sm font-medium border-b-2 transition-all ${tab === v ? "border-blue-500 text-blue-600" : "border-transparent text-gray-400"}`}>
             {l}{v === "output" && clips.length > 0 ? ` (${clips.length})` : ""}
@@ -2033,6 +2051,142 @@ export default function App() {
       </div>
 
       <div className="max-w-2xl mx-auto px-4 py-6">
+
+        {/* ── SORA TAB ── */}
+        {tab === "sora" && (
+          <div className="pb-8">
+            {/* Coming Soon Banner */}
+            <div className="flex items-center gap-3 bg-indigo-600 text-white rounded-xl px-4 py-3 mb-5">
+              <span className="flex-shrink-0 bg-white text-indigo-600 text-xs font-bold px-2 py-0.5 rounded-md tracking-wide">COMING SOON</span>
+              <p className="text-sm font-medium">Sora video generation is not yet available. Preview the features below.</p>
+            </div>
+
+            {/* Greyed out content */}
+            <div className="opacity-40 pointer-events-none select-none">
+
+              {/* Video Settings */}
+              <Section emoji="🎞️" title="Video Settings" subtitle="Configure your Sora video output format.">
+                <Field label="Video Ratio">
+                  <Chips
+                    value={sora.videoRatio}
+                    onChange={setSoraField("videoRatio")}
+                    options={[
+                      { value: "9_16", label: "9:16 Portrait" },
+                      { value: "16_9", label: "16:9 Landscape" },
+                    ]}
+                    single
+                  />
+                </Field>
+                <Field label="Video Length">
+                  <Chips
+                    value={sora.videoLength}
+                    onChange={setSoraField("videoLength")}
+                    options={[
+                      { value: "10", label: "10 sec" },
+                      { value: "15", label: "15 sec" },
+                    ]}
+                    single
+                  />
+                </Field>
+              </Section>
+
+              {/* Upload Assets */}
+              <Section emoji="📤" title="Upload Assets" subtitle="Provide product and character references for Sora.">
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="flex flex-col items-center justify-center w-full h-28 border-2 border-dashed border-gray-200 rounded-xl bg-gray-50 cursor-pointer">
+                    <p className="text-2xl mb-1">📦</p>
+                    <p className="text-xs font-medium text-gray-600">Upload product photo</p>
+                    <p className="text-xs text-gray-400 mt-0.5">JPG, PNG or WEBP</p>
+                  </div>
+                  <div className="flex flex-col items-center justify-center w-full h-28 border-2 border-dashed border-gray-200 rounded-xl bg-gray-50 cursor-pointer">
+                    <p className="text-2xl mb-1">👤</p>
+                    <p className="text-xs font-medium text-gray-600">Upload character photo</p>
+                    <p className="text-xs text-gray-400 mt-0.5">JPG, PNG or WEBP</p>
+                  </div>
+                </div>
+              </Section>
+
+              {/* Product Details */}
+              <Section emoji="📝" title="Product Details" subtitle="Tell Sora what your product is and why it matters.">
+                <Field label="Product Description">
+                  <TextArea
+                    value={sora.productDescription}
+                    onChange={setSoraField("productDescription")}
+                    placeholder="Describe your product — what it is, who it's for, what it does…"
+                    rows={2}
+                  />
+                </Field>
+                <Field label="Product USP — Unique Selling Point">
+                  <TextArea
+                    value={sora.productUSP}
+                    onChange={setSoraField("productUSP")}
+                    placeholder="What makes your product stand out? Key benefits and differentiators…"
+                    rows={2}
+                  />
+                </Field>
+              </Section>
+
+              {/* Storyline */}
+              <Section emoji="🎭" title="Storyline" subtitle="Guide the narrative or let AI decide.">
+                <Field label="Storyline (optional)">
+                  <TextArea
+                    value={sora.aiDecideStoryline ? "" : sora.storyline}
+                    onChange={setSoraField("storyline")}
+                    placeholder="Describe the video storyline… or toggle below to let AI decide."
+                    rows={3}
+                  />
+                </Field>
+                <div className="flex items-center gap-3 mt-1">
+                  <div className="relative w-9 h-5 flex-shrink-0">
+                    <div className={`absolute inset-0 rounded-full transition-colors ${sora.aiDecideStoryline ? "bg-blue-500" : "bg-gray-200"}`} />
+                    <div className={`absolute top-0.5 w-4 h-4 bg-white rounded-full shadow-sm transition-transform ${sora.aiDecideStoryline ? "translate-x-4" : "translate-x-0.5"}`} />
+                  </div>
+                  <span className="text-sm text-gray-600">Let AI decide the storyline</span>
+                </div>
+              </Section>
+
+              {/* Advanced Settings */}
+              <div className="mb-4">
+                <button className="w-full flex items-center justify-between px-4 py-3 rounded-xl border-2 border-dashed border-gray-300 bg-white transition-all">
+                  <div className="flex items-center gap-2">
+                    <span>{sora.advancedOpen ? "🔼" : "🔽"}</span>
+                    <div className="text-left">
+                      <p className="text-sm font-bold text-gray-700">Advanced Settings</p>
+                      <p className="text-xs text-gray-400">Camera motion, lighting style, and more</p>
+                    </div>
+                  </div>
+                  <span className="text-xs font-semibold px-2 py-1 rounded-full bg-gray-100 text-gray-500">Optional</span>
+                </button>
+
+                {sora.advancedOpen && (
+                  <div className="mt-3 space-y-3 px-1">
+                    <Field label="Camera Motion">
+                      <TextInput
+                        value={sora.cameraMotion}
+                        onChange={setSoraField("cameraMotion")}
+                        placeholder="e.g. slow zoom, handheld, cinematic pan…"
+                      />
+                    </Field>
+                    <Field label="Lighting Style">
+                      <TextInput
+                        value={sora.lightingStyle}
+                        onChange={setSoraField("lightingStyle")}
+                        placeholder="e.g. golden hour, studio soft box, neon…"
+                      />
+                    </Field>
+                  </div>
+                )}
+              </div>
+
+              {/* Generate Button */}
+              <button className="w-full py-3 rounded-xl bg-indigo-500 text-white font-bold text-sm flex items-center justify-center gap-2 cursor-not-allowed">
+                <span>▶</span> Generate Sora Video
+              </button>
+
+            </div>{/* end greyed */}
+          </div>
+        )}
+
         {tab === "builder" && (<>
 
           {/* Basic Settings badge */}
