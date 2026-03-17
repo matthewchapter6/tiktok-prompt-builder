@@ -5,6 +5,10 @@
 // Status:  GET  https://queue.fal.run/{modelPath}/requests/{requestId}/status
 // Result:  GET  https://queue.fal.run/{modelPath}/requests/{requestId}
 
+// sora-status.js
+// Uses @fal-ai/client SDK — add to package.json: "@fal-ai/client": "^1.0.0"
+import { fal } from "@fal-ai/client";
+
 export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET, OPTIONS');
@@ -13,99 +17,68 @@ export default async function handler(req, res) {
   if (req.method !== 'GET') return res.status(405).json({ error: 'Method not allowed' });
 
   try {
-    const { requestId, modelPath } = req.query;
+    const { requestId, modelId } = req.query;
     if (!requestId) return res.status(400).json({ error: 'requestId is required' });
 
-    // Use modelPath passed from the submit step, fallback to image-to-video
-    const model = modelPath
-      ? decodeURIComponent(modelPath)
+    fal.config({ credentials: process.env.FAL_API_KEY });
+
+    const model = modelId
+      ? decodeURIComponent(modelId)
       : 'fal-ai/kling-video/v1.6/standard/image-to-video';
 
-    const headers = {
-      'Authorization': `Key ${process.env.FAL_API_KEY}`,
-    };
+    console.log('Checking status for requestId:', requestId, 'model:', model);
 
-    // Step 1: Check status
-    const statusUrl = `https://queue.fal.run/${model}/requests/${requestId}/status`;
-    console.log('Polling status URL:', statusUrl);
+    const statusData = await fal.queue.status(model, {
+      requestId,
+      logs: false,
+    });
 
-    const statusRes = await fetch(statusUrl, { method: 'GET', headers });
-    const statusText = await statusRes.text();
-    console.log('Status response:', statusRes.status, statusText);
+    console.log('Status:', statusData.status);
 
-    if (!statusRes.ok) {
-      return res.status(500).json({
-        error: `fal.ai status check failed with ${statusRes.status}`,
-        details: statusText,
-      });
-    }
-
-    let statusData;
-    try { statusData = JSON.parse(statusText); }
-    catch (e) { return res.status(500).json({ error: 'Invalid JSON from status', raw: statusText }); }
-
-    const status = statusData.status;
-
-    if (status === 'IN_QUEUE' || status === 'IN_PROGRESS') {
+    if (statusData.status === 'IN_QUEUE' || statusData.status === 'IN_PROGRESS') {
       return res.status(200).json({
-        status,
+        status: statusData.status,
         queuePosition: statusData.queue_position ?? null,
       });
     }
 
-    if (status === 'FAILED') {
+    if (statusData.status === 'FAILED') {
       return res.status(200).json({
         status: 'FAILED',
-        error: statusData.error || 'Generation failed on fal.ai',
+        error: statusData.error || 'Generation failed',
       });
     }
 
-    if (status === 'COMPLETED') {
-      // Step 2: Fetch the result
-      const resultUrl = `https://queue.fal.run/${model}/requests/${requestId}`;
-      console.log('Fetching result URL:', resultUrl);
+    if (statusData.status === 'COMPLETED') {
+      console.log('Completed! Fetching result...');
 
-      const resultRes = await fetch(resultUrl, { method: 'GET', headers });
-      const resultText = await resultRes.text();
-      console.log('Result response:', resultRes.status, resultText.substring(0, 300));
+      const result = await fal.queue.result(model, { requestId });
+      console.log('Result keys:', Object.keys(result?.data || result || {}));
 
-      if (!resultRes.ok) {
-        return res.status(500).json({
-          error: `fal.ai result fetch failed with ${resultRes.status}`,
-          details: resultText,
-        });
-      }
-
-      let result;
-      try { result = JSON.parse(resultText); }
-      catch (e) { return res.status(500).json({ error: 'Invalid JSON from result', raw: resultText }); }
-
-      // fal.ai Kling returns: { "video": { "url": "https://..." } }
+      const data = result?.data || result;
       const videoUrl =
-        result?.video?.url ||
-        result?.video_url ||
-        result?.videos?.[0]?.url ||
-        result?.output?.video?.url ||
+        data?.video?.url ||
+        data?.video_url ||
+        data?.videos?.[0]?.url ||
         null;
 
       if (!videoUrl) {
-        console.error('No video URL in result:', JSON.stringify(result));
+        console.error('No video URL found. Result:', JSON.stringify(data));
         return res.status(200).json({
           status: 'COMPLETED',
           videoUrl: null,
-          error: 'Video completed but no URL found',
-          rawResult: result,
+          error: 'Video completed but URL not found',
+          rawResult: data,
         });
       }
 
       return res.status(200).json({ status: 'COMPLETED', videoUrl });
     }
 
-    // Unknown status
-    return res.status(200).json({ status: status || 'UNKNOWN', queuePosition: null });
+    return res.status(200).json({ status: statusData.status || 'UNKNOWN' });
 
   } catch (error) {
-    console.error('sora-status error:', error.message);
+    console.error('sora-status error:', error.message, error.body || '');
     res.status(500).json({ error: error.message });
   }
 }
