@@ -1,6 +1,10 @@
 // Polls fal.ai queue for video generation status
 // Call this every 3-5 seconds from the frontend until status === COMPLETED
 
+// fal.ai Queue REST API docs: https://docs.fal.ai/model-apis/model-endpoints/queue
+// Status:  GET  https://queue.fal.run/{modelPath}/requests/{requestId}/status
+// Result:  GET  https://queue.fal.run/{modelPath}/requests/{requestId}
+
 export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET, OPTIONS');
@@ -9,73 +13,74 @@ export default async function handler(req, res) {
   if (req.method !== 'GET') return res.status(405).json({ error: 'Method not allowed' });
 
   try {
-    const { requestId, endpoint } = req.query;
+    const { requestId, modelPath } = req.query;
     if (!requestId) return res.status(400).json({ error: 'requestId is required' });
 
-    const modelPath = endpoint === 'text'
-      ? 'fal-ai/kling-video/v1.6/standard/text-to-video'
+    // Use modelPath passed from the submit step, fallback to image-to-video
+    const model = modelPath
+      ? decodeURIComponent(modelPath)
       : 'fal-ai/kling-video/v1.6/standard/image-to-video';
 
     const headers = {
       'Authorization': `Key ${process.env.FAL_API_KEY}`,
-      'Content-Type': 'application/json',
     };
 
-    // First check status
-    const statusRes = await fetch(
-      `https://queue.fal.run/${modelPath}/requests/${requestId}/status`,
-      { headers }
-    );
+    // Step 1: Check status
+    const statusUrl = `https://queue.fal.run/${model}/requests/${requestId}/status`;
+    console.log('Polling status URL:', statusUrl);
+
+    const statusRes = await fetch(statusUrl, { method: 'GET', headers });
+    const statusText = await statusRes.text();
+    console.log('Status response:', statusRes.status, statusText);
 
     if (!statusRes.ok) {
-      const errText = await statusRes.text();
-      console.error('fal.ai status error:', statusRes.status, errText);
       return res.status(500).json({
-        error: 'Status check failed',
-        details: errText,
-        falStatus: statusRes.status,
+        error: `fal.ai status check failed with ${statusRes.status}`,
+        details: statusText,
       });
     }
 
-    const statusData = await statusRes.json();
-    console.log('fal.ai status response:', JSON.stringify(statusData));
+    let statusData;
+    try { statusData = JSON.parse(statusText); }
+    catch (e) { return res.status(500).json({ error: 'Invalid JSON from status', raw: statusText }); }
 
-    // Still in queue or processing
-    if (statusData.status === 'IN_QUEUE' || statusData.status === 'IN_PROGRESS') {
+    const status = statusData.status;
+
+    if (status === 'IN_QUEUE' || status === 'IN_PROGRESS') {
       return res.status(200).json({
-        status: statusData.status,
+        status,
         queuePosition: statusData.queue_position ?? null,
       });
     }
 
-    // Failed
-    if (statusData.status === 'FAILED') {
+    if (status === 'FAILED') {
       return res.status(200).json({
         status: 'FAILED',
-        error: statusData.error || 'Video generation failed on fal.ai',
+        error: statusData.error || 'Generation failed on fal.ai',
       });
     }
 
-    // Completed — fetch the actual result
-    if (statusData.status === 'COMPLETED') {
-      const resultRes = await fetch(
-        `https://queue.fal.run/${modelPath}/requests/${requestId}`,
-        { headers }
-      );
+    if (status === 'COMPLETED') {
+      // Step 2: Fetch the result
+      const resultUrl = `https://queue.fal.run/${model}/requests/${requestId}`;
+      console.log('Fetching result URL:', resultUrl);
+
+      const resultRes = await fetch(resultUrl, { method: 'GET', headers });
+      const resultText = await resultRes.text();
+      console.log('Result response:', resultRes.status, resultText.substring(0, 300));
 
       if (!resultRes.ok) {
-        const errText = await resultRes.text();
-        console.error('fal.ai result fetch error:', resultRes.status, errText);
         return res.status(500).json({
-          error: 'Failed to fetch completed video',
-          details: errText,
+          error: `fal.ai result fetch failed with ${resultRes.status}`,
+          details: resultText,
         });
       }
 
-      const result = await resultRes.json();
-      console.log('fal.ai result:', JSON.stringify(result));
+      let result;
+      try { result = JSON.parse(resultText); }
+      catch (e) { return res.status(500).json({ error: 'Invalid JSON from result', raw: resultText }); }
 
-      // fal.ai Kling returns video URL in different possible locations
+      // fal.ai Kling returns: { "video": { "url": "https://..." } }
       const videoUrl =
         result?.video?.url ||
         result?.video_url ||
@@ -84,33 +89,23 @@ export default async function handler(req, res) {
         null;
 
       if (!videoUrl) {
-        console.error('No video URL found in result:', JSON.stringify(result));
+        console.error('No video URL in result:', JSON.stringify(result));
         return res.status(200).json({
           status: 'COMPLETED',
           videoUrl: null,
-          error: 'Video generated but URL not found',
+          error: 'Video completed but no URL found',
           rawResult: result,
         });
       }
 
-      return res.status(200).json({
-        status: 'COMPLETED',
-        videoUrl,
-      });
+      return res.status(200).json({ status: 'COMPLETED', videoUrl });
     }
 
-    // Unknown status — return as-is
-    return res.status(200).json({
-      status: statusData.status || 'UNKNOWN',
-      queuePosition: statusData.queue_position ?? null,
-      raw: statusData,
-    });
+    // Unknown status
+    return res.status(200).json({ status: status || 'UNKNOWN', queuePosition: null });
 
   } catch (error) {
-    console.error('sora-status handler error:', error);
-    res.status(500).json({
-      error: 'Status check failed',
-      details: error.message,
-    });
+    console.error('sora-status error:', error.message);
+    res.status(500).json({ error: error.message });
   }
 }
