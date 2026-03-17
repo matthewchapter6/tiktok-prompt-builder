@@ -2044,7 +2044,7 @@ export default function App() {
         : "fal-ai/kling-video/v1.6/standard/text-to-video");
       soraPollingRef.current = setInterval(async () => {
         try {
-          const statusRes = await fetch(`/api/sora-status?requestId=${videoData.requestId}&modelPath=${encodeURIComponent(modelPath)}`);
+          const statusRes = await fetch(`/api/sora-status?requestId=${videoData.requestId}&modelId=${encodeURIComponent(videoData.modelId || modelPath)}`);
           const statusData = await statusRes.json();
           if (statusData.queuePosition !== null && statusData.queuePosition !== undefined) {
             setSoraQueuePos(statusData.queuePosition);
