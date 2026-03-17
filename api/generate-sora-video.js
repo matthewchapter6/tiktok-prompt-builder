@@ -21,24 +21,24 @@ export default async function handler(req, res) {
     if (!prompt) return res.status(400).json({ error: 'Prompt is required' });
 
     const aspectRatio = videoRatio === '9_16' ? '9:16' : '16:9';
-    const duration = videoLength === '15' ? '10' : '5'; // Kling uses 5s or 10s; map 10s→5, 15s→10
+    // fal.ai Kling accepts "5" or "10" seconds
+    const duration = videoLength === '15' ? '10' : '5';
 
-    // Build fal.ai request body
-    // If product image provided, use image-to-video endpoint for better product consistency
     const falBody = {
       prompt,
       aspect_ratio: aspectRatio,
       duration,
-      cfg_scale: 0.5, // creativity balance — 0=strict to prompt, 1=creative
+      cfg_scale: 0.5,
       ...(productImageBase64 ? {
         image_url: `data:${productImageMime || 'image/jpeg'};base64,${productImageBase64}`,
       } : {}),
     };
 
-    // Choose endpoint: image-to-video if product image provided, text-to-video if not
     const endpoint = productImageBase64
       ? 'https://queue.fal.run/fal-ai/kling-video/v1.6/standard/image-to-video'
       : 'https://queue.fal.run/fal-ai/kling-video/v1.6/standard/text-to-video';
+
+    console.log('Submitting to fal.ai endpoint:', endpoint);
 
     const response = await fetch(endpoint, {
       method: 'POST',
@@ -50,18 +50,36 @@ export default async function handler(req, res) {
     });
 
     const data = await response.json();
+    console.log('fal.ai submit response:', JSON.stringify(data));
+
     if (!response.ok) {
       console.error('fal.ai error:', data);
-      return res.status(response.status).json({ error: 'Video generation failed', details: data });
+      return res.status(response.status).json({
+        error: 'Video generation failed',
+        details: data,
+      });
     }
 
-    // fal.ai queue returns a request_id for polling
+    // fal.ai returns request_id (with underscore)
+    const requestId = data.request_id || data.requestId || null;
+
+    if (!requestId) {
+      return res.status(500).json({
+        error: 'No request ID returned from fal.ai',
+        raw: data,
+      });
+    }
+
     res.status(200).json({
-      requestId: data.request_id,
+      requestId,
       status: data.status || 'IN_QUEUE',
     });
+
   } catch (error) {
     console.error('generate-sora-video error:', error);
-    res.status(500).json({ error: 'Video generation failed', details: error.message });
+    res.status(500).json({
+      error: 'Video generation failed',
+      details: error.message,
+    });
   }
 }
