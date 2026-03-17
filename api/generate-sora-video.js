@@ -10,35 +10,33 @@ export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
 
   try {
-    const {
-      prompt,
-      videoRatio,
-      videoLength,
-      productImageBase64,
-      productImageMime,
-    } = req.body;
-
+    const { prompt, videoRatio, videoLength, productImageBase64, productImageMime } = req.body;
     if (!prompt) return res.status(400).json({ error: 'Prompt is required' });
 
     const aspectRatio = videoRatio === '9_16' ? '9:16' : '16:9';
-    // fal.ai Kling accepts "5" or "10" seconds
     const duration = videoLength === '15' ? '10' : '5';
+    const hasImage = !!productImageBase64;
 
-    const falBody = {
-      prompt,
-      aspect_ratio: aspectRatio,
-      duration,
-      cfg_scale: 0.5,
-      ...(productImageBase64 ? {
-        image_url: `data:${productImageMime || 'image/jpeg'};base64,${productImageBase64}`,
-      } : {}),
+    // fal.ai requires input to be nested under "input" key
+    const falInput = {
+      input: {
+        prompt,
+        aspect_ratio: aspectRatio,
+        duration,
+        cfg_scale: 0.5,
+        ...(hasImage ? {
+          image_url: `data:${productImageMime || 'image/jpeg'};base64,${productImageBase64}`,
+        } : {}),
+      }
     };
 
-    const endpoint = productImageBase64
-      ? 'https://queue.fal.run/fal-ai/kling-video/v1.6/standard/image-to-video'
-      : 'https://queue.fal.run/fal-ai/kling-video/v1.6/standard/text-to-video';
+    const modelPath = hasImage
+      ? 'fal-ai/kling-video/v1.6/standard/image-to-video'
+      : 'fal-ai/kling-video/v1.6/standard/text-to-video';
 
-    console.log('Submitting to fal.ai endpoint:', endpoint);
+    const endpoint = `https://queue.fal.run/${modelPath}`;
+    console.log('Submitting to:', endpoint);
+    console.log('Input (no image data):', JSON.stringify({ ...falInput, input: { ...falInput.input, image_url: hasImage ? '[BASE64]' : undefined } }));
 
     const response = await fetch(endpoint, {
       method: 'POST',
@@ -46,40 +44,32 @@ export default async function handler(req, res) {
         'Content-Type': 'application/json',
         'Authorization': `Key ${process.env.FAL_API_KEY}`,
       },
-      body: JSON.stringify(falBody),
+      body: JSON.stringify(falInput),
     });
 
-    const data = await response.json();
-    console.log('fal.ai submit response:', JSON.stringify(data));
+    const responseText = await response.text();
+    console.log('fal.ai submit raw response:', responseText);
+
+    let data;
+    try { data = JSON.parse(responseText); }
+    catch (e) { return res.status(500).json({ error: 'Invalid JSON from fal.ai', raw: responseText }); }
 
     if (!response.ok) {
-      console.error('fal.ai error:', data);
-      return res.status(response.status).json({
-        error: 'Video generation failed',
-        details: data,
-      });
+      return res.status(response.status).json({ error: 'fal.ai submission failed', details: data });
     }
 
-    // fal.ai returns request_id (with underscore)
-    const requestId = data.request_id || data.requestId || null;
-
+    const requestId = data.request_id || data.requestId;
     if (!requestId) {
-      return res.status(500).json({
-        error: 'No request ID returned from fal.ai',
-        raw: data,
-      });
+      return res.status(500).json({ error: 'No request_id in fal.ai response', raw: data });
     }
 
     res.status(200).json({
       requestId,
+      modelPath, // pass back so status polling uses same model path
       status: data.status || 'IN_QUEUE',
     });
-
   } catch (error) {
     console.error('generate-sora-video error:', error);
-    res.status(500).json({
-      error: 'Video generation failed',
-      details: error.message,
-    });
+    res.status(500).json({ error: error.message });
   }
 }
