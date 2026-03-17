@@ -2038,10 +2038,13 @@ export default function App() {
       if (!videoRes.ok) throw new Error(videoData.error || "Video job submission failed");
 
       setSoraStep("polling");
-      const endpoint = soraProductFile ? "image" : "text";
+      // Use modelPath returned from submit step for accurate polling
+      const modelPath = videoData.modelPath || (soraProductFile
+        ? "fal-ai/kling-video/v1.6/standard/image-to-video"
+        : "fal-ai/kling-video/v1.6/standard/text-to-video");
       soraPollingRef.current = setInterval(async () => {
         try {
-          const statusRes = await fetch(`/api/sora-status?requestId=${videoData.requestId}&endpoint=${endpoint}`);
+          const statusRes = await fetch(`/api/sora-status?requestId=${videoData.requestId}&modelPath=${encodeURIComponent(modelPath)}`);
           const statusData = await statusRes.json();
           if (statusData.queuePosition !== null && statusData.queuePosition !== undefined) {
             setSoraQueuePos(statusData.queuePosition);
