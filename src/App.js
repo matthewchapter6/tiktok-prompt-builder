@@ -1589,7 +1589,7 @@ const init = {
 // ── Sora form state ────────────────────────────────────────────────────────
 const soraInit = {
   videoRatio: "9_16",
-  videoLength: "10",
+  videoLength: "10", // default to 10s — Kling 2.6 Pro supports 5 or 10
   productDescription: "",
   productUSP: "",
   storyline: "",
@@ -2292,7 +2292,7 @@ export default function App() {
                 </Field>
                 <Field label="Video length">
                   <Chips value={sora.videoLength} onChange={setSoraField("videoLength")}
-                    options={[{ value: "10", label: "10 sec" }, { value: "15", label: "15 sec" }]} single />
+                    options={[{ value: "5", label: "5 sec" }, { value: "10", label: "10 sec" }]} single />
                 </Field>
               </Section>
 
@@ -2524,7 +2524,7 @@ export default function App() {
                   {(!sora.productDescription || !sora.productUSP) && (
                     <p className="text-xs text-gray-400 text-center mt-2">Fill in Product Description and USP to enable generation</p>
                   )}
-                  <p className="text-xs text-gray-400 text-center mt-3">⚡ Powered by Kling AI · Takes ~30–90 seconds · ~$0.40 per video</p>
+                  <p className="text-xs text-gray-400 text-center mt-3">⚡ Powered by Kling 2.6 Pro · 1080p · Takes ~30–90 seconds · ~$0.70–1.40 per video</p>
                 </>
               )}
 
