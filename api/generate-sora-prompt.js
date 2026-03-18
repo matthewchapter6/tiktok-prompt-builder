@@ -33,18 +33,39 @@ export default async function handler(req, res) {
     const userFilledAdvanced = videoStyle || tone || cameraMotion || lightingStyle || backgroundSetting || audienceEmotion;
     const aspectRatio = videoRatio === '9_16' ? '9:16' : '16:9';
 
-    const narrativeSystem = `You are a world-class video director specialising in AI-generated short-form product promotion videos for Kling AI.
-Write a single cinematic video generation prompt. Rules:
+    // Duration-aware word count and scene structure
+    const durationGuide = durationSec === '5' ? {
+      wordCount: '50-70 words MAX — absolutely no more',
+      scenes: '1 scene only',
+      structure: 'ONE single scene: pick the single most impactful moment (product reveal OR hero shot OR key emotion). No story arc. No transitions. One frozen-in-time cinematic moment.',
+      pacing: 'Count your words. 5 seconds = ~12 words of screen action. Every word must earn its place.',
+      example: 'Example of a good 5s prompt: "@Element1 shoe rotates slowly on a black marble surface. Golden studio light catches the silver metallic finish. Camera orbits at low angle. Final frame: logo badge fills screen. Sharp. Premium. Minimal."',
+    } : {
+      wordCount: '100-140 words',
+      scenes: '3 beats: Hook (2s) + Benefit (5s) + Hero close-up (3s)',
+      structure: 'Beat 1 Hook (2s): establish problem or grab attention. Beat 2 Benefit (5s): show product solving problem or in use. Beat 3 Hero (3s): product close-up, CTA implied.',
+      pacing: 'Each beat = 1-2 sentences. Keep cuts sharp. No lingering.',
+      example: '',
+    };
+
+    const narrativeSystem = `You are a world-class video director writing Kling AI video prompts.
+STRICT RULES — violating these ruins the video:
 - English only
-- Output ONLY the prompt text, no explanation, no preamble, no markdown
-- 150-250 words
-- Be specific: visuals, motion, lighting, mood, camera moves, character emotions
-- Structure: Hook scene, Product reveal/benefit, Closing hero shot
-- Always describe the final closing shot explicitly`;
+- Output ONLY the prompt text — zero explanation, zero preamble, zero markdown
+- VIDEO LENGTH: ${durationSec} seconds. This is a HARD constraint.
+- WORD LIMIT: ${durationGuide.wordCount}. Count your words before submitting.
+- SCENE STRUCTURE: ${durationGuide.structure}
+- PACING: ${durationGuide.pacing}
+${durationGuide.example ? `- ${durationGuide.example}` : ''}
+- Be specific about visuals, camera, lighting, motion
+- End with the final closing shot — one sentence`;
 
     const narrativeUser = `Write a Kling AI video prompt for this product ad.
 
-FORMAT: ${ratioLabel} | ${durationSec}s | ${funnelGuide}
+FORMAT: ${ratioLabel} | ${durationSec}s video | ${funnelGuide}
+⚠️ WORD LIMIT: ${durationGuide.wordCount} — count every word, do not exceed
+⚠️ SCENE STRUCTURE: ${durationGuide.structure}
+⚠️ PACING RULE: ${durationGuide.pacing}
 
 PRODUCT:
 - Description: ${productDescription}
@@ -123,7 +144,19 @@ Return exactly this JSON (fill ALL fields):
     if (!narrativeRes.ok) return res.status(narrativeRes.status).json({ error: narrativeData });
     if (!configRes.ok) return res.status(configRes.status).json({ error: configData });
 
-    const prompt = narrativeData.content?.find(b => b.type === 'text')?.text?.trim() || '';
+    let prompt = narrativeData.content?.find(b => b.type === 'text')?.text?.trim() || '';
+
+    // Safety trim: if AI still exceeded word limit, truncate at sentence boundary
+    const maxWords = durationSec === '5' ? 70 : 140;
+    const words = prompt.split(/\s+/);
+    if (words.length > maxWords) {
+      console.warn(`Prompt exceeded ${maxWords} words (got ${words.length}) — trimming to last complete sentence`);
+      const trimmed = words.slice(0, maxWords).join(' ');
+      // Find last sentence boundary
+      const lastPeriod = Math.max(trimmed.lastIndexOf('.'), trimmed.lastIndexOf('!'), trimmed.lastIndexOf('?'));
+      prompt = lastPeriod > 0 ? trimmed.substring(0, lastPeriod + 1) : trimmed;
+    }
+    console.log(`Prompt word count: ${prompt.split(/\s+/).length} words (limit: ${maxWords})`);
 
     let videoConfig = { aspect_ratio: aspectRatio, duration: durationSec, cfg_scale: 0.5, resolved: {} };
     try {
