@@ -1,3 +1,9 @@
+// generate-sora-prompt.js
+// Returns TWO things:
+//   1. prompt       — narrative text shown to user for review/edit
+//   2. videoConfig  — resolved technical params (ratio, duration, style, camera etc.)
+//                     AI fills in any blanks the user left empty
+
 export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
@@ -7,104 +13,114 @@ export default async function handler(req, res) {
 
   try {
     const {
-      productDescription,
-      productUSP,
-      storyline,
-      aiDecideStoryline,
-      salesFunnel,
-      videoRatio,
-      videoLength,
-      // Advanced settings — all optional
-      videoStyle,
-      tone,
-      cameraMotion,
-      lightingStyle,
-      backgroundSetting,
-      audienceEmotion,
-      restrictions,
-      // Product/character images as base64 for visual context
-      hasProductImage,
-      hasCharacterImage,
+      productDescription, productUSP, storyline, aiDecideStoryline,
+      salesFunnel, videoRatio, videoLength,
+      videoStyle, tone, cameraMotion, lightingStyle,
+      backgroundSetting, audienceEmotion, restrictions,
+      hasProductImage, hasCharacterImage,
     } = req.body;
 
-    const ratioLabel = videoRatio === '9_16' ? '9:16 vertical (portrait)' : '16:9 horizontal (landscape)';
+    const ratioLabel = videoRatio === '9_16' ? '9:16 vertical portrait' : '16:9 horizontal landscape';
+    const durationSec = videoLength === '15' ? '10' : '5';
     const funnelGuide = {
-      upper: 'AWARENESS — open with a relatable problem, do not hard sell, end with soft CTA like "follow for more"',
-      middle: 'CONSIDERATION — show the product solving a problem, build trust, mid-strength CTA',
-      lower: 'CONVERSION — urgency and desire, strong direct CTA to buy or visit link',
-    }[salesFunnel] || 'GENERAL — show the product attractively, clear benefit, soft CTA';
+      upper:  'AWARENESS — relatable problem hook, no hard sell, soft CTA',
+      middle: 'CONSIDERATION — show product solving problem, build trust, mid-strength CTA',
+      lower:  'CONVERSION — urgency and desire, strong direct buy CTA',
+    }[salesFunnel] || 'GENERAL — show product attractively, clear benefit, soft CTA';
 
-    const hasAdvanced = videoStyle || tone || cameraMotion || lightingStyle || backgroundSetting || audienceEmotion;
+    const userFilledAdvanced = videoStyle || tone || cameraMotion || lightingStyle || backgroundSetting || audienceEmotion;
+    const aspectRatio = videoRatio === '9_16' ? '9:16' : '16:9';
 
-    const systemPrompt = `You are a world-class video director and prompt engineer specialising in AI-generated short-form product promotion videos.
+    const narrativeSystem = `You are a world-class video director specialising in AI-generated short-form product promotion videos for Kling AI.
+Write a single cinematic video generation prompt. Rules:
+- English only
+- Output ONLY the prompt text, no explanation, no preamble, no markdown
+- 150-250 words
+- Be specific: visuals, motion, lighting, mood, camera moves, character emotions
+- Structure: Hook scene, Product reveal/benefit, Closing hero shot
+- Always describe the final closing shot explicitly`;
 
-Your job is to write a single, professional, structured video generation prompt for Kling AI (image-to-video model).
+    const narrativeUser = `Write a Kling AI video prompt for this product ad.
 
-RULES:
-- Write in English only
-- Output ONLY the final prompt — no explanation, no preamble, no markdown
-- Length: 150–250 words
-- Be specific about visuals, motion, lighting, mood, and camera
-- The prompt must result in a high-quality product promotion video
-- Always end with a clear description of the final closing shot`;
+FORMAT: ${ratioLabel} | ${durationSec}s | ${funnelGuide}
 
-    const userMessage = `Write a Kling AI video generation prompt for this product promotion video.
-
-VIDEO SPECS:
-- Ratio: ${ratioLabel}
-- Length: ${videoLength} seconds
-- Sales Funnel Stage: ${funnelGuide}
-
-PRODUCT INFO:
+PRODUCT:
 - Description: ${productDescription}
-- USP (Unique Selling Point): ${productUSP}
+- USP: ${productUSP}
+
+STORYLINE:
 ${aiDecideStoryline
-        ? `- Storyline: AI should create one${storyline ? `. Use this as inspiration: ${storyline}` : ''}`
-        : storyline
-          ? `- Storyline / Key beats (follow this): ${storyline}`
-          : '- Storyline: Not provided — create an engaging one based on the product and funnel stage'}
+  ? `AI creates the storyline.${storyline ? ` Inspiration: ${storyline}` : ''}`
+  : storyline
+    ? `Follow this: ${storyline}`
+    : 'No storyline — create a compelling one for this product and funnel.'}
 
-VISUAL ASSETS PROVIDED:
-- Product photo: ${hasProductImage ? 'YES — animate the product naturally, keep it consistent throughout' : 'NO — describe the product visually based on the description'}
-- Character/talent photo: ${hasCharacterImage ? 'YES — use this person as the talent, keep their appearance consistent' : 'NO — choose a suitable talent type based on the product'}
+ASSETS:
+- Product photo: ${hasProductImage ? 'YES — animate naturally, keep consistent' : 'NO — describe visually from description'}
+- Talent photo: ${hasCharacterImage ? 'YES — use this person consistently' : 'NO — choose suitable talent'}
 
-${hasAdvanced ? `ADVANCED SETTINGS (user-specified — follow these exactly):
-${videoStyle ? `- Video style: ${videoStyle}` : ''}
-${tone ? `- Tone: ${tone}` : ''}
-${cameraMotion ? `- Camera motion: ${cameraMotion}` : ''}
-${lightingStyle ? `- Lighting: ${lightingStyle}` : ''}
-${backgroundSetting ? `- Background/environment: ${backgroundSetting}` : ''}
-${audienceEmotion ? `- Character emotion arc: ${audienceEmotion}` : ''}
-${restrictions ? `- Restrictions: ${restrictions}` : ''}` : `ADVANCED SETTINGS: Not provided by user — you decide the best values for:
-- Video style and tone (match the product category and funnel stage)
-- Camera angles and movement (make it dynamic and engaging)
-- Background/environment (realistic, relevant to product use case)
-- Lighting (cinematic quality)
-- Character emotion arc (relatable → satisfied/excited)
-- Any other cinematic details that improve quality`}
+CINEMATIC SETTINGS:
+${userFilledAdvanced
+  ? `User specified:\n${videoStyle ? `- Style: ${videoStyle}\n` : ''}${tone ? `- Tone: ${tone}\n` : ''}${cameraMotion ? `- Camera: ${cameraMotion}\n` : ''}${lightingStyle ? `- Lighting: ${lightingStyle}\n` : ''}${backgroundSetting ? `- Background: ${backgroundSetting}\n` : ''}${audienceEmotion ? `- Emotion arc: ${audienceEmotion}\n` : ''}${restrictions ? `- Restrictions: ${restrictions}` : ''}`
+  : 'Not specified — choose best cinematic settings for this product type and funnel stage. Weave them into the description naturally.'}
 
-Now write the complete Kling AI video prompt:`;
+Write the prompt now:`;
 
-    const response = await fetch('https://api.anthropic.com/v1/messages', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'x-api-key': process.env.ANTHROPIC_API_KEY,
-        'anthropic-version': '2023-06-01',
-      },
-      body: JSON.stringify({
-        model: 'claude-sonnet-4-20250514',
-        max_tokens: 600,
-        system: systemPrompt,
-        messages: [{ role: 'user', content: userMessage }],
+    const configSystem = `You are a technical video production assistant for Kling AI. Return ONLY valid JSON, no explanation, no markdown.`;
+
+    const configUser = `Return optimal Kling AI technical config for this video as JSON.
+
+PRODUCT: ${productDescription}
+FUNNEL: ${salesFunnel || 'general'}
+RATIO: ${ratioLabel}
+DURATION: ${durationSec}s
+
+USER SETTINGS (use as-is if set, otherwise choose best):
+- videoStyle: ${videoStyle || 'NOT SET'}
+- tone: ${tone || 'NOT SET'}
+- cameraMotion: ${cameraMotion || 'NOT SET'}
+- lightingStyle: ${lightingStyle || 'NOT SET'}
+- backgroundSetting: ${backgroundSetting || 'NOT SET'}
+- audienceEmotion: ${audienceEmotion || 'NOT SET'}
+
+Return exactly this JSON (fill ALL fields):
+{"aspect_ratio":"${aspectRatio}","duration":"${durationSec}","cfg_scale":0.5,"resolved":{"videoStyle":"<value>","tone":"<value>","cameraMotion":"<value>","lightingStyle":"<value>","backgroundSetting":"<value>","audienceEmotion":"<value>","rationale":"<one sentence>"}}`;
+
+    const headers = {
+      'Content-Type': 'application/json',
+      'x-api-key': process.env.ANTHROPIC_API_KEY,
+      'anthropic-version': '2023-06-01',
+    };
+
+    const [narrativeRes, configRes] = await Promise.all([
+      fetch('https://api.anthropic.com/v1/messages', {
+        method: 'POST', headers,
+        body: JSON.stringify({ model: 'claude-sonnet-4-20250514', max_tokens: 600, system: narrativeSystem, messages: [{ role: 'user', content: narrativeUser }] }),
       }),
-    });
+      fetch('https://api.anthropic.com/v1/messages', {
+        method: 'POST', headers,
+        body: JSON.stringify({ model: 'claude-sonnet-4-20250514', max_tokens: 400, system: configSystem, messages: [{ role: 'user', content: configUser }] }),
+      }),
+    ]);
 
-    const data = await response.json();
-    if (!response.ok) return res.status(response.status).json({ error: data });
+    const [narrativeData, configData] = await Promise.all([narrativeRes.json(), configRes.json()]);
 
-    const prompt = data.content?.find(b => b.type === 'text')?.text?.trim() || '';
-    res.status(200).json({ prompt });
+    if (!narrativeRes.ok) return res.status(narrativeRes.status).json({ error: narrativeData });
+    if (!configRes.ok) return res.status(configRes.status).json({ error: configData });
+
+    const prompt = narrativeData.content?.find(b => b.type === 'text')?.text?.trim() || '';
+
+    let videoConfig = { aspect_ratio: aspectRatio, duration: durationSec, cfg_scale: 0.5, resolved: {} };
+    try {
+      const raw = configData.content?.find(b => b.type === 'text')?.text?.trim() || '{}';
+      videoConfig = JSON.parse(raw.replace(/```json|```/g, '').trim());
+    } catch (e) {
+      console.error('Config JSON parse error:', e.message);
+    }
+
+    console.log('Prompt OK. AI resolved config:', JSON.stringify(videoConfig.resolved));
+    res.status(200).json({ prompt, videoConfig });
+
   } catch (error) {
     console.error('generate-sora-prompt error:', error);
     res.status(500).json({ error: 'Prompt generation failed', details: error.message });
