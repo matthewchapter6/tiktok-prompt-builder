@@ -1947,6 +1947,7 @@ export default function App() {
   const [soraVideoUrl, setSoraVideoUrl] = useState("");
   const [soraError, setSoraError] = useState("");
   const [soraQueuePos, setSoraQueuePos] = useState(null);
+  const [soraVideoConfig, setSoraVideoConfig] = useState(null);
   const soraPollingRef = useRef(null);
 
   useEffect(() => {
@@ -2013,6 +2014,7 @@ export default function App() {
       const promptData = await promptRes.json();
       if (!promptRes.ok) throw new Error(promptData.error || "Prompt generation failed");
       setSoraGeneratedPrompt(promptData.prompt);
+      setSoraVideoConfig(promptData.videoConfig || null);
       setSoraStep("prompt-ready"); // show preview screen
     } catch (err) {
       setSoraError(err.message || "Could not generate prompt. Please try again.");
@@ -2039,9 +2041,8 @@ export default function App() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          prompt: soraGeneratedPrompt, // use whatever the user has in the textarea
-          videoRatio: sora.videoRatio,
-          videoLength: sora.videoLength,
+          prompt: soraGeneratedPrompt, // exactly what user sees/edits in the textarea
+          videoConfig: soraVideoConfig, // AI-resolved technical params (ratio, duration, style etc.)
           productImageBase64,
           productImageMime,
         }),
@@ -2478,6 +2479,19 @@ export default function App() {
                       rows={10}
                     />
                     <p className="text-xs text-gray-400 mt-1">✏️ You can edit the prompt above before sending to Kling.</p>
+                  {soraVideoConfig?.resolved && (
+                    <div className="mt-3 bg-gray-50 border border-gray-200 rounded-lg px-3 py-2 text-xs text-gray-500 space-y-1">
+                      <p className="font-semibold text-gray-600">🎛️ AI-resolved technical settings:</p>
+                      <p>📐 {soraVideoConfig.aspect_ratio} · ⏱️ {soraVideoConfig.duration}s</p>
+                      {soraVideoConfig.resolved.videoStyle && <p>🎬 Style: {soraVideoConfig.resolved.videoStyle}</p>}
+                      {soraVideoConfig.resolved.tone && <p>🎭 Tone: {soraVideoConfig.resolved.tone}</p>}
+                      {soraVideoConfig.resolved.cameraMotion && <p>📷 Camera: {soraVideoConfig.resolved.cameraMotion}</p>}
+                      {soraVideoConfig.resolved.lightingStyle && <p>💡 Lighting: {soraVideoConfig.resolved.lightingStyle}</p>}
+                      {soraVideoConfig.resolved.backgroundSetting && <p>🏠 Background: {soraVideoConfig.resolved.backgroundSetting}</p>}
+                      {soraVideoConfig.resolved.audienceEmotion && <p>😊 Emotion arc: {soraVideoConfig.resolved.audienceEmotion}</p>}
+                      {soraVideoConfig.resolved.rationale && <p className="text-gray-400 italic mt-1">{soraVideoConfig.resolved.rationale}</p>}
+                    </div>
+                  )}
                   </div>
                   <div className="px-4 pb-4 flex gap-3">
                     <button onClick={handleSendToKling}
@@ -2518,7 +2532,7 @@ export default function App() {
 
             {/* Reset after done */}
             {soraStep === "done" && (
-              <button onClick={() => { setSoraStep("idle"); setSoraVideoUrl(""); setSoraGeneratedPrompt(""); setSoraError(""); setSoraQueuePos(null); }}
+              <button onClick={() => { setSoraStep("idle"); setSoraVideoUrl(""); setSoraGeneratedPrompt(""); setSoraError(""); setSoraQueuePos(null); setSoraVideoConfig(null); }}
                 className="w-full mt-3 py-3 rounded-xl border border-gray-200 text-sm text-gray-500 hover:bg-gray-100 transition-all">
                 🔄 Generate Another Video
               </button>
