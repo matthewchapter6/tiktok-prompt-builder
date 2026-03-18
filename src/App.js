@@ -2037,23 +2037,33 @@ export default function App() {
       }
 
       setSoraStep("generating-video");
+      // Also encode character image if provided
+      let characterImageBase64 = null;
+      let characterImageMime = null;
+      if (soraCharacterFile) {
+        const encodedChar = await fileToBase64(soraCharacterFile);
+        characterImageBase64 = encodedChar.data;
+        characterImageMime = encodedChar.mimeType;
+      }
+
       const videoRes = await fetch("/api/generate-sora-video", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          prompt: soraGeneratedPrompt, // exactly what user sees/edits in the textarea
-          videoConfig: soraVideoConfig, // AI-resolved technical params (ratio, duration, style etc.)
-          productImageBase64,
+          prompt: soraGeneratedPrompt,  // exactly what user sees/edits
+          videoConfig: soraVideoConfig, // AI-resolved technical params
+          productImageBase64,           // → elements[0] @Element1 (product reference)
           productImageMime,
+          characterImageBase64,         // → elements[1] @Element2 (character reference)
+          characterImageMime,
         }),
       });
       const videoData = await videoRes.json();
       if (!videoRes.ok) throw new Error(videoData.error || "Video job submission failed");
 
       setSoraStep("polling");
-      const modelPath = videoData.modelId || videoData.modelPath || (soraProductFile
-        ? "fal-ai/kling-video/v1.6/standard/image-to-video"
-        : "fal-ai/kling-video/v1.6/standard/text-to-video");
+      // Always text-to-video — product/character are elements (references not first frame)
+      const modelPath = videoData.modelId || videoData.modelPath || "fal-ai/kling-video/v2.6/pro/text-to-video";
 
       soraPollingRef.current = setInterval(async () => {
         try {
