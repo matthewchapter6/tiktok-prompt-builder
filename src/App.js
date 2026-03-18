@@ -1977,10 +1977,9 @@ export default function App() {
     return () => { if (soraPollingRef.current) clearInterval(soraPollingRef.current); };
   }, []);
 
-  // ── Sora video generation handler ──
-  const handleGenerateSoraVideo = async () => {
+  // ── Step A: Generate AI prompt and show preview for user to review/edit ──
+  const handlePreviewPrompt = async () => {
     setSoraError("");
-    setSoraVideoUrl("");
     setSoraGeneratedPrompt("");
     setSoraQueuePos(null);
     if (!sora.productDescription || !sora.productUSP) {
@@ -1989,20 +1988,14 @@ export default function App() {
     }
     try {
       setSoraStep("generating-prompt");
-      let productImageBase64 = null;
-      let productImageMime = null;
-      if (soraProductFile) {
-        const encoded = await fileToBase64(soraProductFile);
-        productImageBase64 = encoded.data;
-        productImageMime = encoded.mimeType;
-      }
       const promptRes = await fetch("/api/generate-sora-prompt", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           productDescription: sora.productDescription,
           productUSP: sora.productUSP,
-          storyline: sora.aiDecideStoryline ? "" : sora.storyline,
+          storyline: sora.storyline, // always pass — AI uses as inspiration
+          aiDecideStoryline: sora.aiDecideStoryline,
           salesFunnel: sora.salesFunnel,
           videoRatio: sora.videoRatio,
           videoLength: sora.videoLength,
@@ -2019,15 +2012,34 @@ export default function App() {
       });
       const promptData = await promptRes.json();
       if (!promptRes.ok) throw new Error(promptData.error || "Prompt generation failed");
-      const generatedPrompt = promptData.prompt;
-      setSoraGeneratedPrompt(generatedPrompt);
+      setSoraGeneratedPrompt(promptData.prompt);
+      setSoraStep("prompt-ready"); // show preview screen
+    } catch (err) {
+      setSoraError(err.message || "Could not generate prompt. Please try again.");
+      setSoraStep("error");
+    }
+  };
+
+  // ── Step B: Send the (possibly user-edited) prompt to Kling via fal.ai ──
+  const handleSendToKling = async () => {
+    setSoraError("");
+    setSoraVideoUrl("");
+    setSoraQueuePos(null);
+    try {
+      let productImageBase64 = null;
+      let productImageMime = null;
+      if (soraProductFile) {
+        const encoded = await fileToBase64(soraProductFile);
+        productImageBase64 = encoded.data;
+        productImageMime = encoded.mimeType;
+      }
 
       setSoraStep("generating-video");
       const videoRes = await fetch("/api/generate-sora-video", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          prompt: generatedPrompt,
+          prompt: soraGeneratedPrompt, // use whatever the user has in the textarea
           videoRatio: sora.videoRatio,
           videoLength: sora.videoLength,
           productImageBase64,
@@ -2038,13 +2050,13 @@ export default function App() {
       if (!videoRes.ok) throw new Error(videoData.error || "Video job submission failed");
 
       setSoraStep("polling");
-      // Use modelPath returned from submit step for accurate polling
-      const modelPath = videoData.modelPath || (soraProductFile
+      const modelPath = videoData.modelId || videoData.modelPath || (soraProductFile
         ? "fal-ai/kling-video/v1.6/standard/image-to-video"
         : "fal-ai/kling-video/v1.6/standard/text-to-video");
+
       soraPollingRef.current = setInterval(async () => {
         try {
-          const statusRes = await fetch(`/api/sora-status?requestId=${videoData.requestId}&modelId=${encodeURIComponent(videoData.modelId || modelPath)}`);
+          const statusRes = await fetch(`/api/sora-status?requestId=${videoData.requestId}&modelId=${encodeURIComponent(modelPath)}`);
           const statusData = await statusRes.json();
           if (statusData.queuePosition !== null && statusData.queuePosition !== undefined) {
             setSoraQueuePos(statusData.queuePosition);
@@ -2070,6 +2082,9 @@ export default function App() {
       setSoraStep("error");
     }
   };
+
+  // ── Legacy combined handler (kept for compatibility) ──
+  const handleGenerateSoraVideo = handlePreviewPrompt;
 
   if (authLoading) return (
     <div className="min-h-screen bg-gray-50 flex items-center justify-center">
@@ -2293,23 +2308,27 @@ export default function App() {
               </Section>
 
               {/* Storyline */}
-              <Section emoji="🎭" title="Storyline" subtitle="Optional — describe what happens in the video, or let AI decide.">
-                <div className="flex items-center gap-3 mb-3">
+              <Section emoji="🎭" title="Storyline" subtitle="Describe your video narrative — or let AI write one for you.">
+                <div className="bg-amber-50 border border-amber-100 rounded-lg px-3 py-2 text-xs text-amber-700 mb-3">
+                  💡 <strong>Tip:</strong> A good storyline dramatically improves video quality. Think: Hook → Problem → Solution → CTA.
+                </div>
+                <Field label="Your storyline (optional)">
+                  <TextArea value={sora.storyline} onChange={setSoraField("storyline")}
+                    placeholder={"e.g.\n1. [HOOK] Person sits at tiny laptop screen, looking frustrated\n2. [SOLUTION] They plug in the monitor — face lights up with relief\n3. [BENEFIT] Show dual-screen setup in action, working smoothly\n4. [CTA] Close-up hero shot of product, text: 'Shop now'"}
+                    rows={5} />
+                </Field>
+                <div className="flex items-center gap-3 mt-2">
                   <button onClick={() => setSoraField("aiDecideStoryline")(!sora.aiDecideStoryline)}
                     className={`relative w-9 h-5 flex-shrink-0 rounded-full transition-colors ${sora.aiDecideStoryline ? "bg-blue-500" : "bg-gray-200"}`}>
                     <div className={`absolute top-0.5 w-4 h-4 bg-white rounded-full shadow-sm transition-transform ${sora.aiDecideStoryline ? "translate-x-4" : "translate-x-0.5"}`} />
                   </button>
-                  <span className="text-sm text-gray-600 font-medium">Let AI decide the storyline</span>
+                  <span className="text-sm text-gray-600">
+                    {sora.aiDecideStoryline
+                      ? <span className="text-blue-600 font-medium">✨ AI will write the storyline — your text above will be used as inspiration</span>
+                      : <span>Let AI write the storyline (uses your text above as inspiration if filled)</span>
+                    }
+                  </span>
                 </div>
-                {!sora.aiDecideStoryline && (
-                  <TextArea value={sora.storyline} onChange={setSoraField("storyline")}
-                    placeholder="e.g. Open with person struggling at small laptop screen → they plug in the monitor → face lights up → product hero close-up → CTA" rows={3} />
-                )}
-                {sora.aiDecideStoryline && (
-                  <div className="bg-blue-50 border border-blue-100 rounded-lg px-3 py-2 text-xs text-blue-700">
-                    ✨ AI will craft a storyline based on your product, USP and sales funnel stage.
-                  </div>
-                )}
               </Section>
 
               {/* Sales Funnel */}
@@ -2438,31 +2457,62 @@ export default function App() {
                 )}
               </div>
 
-              {/* Generate Button */}
-              <button onClick={handleGenerateSoraVideo}
-                disabled={["generating-prompt","generating-video","polling"].includes(soraStep) || !sora.productDescription || !sora.productUSP}
-                className={`w-full py-4 rounded-xl font-bold text-sm flex items-center justify-center gap-2 transition-all ${
-                  ["generating-prompt","generating-video","polling"].includes(soraStep) || !sora.productDescription || !sora.productUSP
-                    ? "bg-gray-200 text-gray-400 cursor-not-allowed"
-                    : "bg-indigo-500 text-white hover:bg-indigo-600 active:scale-95"
-                }`}>
-                {["generating-prompt","generating-video","polling"].includes(soraStep) ? (
-                  <>
-                    <svg className="animate-spin w-4 h-4" fill="none" viewBox="0 0 24 24">
-                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/>
-                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"/>
-                    </svg>
-                    {soraStep === "generating-prompt" ? "Writing AI prompt…" :
-                     soraStep === "generating-video"  ? "Submitting to Kling AI…" :
-                     `Generating video… ${soraQueuePos !== null ? `(#${soraQueuePos} in queue)` : ""}`}
-                  </>
-                ) : <>▶ Generate Product Video</>}
-              </button>
-
-              {(!sora.productDescription || !sora.productUSP) && (
-                <p className="text-xs text-gray-400 text-center mt-2">Fill in Product Description and USP to enable generation</p>
+              {/* Step: Preview Prompt or Generate */}
+              {soraStep === "prompt-ready" ? (
+                <div className="border-2 border-indigo-200 rounded-xl overflow-hidden mb-2">
+                  <div className="bg-indigo-50 px-4 py-3 border-b border-indigo-200 flex items-center justify-between">
+                    <div>
+                      <p className="text-sm font-bold text-indigo-800">✨ AI Prompt Preview</p>
+                      <p className="text-xs text-indigo-500 mt-0.5">Review and edit before sending to Kling AI</p>
+                    </div>
+                    <button onClick={() => setSoraStep("idle")}
+                      className="text-xs text-indigo-400 hover:text-indigo-600 border border-indigo-200 rounded-lg px-2 py-1">
+                      ← Back
+                    </button>
+                  </div>
+                  <div className="p-4">
+                    <textarea
+                      value={soraGeneratedPrompt}
+                      onChange={e => setSoraGeneratedPrompt(e.target.value)}
+                      className="w-full border border-gray-200 rounded-lg px-3 py-2 text-xs text-gray-700 font-mono leading-relaxed focus:outline-none focus:border-indigo-400 resize-none"
+                      rows={10}
+                    />
+                    <p className="text-xs text-gray-400 mt-1">✏️ You can edit the prompt above before sending to Kling.</p>
+                  </div>
+                  <div className="px-4 pb-4 flex gap-3">
+                    <button onClick={handleSendToKling}
+                      className="flex-1 py-3 rounded-xl bg-indigo-500 text-white font-bold text-sm hover:bg-indigo-600 active:scale-95 transition-all flex items-center justify-center gap-2">
+                      🎬 Send to Kling AI &amp; Generate Video
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <>
+                  <button onClick={handlePreviewPrompt}
+                    disabled={["generating-prompt","generating-video","polling"].includes(soraStep) || !sora.productDescription || !sora.productUSP}
+                    className={`w-full py-4 rounded-xl font-bold text-sm flex items-center justify-center gap-2 transition-all ${
+                      ["generating-prompt","generating-video","polling"].includes(soraStep) || !sora.productDescription || !sora.productUSP
+                        ? "bg-gray-200 text-gray-400 cursor-not-allowed"
+                        : "bg-indigo-500 text-white hover:bg-indigo-600 active:scale-95"
+                    }`}>
+                    {["generating-prompt","generating-video","polling"].includes(soraStep) ? (
+                      <>
+                        <svg className="animate-spin w-4 h-4" fill="none" viewBox="0 0 24 24">
+                          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/>
+                          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"/>
+                        </svg>
+                        {soraStep === "generating-prompt" ? "Writing AI prompt…" :
+                         soraStep === "generating-video"  ? "Submitting to Kling AI…" :
+                         `Generating video… ${soraQueuePos !== null ? `(#${soraQueuePos} in queue)` : ""}`}
+                      </>
+                    ) : <>✨ Preview AI Prompt &amp; Generate</>}
+                  </button>
+                  {(!sora.productDescription || !sora.productUSP) && (
+                    <p className="text-xs text-gray-400 text-center mt-2">Fill in Product Description and USP to enable generation</p>
+                  )}
+                  <p className="text-xs text-gray-400 text-center mt-3">⚡ Powered by Kling AI · Takes ~30–90 seconds · ~$0.40 per video</p>
+                </>
               )}
-              <p className="text-xs text-gray-400 text-center mt-3">⚡ Powered by Kling AI · Takes ~30–90 seconds · ~$0.40 per video</p>
 
             </>)}
 
