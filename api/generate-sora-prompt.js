@@ -10,6 +10,7 @@ export default async function handler(req, res) {
       productDescription,
       productUSP,
       storyline,
+      aiDecideStoryline,
       salesFunnel,
       videoRatio,
       videoLength,
@@ -57,7 +58,11 @@ VIDEO SPECS:
 PRODUCT INFO:
 - Description: ${productDescription}
 - USP (Unique Selling Point): ${productUSP}
-${storyline ? `- Storyline / Key beats: ${storyline}` : '- Storyline: Not provided — create an engaging one based on the product and funnel stage'}
+${aiDecideStoryline
+        ? `- Storyline: AI should create one${storyline ? `. Use this as inspiration: ${storyline}` : ''}`
+        : storyline
+          ? `- Storyline / Key beats (follow this): ${storyline}`
+          : '- Storyline: Not provided — create an engaging one based on the product and funnel stage'}
 
 VISUAL ASSETS PROVIDED:
 - Product photo: ${hasProductImage ? 'YES — animate the product naturally, keep it consistent throughout' : 'NO — describe the product visually based on the description'}
