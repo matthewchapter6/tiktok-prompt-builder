@@ -3,6 +3,11 @@
 //   1. prompt       — narrative text shown to user for review/edit
 //   2. videoConfig  — resolved technical params (ratio, duration, style, camera etc.)
 //                     AI fills in any blanks the user left empty
+// generate-sora-prompt.js
+// Returns TWO things:
+//   1. prompt       — narrative text shown to user for review/edit
+//   2. videoConfig  — resolved technical params (ratio, duration, style, camera etc.)
+//                     AI fills in any blanks the user left empty
 
 export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
@@ -21,7 +26,9 @@ export default async function handler(req, res) {
     } = req.body;
 
     const ratioLabel = videoRatio === '9_16' ? '9:16 vertical portrait' : '16:9 horizontal landscape';
-    const durationSec = videoLength === '15' ? '10' : '5';
+    // Kling 2.6 Pro accepts '5' or '10' seconds
+    // UI offers '5' or '10' — map directly, no translation needed
+    const durationSec = videoLength === '5' ? '5' : '10';
     const funnelGuide = {
       upper:  'AWARENESS — relatable problem hook, no hard sell, soft CTA',
       middle: 'CONSIDERATION — show product solving problem, build trust, mid-strength CTA',
