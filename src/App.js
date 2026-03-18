@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from "react";
-import { supabase, logUsage } from "./lib/supabase";
+import { supabase, logUsage, fetchCredits, deductCredits, hasEnoughCredits, CREDIT_COSTS } from "./lib/supabase";
 
 // ── Translations ───────────────────────────────────────────────────────────
 const TRANSLATIONS = {
@@ -2084,6 +2084,8 @@ export default function App() {
   const [generatedImage, setGeneratedImage] = useState(null);
   const [user, setUser] = useState(null);
   const [authLoading, setAuthLoading] = useState(true);
+  const [userCredits, setUserCredits] = useState(null);
+  const [creditsLoading, setCreditsLoading] = useState(false);
 
   // ── Sora tab state ──
   const [sora, setSora] = useState(soraInit);
@@ -2115,6 +2117,7 @@ export default function App() {
   const handleSignOut = async () => {
     await supabase.auth.signOut();
     setUser(null);
+    setUserCredits(null);
   };
 
   const [isBlocked, setIsBlocked] = useState(false);
@@ -2124,12 +2127,22 @@ export default function App() {
       .then(({ data }) => { if (data?.blocked) setIsBlocked(true); });
   }, [user]);
 
+  // Load user credits
+  const loadCredits = async () => {
+    if (!user) return;
+    setCreditsLoading(true);
+    const bal = await fetchCredits(user.id);
+    setUserCredits(bal);
+    setCreditsLoading(false);
+  };
+
   // Resume any in-progress polling jobs on login (once only)
   const hasResumedRef = useRef(false);
   useEffect(() => {
     if (!user || hasResumedRef.current) return;
     hasResumedRef.current = true;
     resumeInProgressJobs();
+    loadCredits();
   }, [user]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // ── Cleanup Sora polling on unmount ──
@@ -2256,6 +2269,14 @@ export default function App() {
     setSoraVideoUrl("");
     setSoraQueuePos(null);
     try {
+      // ── Credit check before doing anything ──
+      const videoCost = sora.videoLength === "5" ? CREDIT_COSTS.video_5s : CREDIT_COSTS.video_10s;
+      const enough = await hasEnoughCredits(user.id, videoCost);
+      if (!enough) {
+        setSoraError(`Insufficient credits. You need ${videoCost} credits for a ${sora.videoLength}s video. Please contact admin to top up.`);
+        setSoraStep("error");
+        return;
+      }
       let productImageBase64 = null;
       let productImageMime = null;
       if (soraProductFile) {
@@ -2292,6 +2313,17 @@ export default function App() {
       setSoraStep("polling");
       // Always text-to-video — product/character are elements (references not first frame)
       const modelPath = videoData.modelId || videoData.modelPath || "fal-ai/kling-video/v2.6/pro/text-to-video";
+
+      // ── Deduct credits immediately after successful fal.ai submission ──
+      const videoCostDeduct = sora.videoLength === "5" ? CREDIT_COSTS.video_5s : CREDIT_COSTS.video_10s;
+      const deductResult = await deductCredits(
+        user.id,
+        videoCostDeduct,
+        `Kling ${sora.videoLength}s video generation`
+      );
+      if (deductResult.success) {
+        setUserCredits(deductResult.balance); // update header balance immediately
+      }
 
       // ── Save job to Supabase immediately so refresh doesn't lose it ──
       const { data: dbRow } = await supabase.from('sora_generations').insert({
@@ -2378,6 +2410,25 @@ export default function App() {
     { value: "lower", emoji: "🔻", label: t.funnelLowerLabel, tag: t.funnelLowerTag, description: t.funnelLowerDesc, objective: t.funnelLowerObj, examples: t.funnelLowerEx, color: "green" },
   ];
 
+  const handleGenerateFirstFrame = async () => {
+    // Credit check for Gemini image generation
+    if (CREDIT_COSTS.image_gemini > 0) {
+      const enough = await hasEnoughCredits(user.id, CREDIT_COSTS.image_gemini);
+      if (!enough) {
+        setFrameError(`Insufficient credits. You need ${CREDIT_COSTS.image_gemini} credits for image generation.`);
+        return;
+      }
+    }
+    await generateFirstFrame(f, lang, productFile, talentFile, setFrameLoading, async (img) => {
+      setGeneratedImage(img);
+      // Deduct credits after successful generation
+      if (CREDIT_COSTS.image_gemini > 0) {
+        const result = await deductCredits(user.id, CREDIT_COSTS.image_gemini, 'Gemini first frame image');
+        if (result.success) setUserCredits(result.balance);
+      }
+    }, setFrameError);
+  };
+
   const generate = (withFrame) => {
     const result = buildClipPrompts(f, storyline, withFrame && hasFirstFrame, lang);
     setClips(result);
@@ -2417,7 +2468,19 @@ export default function App() {
           </div>
           <div className="flex items-center gap-2">
             <LangSelector lang={lang} setLang={setLang} />
-            <div className="flex items-center gap-2 ml-2 pl-2 border-l border-gray-200">
+            {/* ── Credit balance ── */}
+            <div className="flex items-center gap-1.5 bg-amber-50 border border-amber-200 rounded-lg px-2.5 py-1">
+              <span className="text-sm">⚡</span>
+              {creditsLoading ? (
+                <span className="text-xs text-amber-500">…</span>
+              ) : (
+                <span className="text-xs font-bold text-amber-700">
+                  {userCredits ?? 0}
+                </span>
+              )}
+              <span className="text-xs text-amber-500">credits</span>
+            </div>
+            <div className="flex items-center gap-2 ml-1 pl-2 border-l border-gray-200">
               {user.user_metadata?.avatar_url && (
                 <img src={user.user_metadata.avatar_url} alt="avatar"
                   className="w-7 h-7 rounded-full border border-gray-200" />
@@ -2786,7 +2849,22 @@ export default function App() {
                   {(!sora.productDescription || !sora.productUSP) && (
                     <p className="text-xs text-gray-400 text-center mt-2">Fill in Product Description and USP to enable generation</p>
                   )}
-                  <p className="text-xs text-gray-400 text-center mt-3">⚡ Powered by Kling 2.6 Pro · 1080p · Takes ~30–90 seconds · ~$0.70–1.40 per video</p>
+
+                  {/* Credit cost + low balance warning */}
+                  <div className="flex items-center justify-between mt-3 px-1">
+                    <p className="text-xs text-gray-400">⚡ Kling 2.6 Pro · 1080p · ~30–90 seconds</p>
+                    <div className="flex items-center gap-1 bg-amber-50 border border-amber-100 rounded-lg px-2 py-1">
+                      <span className="text-xs font-bold text-amber-700">
+                        {sora.videoLength === "5" ? CREDIT_COSTS.video_5s : CREDIT_COSTS.video_10s}
+                      </span>
+                      <span className="text-xs text-amber-500">credits</span>
+                    </div>
+                  </div>
+                  {userCredits !== null && userCredits < (sora.videoLength === "5" ? CREDIT_COSTS.video_5s : CREDIT_COSTS.video_10s) && (
+                    <div className="mt-2 bg-red-50 border border-red-200 rounded-lg px-3 py-2 text-xs text-red-600 text-center">
+                      ⚠️ You have <strong>{userCredits}</strong> credits but need <strong>{sora.videoLength === "5" ? CREDIT_COSTS.video_5s : CREDIT_COSTS.video_10s}</strong>. Please contact admin to top up.
+                    </div>
+                  )}
                 </>
               )}
 
@@ -3120,10 +3198,13 @@ export default function App() {
                 </div>
 
                 <button
-                  onClick={() => generateFirstFrame(f, lang, productFile, talentFile, setFrameLoading, setGeneratedImage, setFrameError)}
+                  onClick={handleGenerateFirstFrame}
                   disabled={frameLoading || !f.productName}
                   className={`w-full py-2 rounded-lg text-sm font-medium border transition-all ${frameLoading || !f.productName ? "bg-gray-100 text-gray-400 border-gray-200 cursor-not-allowed" : "bg-indigo-500 text-white border-indigo-500 hover:bg-indigo-600 active:scale-95"}`}>
                   {frameLoading ? t.btnGenerating : generatedImage ? t.btnRegenerateFrame : t.btnGenerateFrame}
+                  {!frameLoading && CREDIT_COSTS.image_gemini > 0 && (
+                    <span className="ml-1.5 text-xs opacity-70">({CREDIT_COSTS.image_gemini} credits)</span>
+                  )}
                 </button>
 
                 {!f.productName && <p className="text-xs text-gray-400">{t.hintFillProductName}</p>}
