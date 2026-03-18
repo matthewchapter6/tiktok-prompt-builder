@@ -3,11 +3,6 @@
 //   1. prompt       — narrative text shown to user for review/edit
 //   2. videoConfig  — resolved technical params (ratio, duration, style, camera etc.)
 //                     AI fills in any blanks the user left empty
-// generate-sora-prompt.js
-// Returns TWO things:
-//   1. prompt       — narrative text shown to user for review/edit
-//   2. videoConfig  — resolved technical params (ratio, duration, style, camera etc.)
-//                     AI fills in any blanks the user left empty
 
 export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
@@ -62,9 +57,22 @@ ${aiDecideStoryline
     ? `Follow this: ${storyline}`
     : 'No storyline — create a compelling one for this product and funnel.'}
 
-ASSETS:
-- Product photo: ${hasProductImage ? 'YES — animate naturally, keep consistent' : 'NO — describe visually from description'}
-- Talent photo: ${hasCharacterImage ? 'YES — use this person consistently' : 'NO — choose suitable talent'}
+ASSETS & ELEMENT REFERENCES:
+${hasProductImage && hasCharacterImage
+  ? `- Product photo: PROVIDED as @Element1 — refer to the product as @Element1 throughout. e.g. "@Element1 shoe sits on the court", "camera reveals @Element1 in golden light"
+- Character photo: PROVIDED as @Element2 — refer to the character as @Element2 throughout. e.g. "@Element2 picks up @Element1", "@Element2 walks confidently wearing @Element1"
+- IMPORTANT: You MUST use @Element1 for product and @Element2 for character in your prompt — this is how Kling maintains visual consistency`
+  : hasProductImage
+    ? `- Product photo: PROVIDED as @Element1 — refer to the product as @Element1 throughout. e.g. "camera reveals @Element1", "@Element1 sits on the desk"
+- Character: NOT provided — describe a suitable talent type for this product naturally in the prompt. Do NOT use @Element2.
+- IMPORTANT: You MUST use @Element1 for the product in your prompt`
+    : hasCharacterImage
+      ? `- Product: NOT provided — describe the product visually from the description
+- Character photo: PROVIDED as @Element1 — refer to the character as @Element1 throughout
+- IMPORTANT: You MUST use @Element1 for the character in your prompt`
+      : `- No photos provided — describe both the product and suitable talent visually based on the description. Do NOT use @Element1 or @Element2.`
+}
+- NOTE: Do NOT use image_url or first-frame locking — AI has full creative freedom to open the video however it wants
 
 CINEMATIC SETTINGS:
 ${userFilledAdvanced
