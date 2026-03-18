@@ -1,6 +1,8 @@
 // generate-sora-prompt.js
-// Generates a professional Kling 2.6 Pro marketing video prompt
-// with duration-appropriate scene design + voiceover script
+// Kling 2.6 Pro optimised prompt generator
+// Framework: Subject → Action → Environment → Camera/Style (cinematic prose)
+// Audio: dialogue in quotes, ambient sounds, music tone described naturally
+// Based on VEED + toolplay.ai best practices for Kling 2.6 Pro
 
 export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
@@ -23,153 +25,151 @@ export default async function handler(req, res) {
     const aspectRatio = videoRatio === '9_16' ? '9:16' : '16:9';
 
     const funnelGuide = {
-      upper:  'AWARENESS — hook with a relatable pain point, no hard sell, end with curiosity-driven soft CTA like "discover more"',
-      middle: 'CONSIDERATION — demonstrate product solving the problem clearly, build trust, mid-strength CTA like "learn more" or "see it in action"',
-      lower:  'CONVERSION — create urgency and desire, strong direct CTA like "shop now", "limited stock", "get yours today"',
-    }[salesFunnel] || 'GENERAL — show product benefit clearly, emotionally connect with viewer, soft CTA';
+      upper:  'AWARENESS — hook with a relatable pain point, no hard sell, soft CTA like "discover more" or "follow for more"',
+      middle: 'CONSIDERATION — demonstrate product solving problem clearly, build trust, mid CTA like "learn more" or "see how it works"',
+      lower:  'CONVERSION — create strong desire and urgency, direct CTA like "shop now", "only X left", "get yours today"',
+    }[salesFunnel] || 'GENERAL — showcase product attractively, clear benefit, soft CTA';
 
     const userFilledAdvanced = videoStyle || tone || cameraMotion || lightingStyle || backgroundSetting || audienceEmotion;
 
-    // ── Duration-specific video design blueprint ──────────────────────────
-    const videoBlueprint = durationSec === '5' ? `
-DURATION: 5 seconds — this is an ultra-short impact video
-DESIGN PHILOSOPHY: One single, unforgettable cinematic moment. No story arc. No transitions.
-The entire 5 seconds must be ONE scene designed to stop the scroll and create instant desire.
+    // ── Duration blueprint ──────────────────────────────────────────────
+    const durationBlueprint = durationSec === '5'
+      ? `5-SECOND VIDEO — One single cinematic moment. No scene cuts.
+STRUCTURE: One continuous shot with a single camera move.
+- Subject established immediately (0-1s)
+- One key action or reveal (1-4s)  
+- Strong closing frame (4-5s)
+DIALOGUE: Maximum 1 sentence (8-12 words). Punchy tagline or bold claim.
+CAMERA: One smooth continuous movement — orbit, push-in, or tilt. No cuts.
+PACING: Slow and deliberate. Premium feel. Let the product breathe.`
 
-SCENE STRUCTURE (5s):
-- [0-1s] HOOK FRAME: The most visually striking opening possible — product hero shot OR extreme close-up OR unexpected angle
-- [1-4s] SUSTAINED BEAUTY SHOT: Hold on the product/scene, let motion and light do the storytelling
-- [4-5s] LOGO/BADGE CLOSE-UP: End on brand or product identifier
+      : `10-SECOND VIDEO — Complete narrative arc. Maximum 2 scene cuts.
+STRUCTURE: 3 beats totalling 10 seconds:
+- Beat 1 HOOK (0-2s): Establish the problem or grab attention. Subject in context.
+- Beat 2 REVEAL (2-7s): Product enters, solves the problem, show the transformation.
+- Beat 3 CLOSE (7-10s): Hero product shot + CTA dialogue. Satisfying conclusion.
+DIALOGUE: 2-3 short sentences across the video. One per beat.
+  - Hook dialogue (0-2s): Pain point or attention grab
+  - Reveal dialogue (2-7s): Product benefit or feature
+  - Close dialogue (7-10s): CTA — direct and clear
+CAMERA: Each beat has distinct camera energy:
+  - Beat 1: Handheld or static — relatable, grounded
+  - Beat 2: Smooth tracking or push-in — sense of discovery
+  - Beat 3: Low angle hero shot — prestige and desire
+PACING: Beat 1 quick and real, Beat 2 smooth and satisfying, Beat 3 slow and premium.`;
 
-VOICEOVER (5s): Maximum 1 punchy sentence (8-12 words). Should be a bold claim or tagline.
-Example VO: "The only portable monitor that fits in your life." OR "Limited to 2000 pairs. Don't miss yours."
-
-CAMERA: One smooth continuous move — slow orbit, gentle push-in, or elegant tilt. No cuts.
-PACING: Slow and deliberate. Let the product breathe. Luxury feel.` 
-
-    : `
-DURATION: 10 seconds — short narrative marketing video
-DESIGN PHILOSOPHY: A complete emotional journey. Hook the viewer, show the problem, reveal the solution, drive action.
-
-SCENE STRUCTURE (10s) — 3 beats:
-- [0-2s] HOOK/PROBLEM (2s): Open with the pain point or relatable moment. Viewer thinks "that's me". Create tension.
-- [2-7s] PRODUCT REVEAL & BENEFIT (5s): The product enters and solves the problem. Show the transformation. Make it feel magical.
-- [7-10s] HERO SHOT & CTA (3s): Product glory shot. Voiceover delivers the CTA. Leave viewer wanting it.
-
-VOICEOVER (10s): 2-3 sentences total — one per beat:
-- HOOK VO (beat 1): Identify the pain point. e.g. "Tired of squinting at one tiny screen?"
-- BENEFIT VO (beat 2): Introduce the solution. e.g. "Vflow Monitor — your second screen, anywhere in seconds."
-- CTA VO (beat 3): Drive action. e.g. "USB-C plug and play. Shop now."
-
-CAMERA: Each beat has its own camera personality:
-- Beat 1: Handheld, slightly restless — mimics the frustration
-- Beat 2: Smooth push-in or orbit — sense of discovery and wonder  
-- Beat 3: Low angle hero shot — prestige and desire
-PACING: Beat 1 quick and relatable, beat 2 satisfying and smooth, beat 3 slow and premium.`;
-
-    // ── Element references based on uploaded photos ───────────────────────
-    const elementRefs = hasProductImage && hasCharacterImage
-      ? `ELEMENT REFERENCES (CRITICAL — use these exact tags):
-- @Element1 = the product (from uploaded product photo) — use @Element1 wherever you mention the product
-- @Element2 = the character/talent (from uploaded photo) — use @Element2 wherever you show the person
-- Example: "@Element2 sits at a cramped desk, then picks up @Element1 and their face transforms with relief"`
+    // ── Element reference instructions ──────────────────────────────────
+    const elementInstructions = hasProductImage && hasCharacterImage
+      ? `REFERENCE ELEMENTS (critical — use these tags exactly as written):
+@Element1 = the product (uploaded photo) — use @Element1 every time you mention the product
+@Element2 = the talent/character (uploaded photo) — use @Element2 every time you show the person
+These tags tell Kling to keep the product and character visually consistent throughout.
+Example usage: "@Element2, a confident woman in her 30s, picks up @Element1 and smiles"
+Never describe what the product or person looks like — just use @Element1 and @Element2.`
 
       : hasProductImage
-        ? `ELEMENT REFERENCES (CRITICAL):
-- @Element1 = the product (from uploaded product photo) — use @Element1 wherever you mention or show the product
-- No character photo — describe a suitable relatable talent naturally (young professional, student, etc.)
-- Example: "Camera slowly reveals @Element1 rotating in golden studio light"`
+        ? `REFERENCE ELEMENT (critical — use this tag exactly):
+@Element1 = the product (uploaded photo) — use @Element1 every time you mention or show the product
+This tag tells Kling to keep the product visually consistent throughout.
+Example usage: "camera slowly reveals @Element1 on a marble surface"
+Do NOT describe what the product looks like — Kling already knows from the photo.
+No character photo provided — describe a suitable realistic talent for this product naturally.`
 
         : hasCharacterImage
-          ? `ELEMENT REFERENCES (CRITICAL):
-- @Element1 = the character/talent (from uploaded photo) — use @Element1 wherever you show the person
-- No product photo — describe the product visually based on the description provided
-- Example: "@Element1 struggles with a small screen, then discovers the product"`
+          ? `REFERENCE ELEMENT (critical — use this tag exactly):
+@Element1 = the talent/character (uploaded photo) — use @Element1 every time you show the person
+Example usage: "@Element1, a young professional in smart casual attire, holds up the product"
+No product photo provided — describe the product visually from the description.`
 
-          : `No reference photos uploaded — describe both product appearance and talent type naturally based on the product description. Do NOT use @Element1 or @Element2.`;
+          : `No reference photos provided.
+Describe the product appearance in detail based on the product description.
+Describe the talent/character type appropriate for this product (age, style, energy).
+Do NOT use @Element1 or @Element2 tags.`;
 
-    // ── System prompt ─────────────────────────────────────────────────────
-    const narrativeSystem = `You are a senior creative director at a top-tier digital marketing agency, specialising in AI-generated video ads for social media.
+    // ── System prompt ────────────────────────────────────────────────────
+    const narrativeSystem = `You are a senior creative director writing video ad prompts for Kling 2.6 Pro AI.
 
-You write Kling 2.6 Pro video generation prompts that produce scroll-stopping, conversion-driving product videos.
+KLING PROMPT RULES — follow these exactly:
+1. Write like a film director giving scene directions — cinematic prose, not keyword lists
+2. Structure every prompt: SUBJECT → ACTION → ENVIRONMENT → CAMERA/STYLE
+3. Write in flowing paragraphs, not bullet points or tags
+4. For dialogue: write it naturally in the scene description with quotation marks
+   Example: She looks at the camera and says "Transform your business today."
+5. For audio: describe sounds naturally woven into the scene
+   Example: "soft ambient office sounds, keyboard clicks in background, upbeat commercial music builds underneath"
+6. For camera: use real cinematography language woven into the description
+   Example: "camera tracks slowly left", "rack focus from background to product", "handheld close-up"
+7. Be specific and visual — paint a picture the AI can render
+8. Never use structured tags like [VISUAL:] [CAMERA:] [VO:] — these confuse Kling
+9. Never use keyword lists — write full descriptive sentences
+10. The prompt should read like a scene from a film brief
 
-Your prompts always include:
-1. A precise VISUAL DESCRIPTION of each scene (what Kling should render)
-2. VOICEOVER SCRIPT lines embedded naturally (Kling 2.6 Pro generates audio from these)
-3. CAMERA DIRECTION for each moment
-4. SOUND/MUSIC MOOD guidance
+QUALITY STANDARD: Every prompt must be capable of producing a video that could run as a paid social ad.`;
 
-OUTPUT FORMAT: Write the complete prompt as one flowing block of text. 
-- Weave visual description, camera direction, and voiceover naturally together
-- Use format: [VISUAL: ...] [VO: "..."] [CAMERA: ...] for each beat
-- End with [SOUND: ...] for the overall audio mood
-- No markdown headers, no bullet points in the final output — flowing prose with the bracketed cues
+    // ── User message ─────────────────────────────────────────────────────
+    const narrativeUser = `Write a Kling 2.6 Pro video ad prompt for this product.
 
-QUALITY STANDARD: Every prompt you write should be capable of producing a video that could run as a paid social ad.`;
-
-    // ── User message ──────────────────────────────────────────────────────
-    const narrativeUser = `Write a complete Kling 2.6 Pro video ad prompt for this product.
-
-━━━ VIDEO SPECS ━━━
+━━━ VIDEO BRIEF ━━━
 Format: ${ratioLabel}
-Duration: ${durationSec} seconds (HARD LIMIT — design every scene to fit exactly within this)
-Sales Objective: ${funnelGuide}
-${videoBlueprint}
+Duration: ${durationSec} seconds
+Sales objective: ${funnelGuide}
 
-━━━ PRODUCT BRIEF ━━━
-Product: ${productDescription}
+${durationBlueprint}
+
+━━━ PRODUCT ━━━
+Description: ${productDescription}
 USP: ${productUSP}
 
-━━━ STORYLINE DIRECTION ━━━
+━━━ STORYLINE ━━━
 ${aiDecideStoryline
-  ? `Creative direction: AI decides the best narrative${storyline ? `. User inspiration: "${storyline}"` : ''}. Design the most compelling story for this product and funnel stage.`
+  ? `Creative direction: AI decides the best narrative.${storyline ? ` User inspiration: "${storyline}"` : ''} Design the most compelling story for this product and funnel stage.`
   : storyline
-    ? `Follow this storyline: "${storyline}". Expand it into a full scene-by-scene video prompt with voiceover.`
-    : `No storyline provided — create the most effective marketing narrative for this product targeting the ${salesFunnel || 'general'} funnel stage.`}
+    ? `Follow this storyline: "${storyline}". Expand it into a full cinematic scene with dialogue and audio.`
+    : `No storyline provided — create the most effective marketing narrative for this product.`}
 
-━━━ VISUAL REFERENCES ━━━
-${elementRefs}
+━━━ REFERENCE ELEMENTS ━━━
+${elementInstructions}
 
-━━━ CINEMATIC SETTINGS ━━━
+━━━ CINEMATIC DIRECTION ━━━
 ${userFilledAdvanced
-  ? `User specified (follow exactly):
+  ? `User specified (incorporate naturally into the prose — do NOT list them separately):
 ${videoStyle        ? `Style: ${videoStyle}` : ''}
 ${tone              ? `Tone: ${tone}` : ''}
-${cameraMotion      ? `Camera motion: ${cameraMotion}` : ''}
+${cameraMotion      ? `Camera: ${cameraMotion}` : ''}
 ${lightingStyle     ? `Lighting: ${lightingStyle}` : ''}
 ${backgroundSetting ? `Background: ${backgroundSetting}` : ''}
-${audienceEmotion   ? `Emotion arc: ${audienceEmotion}` : ''}
-${restrictions      ? `Restrictions: ${restrictions}` : ''}`
-  : `Not specified — you decide the best cinematic approach that matches the product type, target audience, and funnel stage. Choose settings that maximise emotional impact and product desire.`}
+${audienceEmotion   ? `Character emotion arc: ${audienceEmotion}` : ''}
+${restrictions      ? `Must avoid: ${restrictions}` : ''}`
+  : `Not specified — choose the best cinematic approach for this product type and sales objective. Consider what lighting, environment, camera movement and emotional arc would make this product most desirable.`}
 
-━━━ VOICEOVER REQUIREMENTS ━━━
-- Write natural, conversational VO lines — not stiff ad copy
-- Match the tone to the funnel stage (${salesFunnel || 'general'})
-- VO should feel like a real person talking, not a radio announcer
-- Include the VO as [VO: "..."] cues embedded in the scene descriptions
-- Kling 2.6 Pro will synthesise the voice from these lines
+━━━ PROMPT FORMAT REMINDER ━━━
+Write one flowing cinematic description.
+Structure: Subject → Action → Environment → Camera/Style
+Weave dialogue naturally: she says "..." or a voiceover says "..."
+Weave audio naturally: "soft piano builds underneath", "ambient café sounds"
+NO tags. NO bullet points. NO keyword lists. Pure cinematic prose.
 
-Now write the complete video prompt:`;
+Write the prompt now:`;
 
-    // ── Technical config call (parallel) ─────────────────────────────────
+    // ── Technical config (parallel call) ─────────────────────────────────
     const configSystem = `You are a Kling AI technical configuration specialist. Return ONLY valid JSON, no explanation, no markdown.`;
 
-    const configUser = `Return optimal Kling 2.6 Pro technical config for this ${durationSec}-second ${salesFunnel || 'general'} marketing video.
+    const configUser = `Return optimal Kling 2.6 Pro config for this ${durationSec}s ${salesFunnel || 'general'} marketing video.
 
 PRODUCT: ${productDescription}
 RATIO: ${aspectRatio}
 DURATION: ${durationSec}s
 
-USER SETTINGS (use exactly if set, otherwise choose best for a high-quality marketing video):
-- videoStyle: ${videoStyle || 'NOT SET — choose best for product marketing'}
-- tone: ${tone || 'NOT SET — choose best for this product and funnel'}
-- cameraMotion: ${cameraMotion || 'NOT SET — choose cinematic option'}
-- lightingStyle: ${lightingStyle || 'NOT SET — choose premium option'}
-- backgroundSetting: ${backgroundSetting || 'NOT SET — choose relevant environment'}
-- audienceEmotion: ${audienceEmotion || 'NOT SET — choose emotion arc that drives conversion'}
+USER SETTINGS (use exactly if set, otherwise choose best):
+- videoStyle: ${videoStyle || 'NOT SET'}
+- tone: ${tone || 'NOT SET'}
+- cameraMotion: ${cameraMotion || 'NOT SET'}
+- lightingStyle: ${lightingStyle || 'NOT SET'}
+- backgroundSetting: ${backgroundSetting || 'NOT SET'}
+- audienceEmotion: ${audienceEmotion || 'NOT SET'}
 
 Return exactly this JSON:
-{"aspect_ratio":"${aspectRatio}","duration":"${durationSec}","cfg_scale":0.5,"resolved":{"videoStyle":"<value>","tone":"<value>","cameraMotion":"<value>","lightingStyle":"<value>","backgroundSetting":"<value>","audienceEmotion":"<value>","rationale":"<one sentence explaining the creative choices>"}}`;
+{"aspect_ratio":"${aspectRatio}","duration":"${durationSec}","cfg_scale":0.5,"resolved":{"videoStyle":"<value>","tone":"<value>","cameraMotion":"<value>","lightingStyle":"<value>","backgroundSetting":"<value>","audienceEmotion":"<value>","rationale":"<one sentence>"}}`;
 
     const headers = {
       'Content-Type': 'application/json',
@@ -183,7 +183,7 @@ Return exactly this JSON:
         method: 'POST', headers,
         body: JSON.stringify({
           model: 'claude-sonnet-4-20250514',
-          max_tokens: durationSec === '5' ? 500 : 900, // 10s needs more tokens for full VO + scenes
+          max_tokens: durationSec === '5' ? 600 : 1000,
           system: narrativeSystem,
           messages: [{ role: 'user', content: narrativeUser }],
         }),
@@ -218,7 +218,7 @@ Return exactly this JSON:
     }
 
     console.log(`Prompt generated for ${durationSec}s video. Words: ${prompt.split(/\s+/).length}`);
-    console.log('AI resolved config:', JSON.stringify(videoConfig.resolved));
+    console.log('Resolved config:', JSON.stringify(videoConfig.resolved));
 
     res.status(200).json({ prompt, videoConfig });
 
