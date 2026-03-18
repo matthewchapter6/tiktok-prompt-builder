@@ -4,6 +4,8 @@
 
 // generate-sora-video.js
 // Uses @fal-ai/client SDK — add to package.json: "@fal-ai/client": "^1.0.0"
+// generate-sora-video.js
+// Receives prompt + videoConfig (resolved by AI) and submits to Kling via fal.ai SDK
 import { fal } from "@fal-ai/client";
 
 export default async function handler(req, res) {
@@ -14,14 +16,23 @@ export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
 
   try {
-    const { prompt, videoRatio, videoLength, productImageBase64, productImageMime } = req.body;
+    const {
+      prompt,
+      videoConfig,       // resolved by AI in generate-sora-prompt
+      productImageBase64,
+      productImageMime,
+    } = req.body;
+
     if (!prompt) return res.status(400).json({ error: 'Prompt is required' });
 
     fal.config({ credentials: process.env.FAL_API_KEY });
 
-    const aspectRatio = videoRatio === '9_16' ? '9:16' : '16:9';
-    const duration = videoLength === '15' ? '10' : '5';
     const hasImage = !!productImageBase64;
+
+    // Use videoConfig values resolved by AI — fallback to safe defaults
+    const aspectRatio = videoConfig?.aspect_ratio || '9:16';
+    const duration    = videoConfig?.duration     || '5';
+    const cfgScale    = videoConfig?.cfg_scale    ?? 0.5;
 
     const modelId = hasImage
       ? 'fal-ai/kling-video/v1.6/standard/image-to-video'
@@ -31,17 +42,18 @@ export default async function handler(req, res) {
       prompt,
       aspect_ratio: aspectRatio,
       duration,
-      cfg_scale: 0.5,
+      cfg_scale: cfgScale,
       ...(hasImage ? {
         image_url: `data:${productImageMime || 'image/jpeg'};base64,${productImageBase64}`,
       } : {}),
     };
 
-    console.log('Submitting to fal.ai model:', modelId);
+    console.log('Submitting to Kling. Model:', modelId, '| Ratio:', aspectRatio, '| Duration:', duration, '| cfg_scale:', cfgScale);
+    console.log('AI resolved settings:', JSON.stringify(videoConfig?.resolved || {}));
 
     const { request_id, status_url, response_url } = await fal.queue.submit(modelId, { input });
 
-    console.log('Submitted. request_id:', request_id, 'status_url:', status_url);
+    console.log('Submitted. request_id:', request_id);
 
     res.status(200).json({
       requestId: request_id,
@@ -50,6 +62,7 @@ export default async function handler(req, res) {
       modelId,
       status: 'IN_QUEUE',
     });
+
   } catch (error) {
     console.error('generate-sora-video error:', error);
     res.status(500).json({ error: error.message || 'Video generation failed' });
