@@ -1948,6 +1948,9 @@ export default function App() {
   const [soraError, setSoraError] = useState("");
   const [soraQueuePos, setSoraQueuePos] = useState(null);
   const [soraVideoConfig, setSoraVideoConfig] = useState(null);
+  const [soraHistory, setSoraHistory] = useState([]);
+  const [historyLoading, setHistoryLoading] = useState(false);
+  const [soraDbId, setSoraDbId] = useState(null); // current generation's DB row id
   const soraPollingRef = useRef(null);
 
   useEffect(() => {
@@ -1973,10 +1976,86 @@ export default function App() {
       .then(({ data }) => { if (data?.blocked) setIsBlocked(true); });
   }, [user]);
 
+  // Load history and resume any in-progress jobs when user logs in
+  useEffect(() => {
+    if (!user) return;
+    loadSoraHistory();
+    resumeInProgressJobs();
+  }, [user]);
+
   // ── Cleanup Sora polling on unmount ──
   useEffect(() => {
     return () => { if (soraPollingRef.current) clearInterval(soraPollingRef.current); };
   }, []);
+
+  // ── Load video generation history from Supabase ──
+  const loadSoraHistory = async () => {
+    if (!user) return;
+    setHistoryLoading(true);
+    try {
+      const { data, error } = await supabase
+        .from('sora_generations')
+        .select('*')
+        .eq('user_id', user.id)
+        .order('created_at', { ascending: false })
+        .limit(20);
+      if (!error && data) setSoraHistory(data);
+    } catch (e) {
+      console.error('loadSoraHistory error:', e);
+    }
+    setHistoryLoading(false);
+  };
+
+  // ── Resume polling for any in-progress jobs on page load ──
+  const resumeInProgressJobs = async () => {
+    if (!user) return;
+    const { data } = await supabase
+      .from('sora_generations')
+      .select('*')
+      .eq('user_id', user.id)
+      .eq('status', 'processing')
+      .order('created_at', { ascending: false })
+      .limit(1);
+
+    if (!data || data.length === 0) return;
+    const job = data[0];
+    const ageMs = Date.now() - new Date(job.created_at).getTime();
+    if (ageMs > 10 * 60 * 1000) return; // ignore jobs older than 10 min
+
+    console.log('Resuming polling for job:', job.request_id);
+    setSoraDbId(job.id);
+    setSoraGeneratedPrompt(job.prompt || '');
+    setSoraVideoConfig(job.video_config || null);
+    setSoraStep('polling');
+    setSoraError('');
+
+    const modelPath = job.model_id || 'fal-ai/kling-video/v2.6/pro/text-to-video';
+    soraPollingRef.current = setInterval(async () => {
+      try {
+        const statusRes = await fetch(`/api/sora-status?requestId=${job.request_id}&modelId=${encodeURIComponent(modelPath)}`);
+        const statusData = await statusRes.json();
+        if (statusData.queuePosition != null) setSoraQueuePos(statusData.queuePosition);
+        if (statusData.status === 'COMPLETED') {
+          clearInterval(soraPollingRef.current);
+          setSoraVideoUrl(statusData.videoUrl);
+          setSoraStep('done');
+          await supabase.from('sora_generations').update({
+            status: 'completed', video_url: statusData.videoUrl, completed_at: new Date().toISOString()
+          }).eq('id', job.id);
+          loadSoraHistory();
+        } else if (statusData.status === 'FAILED') {
+          clearInterval(soraPollingRef.current);
+          setSoraError('Video generation failed.');
+          setSoraStep('error');
+          await supabase.from('sora_generations').update({ status: 'failed' }).eq('id', job.id);
+        }
+      } catch (e) {
+        clearInterval(soraPollingRef.current);
+        setSoraError('Polling failed. Please try again.');
+        setSoraStep('error');
+      }
+    }, 4000);
+  };
 
   // ── Step A: Generate AI prompt and show preview for user to review/edit ──
   const handlePreviewPrompt = async () => {
@@ -2065,6 +2144,18 @@ export default function App() {
       // Always text-to-video — product/character are elements (references not first frame)
       const modelPath = videoData.modelId || videoData.modelPath || "fal-ai/kling-video/v2.6/pro/text-to-video";
 
+      // ── Save job to Supabase immediately so refresh doesn't lose it ──
+      const { data: dbRow } = await supabase.from('sora_generations').insert({
+        user_id: user.id,
+        request_id: videoData.requestId,
+        model_id: modelPath,
+        prompt: soraGeneratedPrompt,
+        video_config: soraVideoConfig,
+        product_description: sora.productDescription,
+        status: 'processing',
+      }).select().single();
+      if (dbRow) setSoraDbId(dbRow.id);
+
       soraPollingRef.current = setInterval(async () => {
         try {
           const statusRes = await fetch(`/api/sora-status?requestId=${videoData.requestId}&modelId=${encodeURIComponent(modelPath)}`);
@@ -2077,10 +2168,22 @@ export default function App() {
             setSoraVideoUrl(statusData.videoUrl);
             setSoraStep("done");
             logUsage(user.id, "kling_video_generated");
+            // Save completed video URL to Supabase
+            if (soraDbId) {
+              await supabase.from('sora_generations').update({
+                status: 'completed',
+                video_url: statusData.videoUrl,
+                completed_at: new Date().toISOString(),
+              }).eq('id', soraDbId);
+            }
+            loadSoraHistory(); // refresh history tab
           } else if (statusData.status === "FAILED") {
             clearInterval(soraPollingRef.current);
             setSoraError(statusData.error || "Video generation failed. Please try again.");
             setSoraStep("error");
+            if (soraDbId) {
+              await supabase.from('sora_generations').update({ status: 'failed' }).eq('id', soraDbId);
+            }
           }
         } catch (pollErr) {
           clearInterval(soraPollingRef.current);
@@ -2181,7 +2284,7 @@ export default function App() {
 
       {/* ── Tabs ── */}
       <div className="flex border-b border-gray-200 bg-white px-4">
-        {[["sora", t.tabSora], ["builder", t.tabBuilder], ["output", t.tabOutput]].map(([v, l]) => (
+        {[["sora", t.tabSora], ["history", "🎞️ History"], ["builder", t.tabBuilder], ["output", t.tabOutput]].map(([v, l]) => (
           <button key={v} onClick={() => setTab(v)}
             className={`px-4 py-2 text-sm font-medium border-b-2 transition-all ${tab === v ? "border-blue-500 text-blue-600" : "border-transparent text-gray-400"}`}>
             {l}{v === "output" && clips.length > 0 ? ` (${clips.length})` : ""}
@@ -2542,12 +2645,137 @@ export default function App() {
 
             {/* Reset after done */}
             {soraStep === "done" && (
-              <button onClick={() => { setSoraStep("idle"); setSoraVideoUrl(""); setSoraGeneratedPrompt(""); setSoraError(""); setSoraQueuePos(null); setSoraVideoConfig(null); }}
+              <button onClick={() => { setSoraStep("idle"); setSoraVideoUrl(""); setSoraGeneratedPrompt(""); setSoraError(""); setSoraQueuePos(null); setSoraVideoConfig(null); setSoraDbId(null); }}
                 className="w-full mt-3 py-3 rounded-xl border border-gray-200 text-sm text-gray-500 hover:bg-gray-100 transition-all">
                 🔄 Generate Another Video
               </button>
             )}
 
+          </div>
+        )}
+
+        {/* ── HISTORY TAB ── */}
+        {tab === "history" && (
+          <div className="pb-8">
+            <div className="flex items-center justify-between mb-4">
+              <div>
+                <h2 className="text-sm font-bold text-gray-800">Generated Videos</h2>
+                <p className="text-xs text-gray-400 mt-0.5">Your past Kling AI video generations</p>
+              </div>
+              <button onClick={loadSoraHistory}
+                className="text-xs text-indigo-500 border border-indigo-200 rounded-lg px-3 py-1.5 hover:bg-indigo-50 transition-all">
+                🔄 Refresh
+              </button>
+            </div>
+
+            {historyLoading && (
+              <div className="text-center py-8 text-gray-400 text-sm">Loading history…</div>
+            )}
+
+            {!historyLoading && soraHistory.length === 0 && (
+              <div className="text-center py-12">
+                <p className="text-3xl mb-3">🎬</p>
+                <p className="text-sm text-gray-500">No videos generated yet</p>
+                <p className="text-xs text-gray-400 mt-1">Your generated videos will appear here</p>
+                <button onClick={() => setTab("sora")}
+                  className="mt-4 px-4 py-2 rounded-lg bg-indigo-50 text-indigo-500 text-sm font-medium hover:bg-indigo-100 transition-all">
+                  Generate your first video →
+                </button>
+              </div>
+            )}
+
+            {!historyLoading && soraHistory.length > 0 && (
+              <div className="space-y-4">
+                {soraHistory.map(item => (
+                  <div key={item.id} className="bg-white border border-gray-200 rounded-xl overflow-hidden">
+                    {/* Header */}
+                    <div className="px-4 py-3 bg-gray-50 border-b border-gray-100 flex items-center justify-between">
+                      <div>
+                        <p className="text-xs font-semibold text-gray-700 truncate max-w-[200px]">
+                          {item.product_description?.substring(0, 50) || 'Video generation'}
+                          {item.product_description?.length > 50 ? '…' : ''}
+                        </p>
+                        <p className="text-xs text-gray-400 mt-0.5">
+                          {new Date(item.created_at).toLocaleDateString('en-MY', {
+                            day: 'numeric', month: 'short', year: 'numeric',
+                            hour: '2-digit', minute: '2-digit'
+                          })}
+                        </p>
+                      </div>
+                      <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${
+                        item.status === 'completed' ? 'bg-green-100 text-green-700' :
+                        item.status === 'processing' ? 'bg-blue-100 text-blue-700' :
+                        'bg-red-100 text-red-700'
+                      }`}>
+                        {item.status === 'completed' ? '✅ Done' :
+                         item.status === 'processing' ? '⏳ Processing' : '❌ Failed'}
+                      </span>
+                    </div>
+
+                    {/* Video player if completed */}
+                    {item.status === 'completed' && item.video_url && (
+                      <div className="p-4 space-y-3">
+                        <video src={item.video_url} controls loop
+                          className="w-full rounded-lg border border-gray-100" />
+                        <div className="flex gap-2">
+                          <a href={item.video_url} download target="_blank" rel="noreferrer"
+                            className="flex-1 py-2 rounded-lg bg-green-500 text-white text-xs font-bold text-center hover:bg-green-600 transition-all">
+                            ⬇️ Download
+                          </a>
+                          <button
+                            onClick={() => { setSoraGeneratedPrompt(item.prompt || ''); setTab("sora"); setSoraStep("prompt-ready"); setSoraVideoConfig(item.video_config || null); }}
+                            className="flex-1 py-2 rounded-lg border border-gray-200 text-xs text-gray-600 hover:bg-gray-50 transition-all">
+                            🔄 Regenerate
+                          </button>
+                        </div>
+                        {/* Prompt peek */}
+                        {item.prompt && (
+                          <details className="mt-1">
+                            <summary className="text-xs text-gray-400 cursor-pointer hover:text-gray-600">View prompt used</summary>
+                            <p className="text-xs text-gray-500 mt-2 p-2 bg-gray-50 rounded-lg leading-relaxed font-mono">{item.prompt}</p>
+                          </details>
+                        )}
+                      </div>
+                    )}
+
+                    {/* Processing state — resume polling */}
+                    {item.status === 'processing' && (
+                      <div className="p-4">
+                        <div className="flex items-center gap-3 bg-blue-50 rounded-lg px-3 py-2">
+                          <svg className="animate-spin w-4 h-4 text-blue-500 flex-shrink-0" fill="none" viewBox="0 0 24 24">
+                            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/>
+                            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"/>
+                          </svg>
+                          <div>
+                            <p className="text-xs font-medium text-blue-700">Video still generating…</p>
+                            <p className="text-xs text-blue-500 mt-0.5">Started {Math.round((Date.now() - new Date(item.created_at).getTime()) / 60000)} min ago</p>
+                          </div>
+                          <button
+                            onClick={() => { setTab("sora"); resumeInProgressJobs(); }}
+                            className="ml-auto text-xs text-blue-600 border border-blue-200 rounded-lg px-2 py-1 hover:bg-blue-100 transition-all">
+                            Resume
+                          </button>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Failed state */}
+                    {item.status === 'failed' && (
+                      <div className="p-4">
+                        <p className="text-xs text-red-500 bg-red-50 rounded-lg px-3 py-2">
+                          ❌ Generation failed — fal.ai job did not complete. You can try regenerating.
+                        </p>
+                        <button
+                          onClick={() => { setSoraGeneratedPrompt(item.prompt || ''); setTab("sora"); setSoraStep("prompt-ready"); setSoraVideoConfig(item.video_config || null); }}
+                          className="mt-2 w-full py-2 rounded-lg border border-gray-200 text-xs text-gray-600 hover:bg-gray-50 transition-all">
+                          🔄 Try Again with Same Prompt
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         )}
 
