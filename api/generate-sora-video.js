@@ -6,6 +6,8 @@
 // Uses @fal-ai/client SDK — add to package.json: "@fal-ai/client": "^1.0.0"
 // generate-sora-video.js
 // Receives prompt + videoConfig (resolved by AI) and submits to Kling via fal.ai SDK
+// generate-sora-video.js
+// Receives prompt + videoConfig (resolved by AI) and submits to Kling via fal.ai SDK
 import { fal } from "@fal-ai/client";
 
 export default async function handler(req, res) {
@@ -31,17 +33,18 @@ export default async function handler(req, res) {
 
     // Use videoConfig values resolved by AI — fallback to safe defaults
     const aspectRatio = videoConfig?.aspect_ratio || '9:16';
-    const duration    = videoConfig?.duration     || '5';
+    const duration    = videoConfig?.duration     || '10'; // default to 10s if not set
     const cfgScale    = videoConfig?.cfg_scale    ?? 0.5;
 
+    // Kling 2.6 Pro — 1080p, cinematic motion, native audio support
     const modelId = hasImage
-      ? 'fal-ai/kling-video/v1.6/standard/image-to-video'
-      : 'fal-ai/kling-video/v1.6/standard/text-to-video';
+      ? 'fal-ai/kling-video/v2.6/pro/image-to-video'
+      : 'fal-ai/kling-video/v2.6/pro/text-to-video';
 
     const input = {
       prompt,
       aspect_ratio: aspectRatio,
-      duration,
+      duration,       // '5' or '10' — Kling 2.6 Pro supports both
       cfg_scale: cfgScale,
       ...(hasImage ? {
         image_url: `data:${productImageMime || 'image/jpeg'};base64,${productImageBase64}`,
