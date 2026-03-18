@@ -1885,7 +1885,7 @@ const HistoryTab = ({
   // Load history once when this component mounts
   React.useEffect(() => {
     loadSoraHistory();
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  }, []);
 
   return (
     <div className="pb-8">
@@ -2143,7 +2143,7 @@ export default function App() {
     hasResumedRef.current = true;
     resumeInProgressJobs();
     loadCredits();
-  }, [user]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [user]);
 
   // ── Cleanup Sora polling on unmount ──
   useEffect(() => {
@@ -2821,7 +2821,12 @@ export default function App() {
                   <div className="px-4 pb-4 flex gap-3">
                     <button onClick={handleSendToKling}
                       className="flex-1 py-3 rounded-xl bg-indigo-500 text-white font-bold text-sm hover:bg-indigo-600 active:scale-95 transition-all flex items-center justify-center gap-2">
-                      🎬 Send to Kling AI &amp; Generate Video
+                      <span className="flex items-center gap-2">
+                        🎬 Send to Kling AI &amp; Generate Video
+                        <span className="bg-white bg-opacity-20 text-white text-xs font-bold px-2 py-0.5 rounded-full">
+                          {sora.videoLength === "5" ? CREDIT_COSTS.video_5s : CREDIT_COSTS.video_10s} credits
+                        </span>
+                      </span>
                     </button>
                   </div>
                 </div>
@@ -2844,7 +2849,14 @@ export default function App() {
                          soraStep === "generating-video"  ? "Submitting to Kling AI…" :
                          `Generating video… ${soraQueuePos !== null ? `(#${soraQueuePos} in queue)` : ""}`}
                       </>
-                    ) : <>✨ Preview AI Prompt &amp; Generate</>}
+                    ) : (
+                      <span className="flex items-center gap-2">
+                        ✨ Preview AI Prompt &amp; Generate
+                        <span className="bg-white bg-opacity-20 text-white text-xs font-bold px-2 py-0.5 rounded-full">
+                          {sora.videoLength === "5" ? CREDIT_COSTS.video_5s : CREDIT_COSTS.video_10s} credits
+                        </span>
+                      </span>
+                    )}
                   </button>
                   {(!sora.productDescription || !sora.productUSP) && (
                     <p className="text-xs text-gray-400 text-center mt-2">Fill in Product Description and USP to enable generation</p>
@@ -3201,10 +3213,14 @@ export default function App() {
                   onClick={handleGenerateFirstFrame}
                   disabled={frameLoading || !f.productName}
                   className={`w-full py-2 rounded-lg text-sm font-medium border transition-all ${frameLoading || !f.productName ? "bg-gray-100 text-gray-400 border-gray-200 cursor-not-allowed" : "bg-indigo-500 text-white border-indigo-500 hover:bg-indigo-600 active:scale-95"}`}>
-                  {frameLoading ? t.btnGenerating : generatedImage ? t.btnRegenerateFrame : t.btnGenerateFrame}
-                  {!frameLoading && CREDIT_COSTS.image_gemini > 0 && (
-                    <span className="ml-1.5 text-xs opacity-70">({CREDIT_COSTS.image_gemini} credits)</span>
-                  )}
+                  <span className="flex items-center gap-2">
+                    {frameLoading ? t.btnGenerating : generatedImage ? t.btnRegenerateFrame : t.btnGenerateFrame}
+                    {!frameLoading && CREDIT_COSTS.image_gemini > 0 && (
+                      <span className="bg-white bg-opacity-20 text-white text-xs font-bold px-2 py-0.5 rounded-full">
+                        {CREDIT_COSTS.image_gemini} credits
+                      </span>
+                    )}
+                  </span>
                 </button>
 
                 {!f.productName && <p className="text-xs text-gray-400">{t.hintFillProductName}</p>}
