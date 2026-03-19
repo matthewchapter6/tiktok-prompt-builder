@@ -1,9 +1,4 @@
-// generate-sora-video.js
-// Kling 2.6 Pro image-to-video via fal.ai SDK
-// Receives: first frame image URL + animation prompt
-// The first frame already contains the correct product/character appearance
-// Kling just needs to animate FROM that frame
-
+// generate-sora-video.js — Kling 2.6 Pro image-to-video
 import { fal } from "@fal-ai/client";
 
 export default async function handler(req, res) {
@@ -14,15 +9,9 @@ export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
 
   try {
-    const {
-      prompt,           // animation prompt — HOW to animate
-      videoConfig,      // aspect ratio, duration, cfg_scale
-      firstFrameBase64, // base64 of the Gemini-generated first frame
-      firstFrameMime,   // mime type of first frame
-    } = req.body;
-
-    if (!prompt) return res.status(400).json({ error: 'Animation prompt is required' });
-    if (!firstFrameBase64) return res.status(400).json({ error: 'First frame image is required' });
+    const { prompt, videoConfig, firstFrameBase64, firstFrameMime } = req.body;
+    if (!prompt) return res.status(400).json({ error: 'Animation prompt required' });
+    if (!firstFrameBase64) return res.status(400).json({ error: 'First frame image required' });
 
     fal.config({ credentials: process.env.FAL_API_KEY });
 
@@ -30,40 +19,24 @@ export default async function handler(req, res) {
     const duration    = videoConfig?.duration     || '10';
     const cfgScale    = videoConfig?.cfg_scale    ?? 0.8;
 
-    // ── Upload first frame to fal storage ─────────────────────────────────
+    // Upload first frame to fal storage
     const frameBlob = base64ToBlob(firstFrameBase64, firstFrameMime || 'image/jpeg');
     const frameUrl  = await fal.storage.upload(frameBlob);
-    console.log('First frame uploaded to fal storage:', frameUrl);
+    console.log('First frame uploaded:', frameUrl);
 
-    // ── Always image-to-video — Kling animates FROM the first frame ───────
     const modelId = 'fal-ai/kling-video/v2.6/pro/image-to-video';
-
-    const input = {
-      prompt,           // animation instructions only
-      image_url: frameUrl, // the first frame to animate from
-      aspect_ratio: aspectRatio,
-      duration,
-      cfg_scale: cfgScale,
-    };
+    const input = { prompt, image_url: frameUrl, aspect_ratio: aspectRatio, duration, cfg_scale: cfgScale };
 
     console.log('=== KLING 2.6 PRO IMAGE-TO-VIDEO ===');
-    console.log('Model:', modelId);
     console.log('Ratio:', aspectRatio, '| Duration:', duration, 's | cfg_scale:', cfgScale);
-    console.log('First frame URL:', frameUrl);
     console.log('--- ANIMATION PROMPT ---');
     console.log(prompt);
-    console.log('--- END PROMPT ---');
+    console.log('--- END ---');
 
     const { request_id, status_url, response_url } = await fal.queue.submit(modelId, { input });
     console.log('Submitted. request_id:', request_id);
 
-    res.status(200).json({
-      requestId: request_id,
-      statusUrl: status_url,
-      responseUrl: response_url,
-      modelId,
-      status: 'IN_QUEUE',
-    });
+    res.status(200).json({ requestId: request_id, statusUrl: status_url, responseUrl: response_url, modelId, status: 'IN_QUEUE' });
 
   } catch (error) {
     console.error('generate-sora-video error:', error);
@@ -77,9 +50,7 @@ function base64ToBlob(base64, mimeType) {
   for (let offset = 0; offset < byteCharacters.length; offset += 512) {
     const slice = byteCharacters.slice(offset, offset + 512);
     const byteNumbers = new Array(slice.length);
-    for (let i = 0; i < slice.length; i++) {
-      byteNumbers[i] = slice.charCodeAt(i);
-    }
+    for (let i = 0; i < slice.length; i++) byteNumbers[i] = slice.charCodeAt(i);
     byteArrays.push(new Uint8Array(byteNumbers));
   }
   return new Blob(byteArrays, { type: mimeType });
