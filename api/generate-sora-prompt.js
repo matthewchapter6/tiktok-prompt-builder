@@ -138,24 +138,45 @@ Dialogue: 2-3 short lines total — one per beat. Conversational, not ad-copy st
 
     // ── Element references ────────────────────────────────────────────────
     const elementInstructions = hasProductImage && hasCharacterImage
-      ? `Two reference photos are provided:
-@Element1 = the PRODUCT — use "@Element1" every time you reference the product visually
-@Element2 = the CHARACTER/TALENT — use "@Element2" every time you reference the person
-These are visual consistency anchors. Do not describe their appearance — just use the tags.
-Example: "@Element2 picks up @Element1 and examines it closely"`
+      ? `CRITICAL — Two reference images are uploaded and MUST be followed exactly:
+@Element1 = the PRODUCT reference image. Kling will use this exact product appearance.
+@Element2 = the CHARACTER/TALENT reference image. Kling will use this exact person's appearance.
+
+Rules for using elements:
+- Write "@Element1" and "@Element2" exactly as shown — these are not descriptions, they are references
+- Kling reads the uploaded photos and renders them as-is — do NOT describe their appearance
+- Include "@Element1 maintains its exact appearance throughout the video" in your prompt
+- Include "@Element2 maintains consistent appearance throughout the video" in your prompt
+- Use the tags naturally in action descriptions: "@Element2 holds @Element1 up to the light"
+- The more times you reference @Element1 and @Element2, the stronger the adherence
+
+Example of correct usage:
+"@Element2, maintaining consistent appearance throughout, picks up @Element1 from a clean surface. The camera tracks @Element2's hands as they turn @Element1 to reveal its details. @Element1 maintains its exact appearance — same colors, shape, and branding. @Element2 looks directly at camera with a satisfied expression."`
 
       : hasProductImage
-        ? `One product photo is provided:
-@Element1 = the PRODUCT — use "@Element1" every time you reference the product
-Do not describe the product's appearance — Kling already has it from the photo.
-For the talent: describe a realistic, appropriate person for this product (age, style, energy).`
+        ? `CRITICAL — One product reference image is uploaded and MUST be followed exactly:
+@Element1 = the PRODUCT reference image. Kling will render this exact product.
+
+Rules:
+- Write "@Element1" every time you mention the product
+- Do NOT describe the product's appearance — Kling already has the photo
+- Include "@Element1 maintains its exact appearance throughout" in your prompt
+- For the talent: describe a realistic person appropriate for this product
+
+Example: "Camera slowly reveals @Element1 on a dark surface. @Element1 maintains its exact appearance — same design, colors and branding — throughout every frame."`
 
         : hasCharacterImage
-          ? `One character photo is provided:
-@Element1 = the CHARACTER/TALENT — use "@Element1" every time you reference the person
-Describe the product appearance in full detail based on the product description.`
+          ? `CRITICAL — One character reference image is uploaded and MUST be followed exactly:
+@Element1 = the CHARACTER/TALENT reference image. Kling will render this exact person.
 
-          : `No reference photos — describe both the product appearance and talent type in full visual detail.
+Rules:
+- Write "@Element1" every time you show the person
+- Do NOT describe the person's appearance — Kling already has the photo
+- Include "@Element1 maintains consistent appearance throughout" in your prompt
+- Describe the product in full visual detail from the product description`
+
+          : `No reference images uploaded.
+Describe both the product appearance AND talent type in full, specific visual detail.
 Do NOT use @Element1 or @Element2 tags.`;
 
     // ── Few-shot examples ─────────────────────────────────────────────────
@@ -239,6 +260,13 @@ ${aiDecideStoryline
 ━━━ VISUAL REFERENCES ━━━
 ${elementInstructions}
 
+━━━ REFERENCE ADHERENCE RULES ━━━
+${hasProductImage || hasCharacterImage ? `CRITICAL: The uploaded reference images MUST be followed exactly.
+- Write "@Element1 maintains its exact appearance throughout" explicitly in the prompt
+- Write "@Element2 maintains consistent appearance throughout" if character uploaded
+- Kling needs these explicit instructions to properly use the reference images
+- Reference the elements multiple times throughout the prompt — more mentions = stronger adherence
+` : ''}
 ━━━ ANTI-CLICHÉ RULES ━━━
 Do NOT use these overused AI video tropes:
 - No generic "golden hour" unless the product genuinely calls for it
