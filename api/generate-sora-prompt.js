@@ -1,6 +1,7 @@
 // generate-sora-prompt.js
 // Kling 2.6 Pro optimised prompt generator
 // Framework: Subject → Action → Environment → Camera/Style (cinematic prose)
+// Model: Kling 3.0 Pro | Supports 5s, 10s, 15s | Native audio ON
 // Audio: dialogue in quotes, ambient sounds, music tone described naturally
 // Based on VEED + toolplay.ai best practices for Kling 2.6 Pro
 
@@ -21,6 +22,7 @@ export default async function handler(req, res) {
     } = req.body;
 
     const ratioLabel = videoRatio === '9_16' ? '9:16 vertical portrait' : '16:9 horizontal landscape';
+    // Kling 2.6 Pro supports 5s or 10s only
     const durationSec = videoLength === '5' ? '5' : '10';
     const aspectRatio = videoRatio === '9_16' ? '9:16' : '16:9';
 
@@ -37,7 +39,7 @@ export default async function handler(req, res) {
       ? `5-SECOND VIDEO — One single cinematic moment. No scene cuts.
 STRUCTURE: One continuous shot with a single camera move.
 - Subject established immediately (0-1s)
-- One key action or reveal (1-4s)  
+- One key action or reveal (1-4s)
 - Strong closing frame (4-5s)
 DIALOGUE: Maximum 1 sentence (8-12 words). Punchy tagline or bold claim.
 CAMERA: One smooth continuous movement — orbit, push-in, or tilt. No cuts.
@@ -212,10 +214,18 @@ Return exactly this JSON:
     let videoConfig = { aspect_ratio: aspectRatio, duration: durationSec, cfg_scale: 0.5, resolved: {} };
     try {
       const raw = configData.content?.find(b => b.type === 'text')?.text?.trim() || '{}';
-      videoConfig = JSON.parse(raw.replace(/```json|```/g, '').trim());
+      const parsed = JSON.parse(raw.replace(/```json|```/g, '').trim());
+      videoConfig = {
+        ...parsed,
+        // ALWAYS enforce these from user selection — never let Claude override
+        aspect_ratio: aspectRatio,
+        duration: durationSec,
+        cfg_scale: 0.5,
+      };
     } catch (e) {
-      console.error('Config JSON parse error:', e.message);
+      console.error('Config JSON parse error — using defaults:', e.message);
     }
+    console.log(`Duration enforced: ${durationSec}s | Aspect: ${aspectRatio}`);
 
     console.log(`Prompt generated for ${durationSec}s video. Words: ${prompt.split(/\s+/).length}`);
     console.log('Resolved config:', JSON.stringify(videoConfig.resolved));
