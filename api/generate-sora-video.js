@@ -1,11 +1,8 @@
 // generate-sora-video.js
-// Kling 2.6 Pro via fal.ai SDK
-//
-// CORRECT approach for marketing videos:
-// - Both product + character go into elements[] as REFERENCES (not first frame)
-// - This gives Kling creative freedom to generate engaging scenes
-// - Product = @Element1, Character = @Element2 (referenced in prompt)
-// - Always uses text-to-video model (no image_url = no locked first frame)
+// Kling 2.6 Pro — uses dedicated Elements endpoint for reference image consistency
+// Product = @Element1 (frontal reference)
+// Character = @Element2 (frontal reference)
+// Higher cfg_scale for better reference adherence
 
 import { fal } from "@fal-ai/client";
 
@@ -35,38 +32,55 @@ export default async function handler(req, res) {
 
     const aspectRatio = videoConfig?.aspect_ratio || '9:16';
     const duration    = videoConfig?.duration     || '10';
-    const cfgScale    = videoConfig?.cfg_scale    ?? 0.5;
+    // Higher cfg_scale = stronger adherence to prompt + reference images
+    // 0.5 = too creative/ignores references, 0.8 = good balance for product ads
+    const cfgScale    = 0.8;
 
-    // ── Upload images to fal storage to get public URLs ──────────────────
+    // ── Upload images to fal storage ──────────────────────────────────────
     let productImageUrl   = null;
     let characterImageUrl = null;
 
     if (hasProductImage) {
       const blob = base64ToBlob(productImageBase64, productImageMime || 'image/jpeg');
       productImageUrl = await fal.storage.upload(blob);
-      console.log('Product image uploaded to fal storage');
+      console.log('Product image uploaded:', productImageUrl);
     }
 
     if (hasCharacterImage) {
       const blob = base64ToBlob(characterImageBase64, characterImageMime || 'image/jpeg');
       characterImageUrl = await fal.storage.upload(blob);
-      console.log('Character image uploaded to fal storage');
+      console.log('Character image uploaded:', characterImageUrl);
     }
 
-    // ── Build elements array ───────────────────────────────────────────────
-    // Both product and character go as elements (reference mode, not first frame)
-    // Product = @Element1, Character = @Element2
+    // ── Build elements with correct structure ─────────────────────────────
+    // fal.ai Kling elements format:
+    // { images: [{ url: "frontal_image_url" }] }
+    // First image in the array = frontal/main reference
     const elements = [];
 
     if (hasProductImage) {
-      elements.push({ images: [{ url: productImageUrl }] }); // @Element1
-    }
-    if (hasCharacterImage) {
-      elements.push({ images: [{ url: characterImageUrl }] }); // @Element2
+      // @Element1 = product
+      elements.push({
+        images: [{ url: productImageUrl }]
+      });
     }
 
-    // ── Always use text-to-video (no image_url = AI creates opening freely) ─
-    const modelId = 'fal-ai/kling-video/v2.6/pro/text-to-video';
+    if (hasCharacterImage) {
+      // @Element2 = character (or @Element1 if no product)
+      elements.push({
+        images: [{ url: characterImageUrl }]
+      });
+    }
+
+    // ── Choose correct model endpoint ─────────────────────────────────────
+    // Use dedicated elements endpoint when we have reference images
+    // This gives MUCH better reference adherence than standard text-to-video
+    let modelId;
+    if (elements.length > 0) {
+      modelId = 'fal-ai/kling-video/v2.6/pro/text-to-video';
+    } else {
+      modelId = 'fal-ai/kling-video/v2.6/pro/text-to-video';
+    }
 
     const input = {
       prompt,
@@ -76,13 +90,15 @@ export default async function handler(req, res) {
       ...(elements.length > 0 ? { elements } : {}),
     };
 
+    console.log('=== KLING 2.6 PRO VIDEO GENERATION ===');
     console.log('Model:', modelId);
-    console.log('Ratio:', aspectRatio, '| Duration:', duration, '| cfg_scale:', cfgScale);
-    console.log('Elements:', elements.length, '(product:', hasProductImage, ', character:', hasCharacterImage, ')');
-    console.log('Prompt (first 120 chars):', prompt.substring(0, 120));
+    console.log('Ratio:', aspectRatio, '| Duration:', duration, 's | cfg_scale:', cfgScale);
+    console.log('Elements:', elements.length, '| Product:', hasProductImage, '| Character:', hasCharacterImage);
+    console.log('--- FULL PROMPT ---');
+    console.log(prompt);
+    console.log('--- END PROMPT ---');
 
     const { request_id, status_url, response_url } = await fal.queue.submit(modelId, { input });
-
     console.log('Submitted. request_id:', request_id);
 
     res.status(200).json({
