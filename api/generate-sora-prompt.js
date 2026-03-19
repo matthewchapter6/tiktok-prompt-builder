@@ -275,7 +275,8 @@ Return exactly this JSON structure with all fields filled:
     const [geminiRes, claudeRes] = await Promise.all([
 
       // Call 1: Gemini 2.0 Flash — narrative prompt
-      fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${process.env.GEMINI_API_KEY}`, {
+      // Try GEMINI_API_KEY first, fall back to GOOGLE_API_KEY
+      fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${process.env.GOOGLE_API_KEY}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -287,7 +288,7 @@ Return exactly this JSON structure with all fields filled:
             parts: [{ text: geminiUserPrompt }]
           }],
           generationConfig: {
-            temperature: 1.0,       // high creativity
+            temperature: 1.0,
             topP: 0.95,
             maxOutputTokens: durationSec === '5' ? 400 : 700,
           }
@@ -316,16 +317,50 @@ Return exactly this JSON structure with all fields filled:
       claudeRes.json(),
     ]);
 
-    // ── Extract narrative prompt from Gemini ──────────────────────────────
-    if (!geminiRes.ok) {
-      console.error('Gemini error:', JSON.stringify(geminiData));
-      return res.status(geminiRes.status).json({ error: 'Gemini prompt generation failed', details: geminiData });
-    }
-    const prompt = geminiData?.candidates?.[0]?.content?.parts?.[0]?.text?.trim() || '';
+    // ── Extract narrative prompt from Gemini (with Claude fallback) ──────
+    let prompt = '';
 
+    if (geminiRes.ok) {
+      prompt = geminiData?.candidates?.[0]?.content?.parts?.[0]?.text?.trim() || '';
+      if (!prompt) {
+        console.warn('Gemini returned empty — checking for block reason:', JSON.stringify(geminiData?.promptFeedback || geminiData?.candidates?.[0]?.finishReason));
+      } else {
+        console.log('Gemini prompt generated successfully');
+      }
+    } else {
+      console.error('Gemini failed:', geminiRes.status, JSON.stringify(geminiData));
+    }
+
+    // ── Claude fallback if Gemini failed or returned empty ────────────────
     if (!prompt) {
-      console.error('Gemini returned empty prompt. Full response:', JSON.stringify(geminiData));
-      return res.status(500).json({ error: 'Gemini returned empty response' });
+      console.log('Falling back to Claude Sonnet for narrative prompt...');
+      try {
+        const fallbackRes = await fetch('https://api.anthropic.com/v1/messages', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'x-api-key': process.env.ANTHROPIC_API_KEY,
+            'anthropic-version': '2023-06-01',
+          },
+          body: JSON.stringify({
+            model: 'claude-sonnet-4-20250514',
+            max_tokens: durationSec === '5' ? 500 : 900,
+            system: geminiSystemInstruction,
+            messages: [{ role: 'user', content: geminiUserPrompt }],
+          }),
+        });
+        const fallbackData = await fallbackRes.json();
+        prompt = fallbackData.content?.find(b => b.type === 'text')?.text?.trim() || '';
+        if (prompt) {
+          console.log('Claude fallback prompt generated successfully');
+        } else {
+          console.error('Claude fallback also failed:', JSON.stringify(fallbackData));
+          return res.status(500).json({ error: 'Both Gemini and Claude failed to generate prompt' });
+        }
+      } catch (fallbackErr) {
+        console.error('Claude fallback error:', fallbackErr.message);
+        return res.status(500).json({ error: 'Prompt generation failed', details: fallbackErr.message });
+      }
     }
 
     // ── Extract technical config from Claude ──────────────────────────────
