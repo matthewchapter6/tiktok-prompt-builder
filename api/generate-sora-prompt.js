@@ -1,7 +1,8 @@
-// generate-sora-prompt.js
-// Option C: Gemini 2.0 Flash (narrative) + Claude Sonnet (technical config)
-// Golden template: Subject+Environment → Motion → Camera → Lighting/Mood → Quality/Style → Negative constraints
-// Category-aware cinematic styles + few-shot examples
+// generate-video-prompt.js
+// Generates TWO things for the new Create Video flow:
+// 1. Gemini image prompt (for first frame generation via generate-image.js)
+// 2. Kling animation prompt (for image-to-video — HOW to animate, not WHAT to show)
+// 3. Technical config JSON (aspect ratio, duration, style)
 
 export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
@@ -12,410 +13,257 @@ export default async function handler(req, res) {
 
   try {
     const {
-      productDescription, productUSP, storyline, aiDecideStoryline,
-      salesFunnel, videoRatio, videoLength, productCategory,
-      videoStyle, tone, cameraMotion, lightingStyle,
-      backgroundSetting, audienceEmotion, restrictions,
-      hasProductImage, hasCharacterImage,
+      productDescription,
+      productUSP,
+      productCategory,
+      storyline,
+      aiDecideStoryline,
+      salesFunnel,
+      videoRatio,
+      videoLength,
+      videoStyle,
+      tone,
+      cameraMotion,
+      lightingStyle,
+      backgroundSetting,
+      audienceEmotion,
+      restrictions,
+      hasProductImage,
+      hasCharacterImage,
     } = req.body;
 
     const ratioLabel = videoRatio === '9_16' ? '9:16 vertical portrait' : '16:9 horizontal landscape';
-    const durationSec = videoLength === '5' ? '5' : '10';
     const aspectRatio = videoRatio === '9_16' ? '9:16' : '16:9';
+    const durationSec = videoLength === '5' ? '5' : '10';
 
     const funnelGuide = {
-      upper:  'AWARENESS — open with a relatable pain point or lifestyle moment, no hard sell, soft CTA',
-      middle: 'CONSIDERATION — demonstrate the product solving a real problem, build trust and desire',
-      lower:  'CONVERSION — create strong urgency and desire, direct CTA like "shop now" or "limited stock"',
-    }[salesFunnel] || 'GENERAL — showcase the product attractively, clear benefit, soft CTA';
+      upper:  'AWARENESS — relatable problem moment, no hard sell, soft CTA',
+      middle: 'CONSIDERATION — product solving a real problem, build trust',
+      lower:  'CONVERSION — strong desire and urgency, direct buy CTA',
+    }[salesFunnel] || 'GENERAL — showcase product attractively, clear benefit';
 
     const userFilledAdvanced = videoStyle || tone || cameraMotion || lightingStyle || backgroundSetting || audienceEmotion;
 
-    // ── Category-aware cinematic style guide ──────────────────────────────
+    // ── Category-aware visual style ───────────────────────────────────────
     const categoryStyle = {
-      tech_gadget: {
-        environment: 'clean minimal workspace, glass surfaces, soft natural light from a window',
-        motion: 'precise hand interactions, screens lighting up, seamless plug-in moments',
-        camera: 'tight close-ups on details, slow rack focus from person to product',
-        mood: 'clean, modern, confident — cool neutral tones with accent highlights',
-        avoid: 'no cluttered backgrounds, no harsh overhead lighting, no fake holograms',
-      },
-      consumer_good: {
-        environment: 'home setting, natural everyday environment relevant to the product',
-        motion: 'natural human interaction with the product, real usage moments',
-        camera: 'handheld documentary feel, medium shots with natural cut to close-up detail',
-        mood: 'warm, relatable, authentic — golden tones, natural light',
-        avoid: 'no overly staged setups, no perfect studio lighting that looks fake',
-      },
-      skincare: {
-        environment: 'bright airy bathroom, vanity with soft morning light, clean white surfaces',
-        motion: 'gentle product application, skin close-ups, satisfying texture moments',
-        camera: 'extreme close-up on skin and product texture, slow tilt up to face',
-        mood: 'soft, pure, clean — warm whites, pastel tones, dewy finish',
-        avoid: 'no harsh shadows on skin, no dramatic contrast, no busy backgrounds',
-      },
-      vitamin_health: {
-        environment: 'active lifestyle setting — gym, outdoor morning, clean kitchen',
-        motion: 'energetic but controlled movement, product integrated into routine',
-        camera: 'dynamic handheld tracking, wide to close-up transition showing transformation',
-        mood: 'energetic, vital, optimistic — bright natural light, warm greens and whites',
-        avoid: 'no clinical hospital aesthetics, no before/after clichés, no fake energy',
-      },
-      apparel: {
-        environment: 'urban street, minimal studio, or lifestyle environment matching the brand',
-        motion: 'natural confident movement — walking, turning, fabric catching the light',
-        camera: 'full body to detail shots, slow pan along fabric texture, tracking walk shot',
-        mood: 'aspirational, confident — cinematic color grade matching brand identity',
-        avoid: 'no stiff posed mannequin look, no over-saturated colors, no busy patterns in background',
-      },
-      sports_fitness: {
-        environment: 'sports court, gym, outdoor track, or relevant athletic environment',
-        motion: 'athletic action — jumping, running, explosive movements, product in use',
-        camera: 'dynamic low angle during action, slow motion capture of peak movement',
-        mood: 'powerful, adrenaline, focused — high contrast, desaturated with color pop',
-        avoid: 'no cartoonish motion blur, no flickering, no exaggerated superhero aesthetics',
-      },
-      food_beverage: {
-        environment: 'clean kitchen surface, café setting, or dining environment',
-        motion: 'appetising food interaction — pouring, slicing, steam rising, condensation',
-        camera: 'macro close-up on texture and detail, slow pour shot, rack focus on product',
-        mood: 'warm, appetising, sensory — warm amber tones, soft bokeh backgrounds',
-        avoid: 'no artificial food colouring glow, no unrealistic steam effects, no messy plating',
-      },
-      home_living: {
-        environment: 'beautifully styled home interior, natural light, tasteful décor',
-        motion: 'product integrated into a living moment — someone using it naturally at home',
-        camera: 'wide establishing shot of the room, slow push-in to product detail',
-        mood: 'warm, aspirational, comfortable — golden interior light, soft shadows',
-        avoid: 'no sterile empty rooms, no overly perfect CGI interiors, no floating objects',
-      },
-      jewellery_accessories: {
-        environment: 'dark premium backdrop, velvet surface, or elegant lifestyle context',
-        motion: 'slow rotation of the piece, light catching gemstones or metalwork',
-        camera: 'extreme macro close-up of detail, slow circular orbit at low angle',
-        mood: 'luxury, precious, timeless — dramatic rim lighting, deep shadows, gold and silver tones',
-        avoid: 'no plastic-looking renders, no harsh direct flash lighting, no busy backgrounds',
-      },
-      software_app: {
-        environment: 'modern device screen in real-world context, clean desk or lifestyle setting',
-        motion: 'natural screen interaction, UI elements appearing, person reacting positively',
-        camera: 'over-shoulder to screen close-up, rack focus from person to device',
-        mood: 'clean, modern, efficient — cool blue-white tones with brand color accents',
-        avoid: 'no fake holographic UI, no overly fast screen transitions, no generic stock look',
-      },
-      service: {
-        environment: 'professional environment relevant to the service being offered',
-        motion: 'real human interaction, problem being solved, transformation moment',
-        camera: 'documentary handheld feel, medium close-up on human emotion and reaction',
-        mood: 'trustworthy, human, genuine — warm natural tones, authentic feel',
-        avoid: 'no overly corporate stock footage look, no stiff handshakes, no generic office clichés',
-      },
+      tech_gadget:          { env: 'clean minimal workspace, glass surfaces, soft natural light', mood: 'clean, modern, confident', avoid: 'no cluttered backgrounds, no harsh lighting' },
+      consumer_good:        { env: 'home setting, natural everyday environment', mood: 'warm, relatable, authentic', avoid: 'no overly staged setups' },
+      skincare:             { env: 'bright airy bathroom, vanity with soft morning light', mood: 'soft, pure, clean — warm whites, pastel tones', avoid: 'no harsh shadows on skin, no dramatic contrast' },
+      vitamin_health:       { env: 'active lifestyle — gym, outdoor morning, clean kitchen', mood: 'energetic, vital, optimistic', avoid: 'no clinical aesthetics, no fake energy' },
+      apparel:              { env: 'urban street, minimal studio, or lifestyle environment', mood: 'aspirational, confident', avoid: 'no stiff posed mannequin look' },
+      sports_fitness:       { env: 'sports court, gym, outdoor track', mood: 'powerful, adrenaline, focused — high contrast', avoid: 'no cartoonish motion blur, no flickering' },
+      food_beverage:        { env: 'clean kitchen surface, café setting, or dining environment', mood: 'warm, appetising — warm amber tones', avoid: 'no artificial food colouring glow' },
+      home_living:          { env: 'beautifully styled home interior, natural light', mood: 'warm, aspirational, comfortable', avoid: 'no sterile empty rooms' },
+      jewellery_accessories:{ env: 'dark premium backdrop, velvet surface', mood: 'luxury, precious, timeless', avoid: 'no plastic-looking renders, no harsh flash' },
+      software_app:         { env: 'modern device screen in real-world context', mood: 'clean, modern, efficient', avoid: 'no fake holographic UI' },
+      service:              { env: 'professional environment relevant to the service', mood: 'trustworthy, human, genuine', avoid: 'no overly corporate stock footage look' },
     };
-
-    // Default style for unknown categories
     const catStyle = categoryStyle[productCategory] || {
-      environment: 'clean relevant environment matching the product use case',
-      motion: 'natural product interaction showing the key benefit',
-      camera: 'combination of wide establishing shot and close-up product detail',
+      env: 'clean relevant environment matching the product use case',
       mood: 'aspirational yet authentic — natural lighting, cinematic color grade',
-      avoid: 'no artificial effects, no cluttered backgrounds, no generic stock look',
+      avoid: 'no artificial effects, no cluttered backgrounds',
     };
 
-    // ── Duration blueprint ────────────────────────────────────────────────
-    const durationBlueprint = durationSec === '5'
-      ? `5 SECONDS — One single uninterrupted cinematic moment. Zero cuts.
-One continuous camera move. One emotion. One clear message.
-Opening frame (0-1s): Establish subject and environment immediately
-Core action (1-4s): The single most impactful visual moment
-Closing frame (4-5s): Strong final image — product hero or emotional peak
-Dialogue: Maximum 1 sentence, 8-12 words. A tagline, not an explanation.`
+    // ── Duration-aware animation structure ────────────────────────────────
+    const animationStructure = durationSec === '5'
+      ? `5 SECONDS — One continuous animation from the first frame.
+Single smooth camera move only — no cuts.
+The first frame already shows the scene — just animate it:
+- Subtle subject motion (hand movement, breath, gentle interaction)
+- One camera move (dolly in, orbit, push-in, or tilt)
+- Dialogue: max 1 sentence (8-12 words), a tagline or bold claim
+- End on a strong hero frame`
+      : `10 SECONDS — Animate from the first frame with max 1 cut.
+Beat 1 (0-3s): Animate the opening scene — subtle motion, camera establishes
+Beat 2 (3-8s): Subject interacts with product — the key action moment
+Beat 3 (8-10s): Pull back or push in to hero closing frame + CTA dialogue
+Dialogue: 2-3 short lines, one per beat`;
 
-      : `10 SECONDS — Complete narrative arc. Maximum 2 cuts.
-Beat 1 HOOK (0-2s): The pain point or scroll-stopping opening. No product yet. Make viewer think "that's me."
-Beat 2 REVEAL (2-7s): Product enters. Problem solved. Show the transformation. This is the longest beat.
-Beat 3 CLOSE (7-10s): Hero product shot. The CTA line. Viewer should feel desire and know what to do.
-Dialogue: 2-3 short lines total — one per beat. Conversational, not ad-copy stiff.`;
+    const headers = {
+      'Content-Type': 'application/json',
+      'x-api-key': process.env.ANTHROPIC_API_KEY,
+      'anthropic-version': '2023-06-01',
+    };
 
-    // ── Element references ────────────────────────────────────────────────
-    const elementInstructions = hasProductImage && hasCharacterImage
-      ? `CRITICAL — Two reference images are uploaded and MUST be followed exactly:
-@Element1 = the PRODUCT reference image. Kling will use this exact product appearance.
-@Element2 = the CHARACTER/TALENT reference image. Kling will use this exact person's appearance.
-
-Rules for using elements:
-- Write "@Element1" and "@Element2" exactly as shown — these are not descriptions, they are references
-- Kling reads the uploaded photos and renders them as-is — do NOT describe their appearance
-- Include "@Element1 maintains its exact appearance throughout the video" in your prompt
-- Include "@Element2 maintains consistent appearance throughout the video" in your prompt
-- Use the tags naturally in action descriptions: "@Element2 holds @Element1 up to the light"
-- The more times you reference @Element1 and @Element2, the stronger the adherence
-
-Example of correct usage:
-"@Element2, maintaining consistent appearance throughout, picks up @Element1 from a clean surface. The camera tracks @Element2's hands as they turn @Element1 to reveal its details. @Element1 maintains its exact appearance — same colors, shape, and branding. @Element2 looks directly at camera with a satisfied expression."`
-
-      : hasProductImage
-        ? `CRITICAL — One product reference image is uploaded and MUST be followed exactly:
-@Element1 = the PRODUCT reference image. Kling will render this exact product.
-
+    // ── CALL 1: Gemini — generate the first frame image prompt ───────────
+    const imagePromptSystem = `You are a visual director writing Gemini image generation prompts for product ad first frames.
+Write a single paragraph describing the perfect opening frame of a ${durationSec}s product video ad.
+This is a STILL IMAGE prompt — describe exactly what should appear in the frame.
 Rules:
-- Write "@Element1" every time you mention the product
-- Do NOT describe the product's appearance — Kling already has the photo
-- Include "@Element1 maintains its exact appearance throughout" in your prompt
-- For the talent: describe a realistic person appropriate for this product
+- Describe the scene, subject, product placement, lighting, and composition precisely
+- The image must work as the perfect first frame of the video — it sets up the action to follow
+- For character: describe how they are positioned and their expression
+- For product: describe exactly where it appears in the frame
+- Do NOT use @Element1/@Element2 tags — just describe what to render
+- End with quality instruction: "Ultra-realistic, high detail, cinematic photography, ${ratioLabel}"
+- Keep it under 120 words`;
 
-Example: "Camera slowly reveals @Element1 on a dark surface. @Element1 maintains its exact appearance — same design, colors and branding — throughout every frame."`
+    const imagePromptUser = `Write a Gemini image prompt for the first frame of this ${durationSec}s product ad.
 
-        : hasCharacterImage
-          ? `CRITICAL — One character reference image is uploaded and MUST be followed exactly:
-@Element1 = the CHARACTER/TALENT reference image. Kling will render this exact person.
-
-Rules:
-- Write "@Element1" every time you show the person
-- Do NOT describe the person's appearance — Kling already has the photo
-- Include "@Element1 maintains consistent appearance throughout" in your prompt
-- Describe the product in full visual detail from the product description`
-
-          : `No reference images uploaded.
-Describe both the product appearance AND talent type in full, specific visual detail.
-Do NOT use @Element1 or @Element2 tags.`;
-
-    // ── Few-shot examples ─────────────────────────────────────────────────
-    const fewShotExamples = `REFERENCE EXAMPLES of excellent Kling prompts:
-
-Example 1 (Urban lifestyle, 10s):
-"A cinematic wide shot of a modern Asian city at night during light rain. Neon signs reflecting on wet streets, cars moving slowly, pedestrians with umbrellas. Camera performs a slow dolly forward at street level. Soft cinematic lighting, realistic reflections, shallow depth of field. Ultra-realistic, high detail, film grain, 35mm lens look. No flickering, no motion distortion, no cartoon style."
-
-Example 2 (Wearable tech, 10s):
-"A modern lifestyle scene featuring a smart wearable on a young professional's wrist. Natural daylight coming through a window, soft shadows. The person casually moves their hand while checking the device. Camera uses a slow handheld close-up shot. Realistic skin tones, natural colors, cinematic lighting. Ultra-realistic, documentary style. No blur, no exaggerated motion, no artificial glow."
-
-What makes these great:
-- Scene and subject established in the first sentence
-- Motion described precisely — what is actually moving and how
-- Camera described as a separate, specific action
-- Lighting described by quality and source, not just a label
-- End with what NOT to do — prevents AI hallucination
-- No structured tags, no bullet points, pure flowing prose`;
-
-    // ── Gemini system instruction ─────────────────────────────────────────
-    const geminiSystemInstruction = `You are a world-class creative director at a top digital advertising agency. You specialise in writing AI video generation prompts for Kling 2.6 Pro that produce broadcast-quality product ad videos.
-
-You write in the GOLDEN TEMPLATE format — six elements woven into flowing cinematic prose:
-1. Subject + Environment (who/what, where — establish the scene)
-2. Primary motion in the scene (what is actually moving and how)
-3. Camera movement description (specific cinematography term + direction)
-4. Lighting and mood (quality, source, colour temperature, atmosphere)
-5. Visual quality and style (realism level, film look, colour grade)
-6. Negative constraints (what NOT to render — prevents AI hallucination)
-
-STRICT RULES:
-- Write in one or two flowing paragraphs — NO bullet points, NO numbered lists, NO section headers
-- Use real cinematography language: "dolly forward", "rack focus", "handheld tracking", "Dutch angle", "whip pan"
-- Dialogue must be woven naturally: the character says "..." or a warm voiceover says "..."
-- Audio woven naturally: "soft ambient market sounds fade under a rising piano melody"
-- Never use [VISUAL:] [CAMERA:] [VO:] [SOUND:] tags — they confuse Kling
-- Never describe things as "beautiful" or "stunning" — be specific instead
-- Never use vague mood words like "cinematic" alone — always say what kind of cinematic
-- The negative constraints sentence at the end is critical — always include it
-- Every prompt must feel like it was written by a human director, not an AI`;
-
-    // ── Gemini user prompt ────────────────────────────────────────────────
-    const geminiUserPrompt = `Write a Kling 2.6 Pro video ad prompt for this product.
-
-${fewShotExamples}
-
-━━━ YOUR BRIEF ━━━
 Product: ${productDescription}
 USP: ${productUSP}
-Format: ${ratioLabel}
-Duration: ${durationSec} seconds
+Category style: Environment: ${catStyle.env} | Mood: ${catStyle.mood}
 Sales objective: ${funnelGuide}
+Ratio: ${ratioLabel}
+Has product photo: ${hasProductImage ? 'YES — product will be overlaid via reference image' : 'NO — describe product visually'}
+Has character photo: ${hasCharacterImage ? 'YES — character will be overlaid via reference image' : 'NO — describe suitable talent'}
 
-${durationBlueprint}
+Storyline context: ${aiDecideStoryline ? 'AI decides' : storyline || 'Not provided'}
+${userFilledAdvanced ? `Style notes: ${[lightingStyle, backgroundSetting, tone].filter(Boolean).join(', ')}` : ''}
 
-━━━ PRODUCT CATEGORY CINEMATIC GUIDE ━━━
-This is a ${productCategory || 'general'} product. Use this as your visual language guide:
-- Environment: ${catStyle.environment}
-- Motion: ${catStyle.motion}
-- Camera: ${catStyle.camera}
-- Mood: ${catStyle.mood}
-- Avoid: ${catStyle.avoid}
-${userFilledAdvanced
-  ? `\nUser overrides (incorporate these naturally, they override the guide above where they conflict):
-${videoStyle        ? `- Style: ${videoStyle}` : ''}
-${tone              ? `- Tone: ${tone}` : ''}
-${cameraMotion      ? `- Camera: ${cameraMotion}` : ''}
-${lightingStyle     ? `- Lighting: ${lightingStyle}` : ''}
-${backgroundSetting ? `- Background: ${backgroundSetting}` : ''}
-${audienceEmotion   ? `- Emotion arc: ${audienceEmotion}` : ''}
-${restrictions      ? `- Must avoid: ${restrictions}` : ''}`
-  : ''}
+Write the first frame image prompt now:`;
 
-━━━ STORYLINE ━━━
-${aiDecideStoryline
-  ? `Creative direction: You decide the best narrative.${storyline ? ` User inspiration: "${storyline}"` : ''} Create the most compelling story for this product and objective.`
-  : storyline
-    ? `Follow this storyline: "${storyline}". Expand it into a complete cinematic prompt with the golden template.`
-    : `No storyline — create the most compelling narrative for this product and sales objective.`}
+    // ── CALL 2: Gemini — generate the Kling animation prompt ─────────────
+    const animationPromptSystem = `You are a motion director writing Kling AI image-to-video animation prompts.
+The first frame image is ALREADY GENERATED — Kling will animate FROM that exact frame.
+Your job is ONLY to describe HOW to animate it — not what the scene looks like.
 
-━━━ VISUAL REFERENCES ━━━
-${elementInstructions}
+GOLDEN ANIMATION TEMPLATE:
+1. Opening motion (what moves first and how — subject breath, hand lift, camera begin)
+2. Primary action (the main thing that happens — interaction with product, movement)
+3. Camera movement (specific cinematography term and direction)
+4. Dialogue/voiceover (natural, woven into the action)
+5. Audio mood (ambient sound + music tone)
+6. Negative constraints (what NOT to do)
 
-━━━ REFERENCE ADHERENCE RULES ━━━
-${hasProductImage || hasCharacterImage ? `CRITICAL: The uploaded reference images MUST be followed exactly.
-- Write "@Element1 maintains its exact appearance throughout" explicitly in the prompt
-- Write "@Element2 maintains consistent appearance throughout" if character uploaded
-- Kling needs these explicit instructions to properly use the reference images
-- Reference the elements multiple times throughout the prompt — more mentions = stronger adherence
-` : ''}
-━━━ ANTI-CLICHÉ RULES ━━━
-Do NOT use these overused AI video tropes:
-- No generic "golden hour" unless the product genuinely calls for it
-- No floating product on marble surface unless it's jewellery or luxury goods
-- No generic co-working space or coffee shop unless specified
-- No slow orbital product shot unless the product design itself is the story
-- No "transform your life" type generic voiceover copy
-- No blue lens flare effects
-- Be specific and original. Make this prompt feel like it was written for THIS product only.
+RULES:
+- Write in flowing prose — no tags, no bullet points
+- Use real camera language: "slow dolly in", "rack focus", "handheld tracking"
+- Dialogue in natural quotes: she says "..." or a voiceover says "..."
+- Never describe the scene — Kling already sees it from the first frame
+- Keep it tight and action-focused
+- Always end with negative constraints`;
 
-Now write the prompt using the golden template as flowing cinematic prose:`;
+    const animationPromptUser = `Write a Kling image-to-video animation prompt for this ${durationSec}s product ad.
 
-    // ── Claude Sonnet config call ─────────────────────────────────────────
-    const claudeConfigSystem = `You are a Kling AI technical configuration specialist. Return ONLY valid JSON. No explanation. No markdown. No extra text.`;
+The first frame is already generated. Now describe HOW to animate it.
 
-    const claudeConfigUser = `Return optimal Kling 2.6 Pro technical config for this ${durationSec}s ${salesFunnel || 'general'} marketing video.
+${animationStructure}
 
+Product: ${productDescription}
+USP: ${productUSP}
+Sales objective: ${funnelGuide}
+Has product in frame: ${hasProductImage ? 'YES' : 'NO'}
+Has character in frame: ${hasCharacterImage ? 'YES' : 'NO'}
+
+Storyline: ${aiDecideStoryline ? `AI decides the best animation narrative for this product and objective` : storyline ? `Follow this: "${storyline}"` : 'Create the most effective animation for this product'}
+
+${userFilledAdvanced ? `User direction: ${[cameraMotion && `Camera: ${cameraMotion}`, tone && `Tone: ${tone}`, audienceEmotion && `Emotion: ${audienceEmotion}`, restrictions && `Avoid: ${restrictions}`].filter(Boolean).join(' | ')}` : 'Choose the best cinematic approach for this product category and objective.'}
+
+Remember: Kling already sees the first frame. Only describe the animation — camera, motion, dialogue, audio, and what NOT to do.
+
+Write the animation prompt now:`;
+
+    // ── CALL 3: Claude — technical config JSON ────────────────────────────
+    const configSystem = `You are a Kling AI technical configuration specialist. Return ONLY valid JSON. No explanation. No markdown.`;
+    const configUser = `Return optimal Kling 2.6 Pro image-to-video config for this ${durationSec}s ${salesFunnel || 'general'} product ad.
 Product category: ${productCategory || 'general'}
-Ratio: ${aspectRatio}
-Duration: ${durationSec}s (FIXED — do not change this)
+Ratio: ${aspectRatio} | Duration: ${durationSec}s (FIXED)
+User settings (use if set, else choose best):
+- videoStyle: ${videoStyle || 'NOT SET'}
+- tone: ${tone || 'NOT SET'}
+- cameraMotion: ${cameraMotion || 'NOT SET'}
+- lightingStyle: ${lightingStyle || 'NOT SET'}
+- backgroundSetting: ${backgroundSetting || 'NOT SET'}
+- audienceEmotion: ${audienceEmotion || 'NOT SET'}
+Return: {"aspect_ratio":"${aspectRatio}","duration":"${durationSec}","cfg_scale":0.8,"resolved":{"videoStyle":"<v>","tone":"<v>","cameraMotion":"<v>","lightingStyle":"<v>","backgroundSetting":"<v>","audienceEmotion":"<v>","rationale":"<one sentence>"}}`;
 
-User advanced settings (use exactly if provided, otherwise choose best for this product category):
-- videoStyle: ${videoStyle || 'NOT SET — choose best for ' + (productCategory || 'general')}
-- tone: ${tone || 'NOT SET — choose best'}
-- cameraMotion: ${cameraMotion || 'NOT SET — choose best'}
-- lightingStyle: ${lightingStyle || 'NOT SET — choose best'}
-- backgroundSetting: ${backgroundSetting || 'NOT SET — choose best'}
-- audienceEmotion: ${audienceEmotion || 'NOT SET — choose best emotion arc'}
+    // ── Run all 3 calls in parallel ───────────────────────────────────────
+    const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${process.env.GOOGLE_API_KEY}`;
 
-Return exactly this JSON structure with all fields filled:
-{"aspect_ratio":"${aspectRatio}","duration":"${durationSec}","cfg_scale":0.5,"resolved":{"videoStyle":"<value>","tone":"<value>","cameraMotion":"<value>","lightingStyle":"<value>","backgroundSetting":"<value>","audienceEmotion":"<value>","rationale":"<one sentence explaining cinematic choices for this product category>"}}`;
+    const [imagePromptRes, animationPromptRes, configRes] = await Promise.all([
 
-    // ── Run both API calls in parallel ────────────────────────────────────
-    const [geminiRes, claudeRes] = await Promise.all([
-
-      // Call 1: Gemini 2.0 Flash — narrative prompt
-      // Try GEMINI_API_KEY first, fall back to GOOGLE_API_KEY
-      fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${process.env.GOOGLE_API_KEY}`, {
+      // Call 1: Gemini — image prompt
+      fetch(geminiUrl, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          system_instruction: {
-            parts: [{ text: geminiSystemInstruction }]
-          },
-          contents: [{
-            role: 'user',
-            parts: [{ text: geminiUserPrompt }]
-          }],
-          generationConfig: {
-            temperature: 1.0,
-            topP: 0.95,
-            maxOutputTokens: durationSec === '5' ? 400 : 700,
-          }
+          system_instruction: { parts: [{ text: imagePromptSystem }] },
+          contents: [{ role: 'user', parts: [{ text: imagePromptUser }] }],
+          generationConfig: { temperature: 0.9, topP: 0.95, maxOutputTokens: 300 },
         }),
       }),
 
-      // Call 2: Claude Sonnet — technical JSON config
+      // Call 2: Gemini — animation prompt
+      fetch(geminiUrl, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          system_instruction: { parts: [{ text: animationPromptSystem }] },
+          contents: [{ role: 'user', parts: [{ text: animationPromptUser }] }],
+          generationConfig: { temperature: 1.0, topP: 0.95, maxOutputTokens: durationSec === '5' ? 300 : 500 },
+        }),
+      }),
+
+      // Call 3: Claude — technical config
       fetch('https://api.anthropic.com/v1/messages', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'x-api-key': process.env.ANTHROPIC_API_KEY,
-          'anthropic-version': '2023-06-01',
-        },
+        headers,
         body: JSON.stringify({
           model: 'claude-sonnet-4-20250514',
           max_tokens: 400,
-          system: claudeConfigSystem,
-          messages: [{ role: 'user', content: claudeConfigUser }],
+          system: configSystem,
+          messages: [{ role: 'user', content: configUser }],
         }),
       }),
     ]);
 
-    const [geminiData, claudeData] = await Promise.all([
-      geminiRes.json(),
-      claudeRes.json(),
+    const [imagePromptData, animationPromptData, configData] = await Promise.all([
+      imagePromptRes.json(),
+      animationPromptRes.json(),
+      configRes.json(),
     ]);
 
-    // ── Extract narrative prompt from Gemini (with Claude fallback) ──────
-    let prompt = '';
-
-    if (geminiRes.ok) {
-      prompt = geminiData?.candidates?.[0]?.content?.parts?.[0]?.text?.trim() || '';
-      if (!prompt) {
-        console.warn('Gemini returned empty — checking for block reason:', JSON.stringify(geminiData?.promptFeedback || geminiData?.candidates?.[0]?.finishReason));
-      } else {
-        console.log('Gemini prompt generated successfully');
-      }
-    } else {
-      console.error('Gemini failed:', geminiRes.status, JSON.stringify(geminiData));
+    // Extract image prompt
+    const imagePrompt = imagePromptData?.candidates?.[0]?.content?.parts?.[0]?.text?.trim() || '';
+    if (!imagePrompt) {
+      console.error('Image prompt failed:', JSON.stringify(imagePromptData));
+      return res.status(500).json({ error: 'Failed to generate image prompt' });
     }
 
-    // ── Claude fallback if Gemini failed or returned empty ────────────────
-    if (!prompt) {
-      console.log('Falling back to Claude Sonnet for narrative prompt...');
+    // Extract animation prompt (with Claude fallback)
+    let animationPrompt = animationPromptData?.candidates?.[0]?.content?.parts?.[0]?.text?.trim() || '';
+    if (!animationPrompt) {
+      console.warn('Animation prompt from Gemini empty — falling back to Claude');
       try {
-        const fallbackRes = await fetch('https://api.anthropic.com/v1/messages', {
+        const fallback = await fetch('https://api.anthropic.com/v1/messages', {
           method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'x-api-key': process.env.ANTHROPIC_API_KEY,
-            'anthropic-version': '2023-06-01',
-          },
+          headers,
           body: JSON.stringify({
             model: 'claude-sonnet-4-20250514',
-            max_tokens: durationSec === '5' ? 500 : 900,
-            system: geminiSystemInstruction,
-            messages: [{ role: 'user', content: geminiUserPrompt }],
+            max_tokens: 600,
+            system: animationPromptSystem,
+            messages: [{ role: 'user', content: animationPromptUser }],
           }),
         });
-        const fallbackData = await fallbackRes.json();
-        prompt = fallbackData.content?.find(b => b.type === 'text')?.text?.trim() || '';
-        if (prompt) {
-          console.log('Claude fallback prompt generated successfully');
-        } else {
-          console.error('Claude fallback also failed:', JSON.stringify(fallbackData));
-          return res.status(500).json({ error: 'Both Gemini and Claude failed to generate prompt' });
-        }
-      } catch (fallbackErr) {
-        console.error('Claude fallback error:', fallbackErr.message);
-        return res.status(500).json({ error: 'Prompt generation failed', details: fallbackErr.message });
-      }
-    }
-
-    // ── Extract technical config from Claude ──────────────────────────────
-    let videoConfig = { aspect_ratio: aspectRatio, duration: durationSec, cfg_scale: 0.5, resolved: {} };
-    if (claudeRes.ok) {
-      try {
-        const raw = claudeData.content?.find(b => b.type === 'text')?.text?.trim() || '{}';
-        const parsed = JSON.parse(raw.replace(/```json|```/g, '').trim());
-        videoConfig = {
-          ...parsed,
-          // Always enforce user-selected values — never let AI override
-          aspect_ratio: aspectRatio,
-          duration: durationSec,
-          cfg_scale: 0.5,
-        };
+        const fallbackData = await fallback.json();
+        animationPrompt = fallbackData.content?.find(b => b.type === 'text')?.text?.trim() || '';
       } catch (e) {
-        console.error('Claude config JSON parse error:', e.message);
+        console.error('Claude fallback failed:', e.message);
+      }
+    }
+    if (!animationPrompt) return res.status(500).json({ error: 'Failed to generate animation prompt' });
+
+    // Extract config
+    let videoConfig = { aspect_ratio: aspectRatio, duration: durationSec, cfg_scale: 0.8, resolved: {} };
+    if (configRes.ok) {
+      try {
+        const raw = configData.content?.find(b => b.type === 'text')?.text?.trim() || '{}';
+        const parsed = JSON.parse(raw.replace(/```json|```/g, '').trim());
+        videoConfig = { ...parsed, aspect_ratio: aspectRatio, duration: durationSec, cfg_scale: 0.8 };
+      } catch (e) {
+        console.error('Config parse error:', e.message);
       }
     }
 
-    console.log(`[generate-sora-prompt] ${durationSec}s video | Category: ${productCategory || 'general'} | Words: ${prompt.split(/\s+/).length}`);
-    console.log(`[generate-sora-prompt] Resolved config:`, JSON.stringify(videoConfig.resolved));
+    console.log(`[generate-video-prompt] ${durationSec}s | Category: ${productCategory || 'general'}`);
+    console.log('[generate-video-prompt] Image prompt:', imagePrompt.substring(0, 100));
+    console.log('[generate-video-prompt] Animation prompt:', animationPrompt.substring(0, 100));
 
-    res.status(200).json({ prompt, videoConfig });
+    res.status(200).json({ imagePrompt, animationPrompt, videoConfig });
 
   } catch (error) {
-    console.error('generate-sora-prompt error:', error);
+    console.error('generate-video-prompt error:', error);
     res.status(500).json({ error: 'Prompt generation failed', details: error.message });
   }
 }
