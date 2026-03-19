@@ -132,7 +132,7 @@ const TRANSLATIONS = {
     btnCopy: "📋 Copy",
     btnCopiedOne: "✅ Copied!",
     btnEdit: "← Edit",
-    btnBackToBuilder: "← Back to Builder",
+    btnBackToBuilder: "{t.cvBack || "← Back"} to Builder",
     btnCollapseAdvanced: "Collapse Advanced Settings",
     btnShowAdvanced: "Show Advanced Settings",
     btnHideAdvanced: "Hide Advanced Settings",
@@ -161,7 +161,7 @@ const TRANSLATIONS = {
 
     // Step labels
     step1Title: "Generate First Frame",
-    step1Optional: "Optional",
+    step1Optional: t.cvOptional || {t.cvOptional},
     step1Sub: "Use Gemini to create a reference image — then review before generating prompts",
     step2Title: "Generate Prompts",
     step2SubReady: "First frame ready — choose text-only or image-to-video mode",
@@ -195,9 +195,103 @@ const TRANSLATIONS = {
   zh: {
     appTitle: "🎬 TikTok UGC 提示词生成器",
     appSubtitle: "由 Grok 驱动 — 适用于任何产品和品牌",
-    tabSora: "🎬 Create Video",
+    tabSora: "🎬 创建视频",
     tabBuilder: "📝 构建器",
     tabOutput: "📋 输出",
+    tabHistory: "🎞️ 历史",
+    // Create Video tab
+    cvUploadPhotos: "上传照片",
+    cvUploadSubtitle: "产品照片必填 · 人物照片可选",
+    cvProductPhoto: "产品照片 *",
+    cvCharacterPhoto: "人物照片（可选）",
+    cvRequired: "必填",
+    cvOptional: "可选",
+    cvTapChange: "点击更换",
+    cvProductInfo: "产品信息",
+    cvProductInfoSubtitle: "详细信息 = 更好的视频",
+    cvCategory: "类别",
+    cvSelectCategory: "— 选择类别 —",
+    cvProductDesc: "产品描述 *",
+    cvUSP: "产品卖点 *",
+    cvVideoSettings: "视频设置",
+    cvSalesFunnel: "营销阶段",
+    cvRatio: "视频比例",
+    cvDuration: "视频时长",
+    cvStoryline: "故事线",
+    cvStorylineQuestion: "谁来决定故事线？",
+    cvAIDecides: "🤖 AI 提出 5 个创意",
+    cvUserWrites: "✍️ 我自己撰写",
+    cvAIStoryline: "AI 决定最佳故事",
+    cvYourStoryline: "你的故事线",
+    cvStorylinePh: "描述你的视频创意… 例如：选手因鞋子不好输了比赛，发现飞利特银5000，赢得下一场比赛。",
+    cvAdvanced: "⚙️ 高级设置（可选）",
+    cvTone: "风格基调",
+    cvTonePh: "例如：高端、活泼、感人",
+    cvCamera: "镜头运动",
+    cvCameraPh: "例如：慢速推进、手持跟拍",
+    cvLighting: "灯光效果",
+    cvLightingPh: "例如：黄金时刻、摄影棚轮廓光",
+    cvBackground: "背景环境",
+    cvBackgroundPh: "例如：极简摄影棚、户外球场",
+    cvEmotion: "情绪弧线",
+    cvEmotionPh: "例如：渴望、向往、紧迫感",
+    cvRestrictions: "限制条件",
+    cvRestrictionsPh: "例如：不要文字叠加、不要正脸特写",
+    cvGenerate5: "🤖 生成 5 个故事创意（免费）",
+    cvGenerateFrame: "✨ 生成首帧（免费）",
+    cvNeedProduct: "📦 请上传产品照片后继续",
+    cvNeedInfo: "请填写产品描述和卖点后继续",
+    cvFrameFree: "首帧生成免费 · 视频生成需",
+    cvCredits: "积分",
+    // Step labels
+    cvStep1: "上传和填写",
+    cvStep2: "故事线",
+    cvStep3: "首帧画面",
+    cvStep4: "生成视频",
+    // Storyline pick screen
+    cvPickTitle: "第二步 — 选择你的故事线",
+    cvPickSubtitle: "选择最符合你想法的概念，AI 将基于你的选择生成首帧画面。",
+    cvRegenerateIdeas: "🔄 重新生成创意（免费）",
+    cvGenerating5: "正在生成 5 个故事创意…",
+    // Frame review screen  
+    cvReviewTitle: "第三步 — 审查首帧画面",
+    cvReviewSubtitle: "检查开场画面。如需要可编辑动画提示词，然后生成视频。",
+    cvFirstFrame: "🖼️ 首帧画面（Kling 将从此帧开始动画）",
+    cvRegenFrame: "🔄 重新生成",
+    cvAnimPrompt: "🎬 动画提示词",
+    cvAnimPromptHint: "这告诉 Kling 如何为画面添加动画。你可以编辑。",
+    cvGenerateVideo: "🎬 生成视频",
+    cvBack: "← 返回",
+    cvGenerating: "生成中…",
+    cvGeneratingFrame: "正在生成首帧…",
+    cvGeneratingFrameSubtitle: "正在使用 Gemini AI 创建你的开场画面",
+    cvAnimatingFrom: "正在制作动画：",
+    cvVideoSuccess: "✅ 视频生成成功！",
+    cvDownload: "⬇️ 下载",
+    cvCreateAnother: "🔄 再创建一个",
+    cvQueuePos: "队列位置",
+    cvSafeClose: "生成需要 30-90 秒。你可以安全关闭 — 稍后在历史记录中查看。",
+    cvSubmitting: "正在提交至 Kling AI…",
+    cvGeneratingVideo: "正在生成视频…",
+    // History tab
+    histTitle: "已生成的视频",
+    histSubtitle: "你过去的 Kling AI 视频",
+    histRefresh: "🔄 刷新",
+    histEmpty: "暂无视频",
+    histEmptySubtitle: "你生成的视频将显示在这里",
+    histFirstVideo: "生成你的第一个视频 →",
+    histProcessing: "⏳ 处理中",
+    histDone: "✅ 完成",
+    histFailed: "❌ 失败",
+    histStillGenerating: "视频仍在生成中…",
+    histStarted: "开始于",
+    histMinAgo: "分钟前",
+    histResume: "恢复",
+    histFailed2: "❌ 生成失败。",
+    histTryAgain: "🔄 使用相同提示词重试",
+    histNewVideo: "🔄 新视频",
+    histDownload: "⬇️ 下载",
+    histViewPrompt: "查看使用的提示词",
 
     basicSettings: "✅ 基本设置",
     basicSettingsHint: "生成提示词所需的必填项",
@@ -372,9 +466,10 @@ const TRANSLATIONS = {
   bm: {
     appTitle: "🎬 Pembina Prompt UGC TikTok",
     appSubtitle: "Dikuasakan oleh Grok — mana-mana produk, mana-mana jenama",
-    tabSora: "🎬 Create Video",
+    tabSora: "🎬 Cipta Video",
     tabBuilder: "📝 Pembina",
     tabOutput: "📋 Output",
+    tabHistory: "🎞️ Sejarah",
 
     basicSettings: "✅ Tetapan Asas",
     basicSettingsHint: "Diperlukan untuk menjana prompt",
@@ -542,7 +637,98 @@ const TRANSLATIONS = {
     warnRequired: "⚠️ Diperlukan: Peringkat Corong, Nama Produk, Kategori, Ciri Utama, USP, Masalah, Manfaat Utama, Strategi Hook, dan CTA.",
     storylineLabel: (n, cs) => `Jalan Cerita (${n} klip × ${cs} saat) — Hook → Kandungan → CTA`,
 
-    promptLangInstruction: "\n\nIMPORTANT: Generate ALL text content in this prompt in Bahasa Malaysia. All labels, descriptions, scene beats, directions, and voiceover guidance must be written in Bahasa Malaysia.",
+
+    // Create Video tab (BM)
+    cvUploadPhotos: "Muat Naik Foto",
+    cvUploadSubtitle: "Foto produk wajib · Foto watak pilihan",
+    cvProductPhoto: "Foto produk *",
+    cvCharacterPhoto: "Foto watak (pilihan)",
+    cvRequired: "Wajib",
+    cvOptional: "Pilihan",
+    cvTapChange: "Ketik untuk tukar",
+    cvProductInfo: "Maklumat Produk",
+    cvProductInfoSubtitle: "Lebih terperinci = video lebih baik",
+    cvCategory: "Kategori",
+    cvSelectCategory: "— Pilih kategori —",
+    cvProductDesc: "Penerangan produk *",
+    cvUSP: "Kelebihan unik produk *",
+    cvVideoSettings: "Tetapan Video",
+    cvSalesFunnel: "Peringkat jualan",
+    cvRatio: "Nisbah video",
+    cvDuration: "Tempoh video",
+    cvStoryline: "Jalan cerita",
+    cvStorylineQuestion: "Siapa yang tentukan jalan cerita?",
+    cvAIDecides: "🤖 AI cadangkan 5 idea",
+    cvUserWrites: "✍️ Saya tulis sendiri",
+    cvAIStoryline: "AI tentukan cerita terbaik",
+    cvYourStoryline: "Jalan cerita anda",
+    cvStorylinePh: "Terangkan idea video anda…",
+    cvAdvanced: "⚙️ Tetapan lanjutan (pilihan)",
+    cvTone: "Nada gaya",
+    cvTonePh: "cth: premium, ceria, emosional",
+    cvCamera: "Pergerakan kamera",
+    cvCameraPh: "cth: dolly perlahan, tracking handheld",
+    cvLighting: "Pencahayaan",
+    cvLightingPh: "cth: cahaya emas, lampu studio",
+    cvBackground: "Latar belakang",
+    cvBackgroundPh: "cth: studio minima, gelanggang luar",
+    cvEmotion: "Lengkung emosi",
+    cvEmotionPh: "cth: keinginan, aspirasi, kesegeraan",
+    cvRestrictions: "Sekatan",
+    cvRestrictionsPh: "cth: tiada teks bertindih, tiada close-up muka",
+    cvGenerate5: "🤖 Jana 5 Idea Cerita (Percuma)",
+    cvGenerateFrame: "✨ Jana Bingkai Pertama (Percuma)",
+    cvNeedProduct: "📦 Muat naik foto produk untuk teruskan",
+    cvNeedInfo: "Isi penerangan produk dan kelebihan unik untuk teruskan",
+    cvFrameFree: "Jana bingkai pertama percuma · Video memerlukan",
+    cvCredits: "kredit",
+    cvStep1: "Muat Naik & Isi",
+    cvStep2: "Jalan Cerita",
+    cvStep3: "Bingkai Pertama",
+    cvStep4: "Jana Video",
+    cvPickTitle: "Langkah 2 — Pilih Jalan Cerita Anda",
+    cvPickSubtitle: "Pilih konsep yang paling sesuai. AI akan jana bingkai pertama berdasarkan pilihan anda.",
+    cvRegenerateIdeas: "🔄 Jana semula idea (percuma)",
+    cvGenerating5: "Menjana 5 idea cerita…",
+    cvReviewTitle: "Langkah 3 — Semak Bingkai Pertama",
+    cvReviewSubtitle: "Semak imej pembukaan. Edit arahan animasi jika perlu, kemudian jana video anda.",
+    cvFirstFrame: "🖼️ Bingkai pertama (Kling akan animasi dari ini)",
+    cvRegenFrame: "🔄 Jana semula",
+    cvAnimPrompt: "🎬 Arahan animasi",
+    cvAnimPromptHint: "Ini memberitahu Kling cara menganimasikan bingkai. Anda boleh edit.",
+    cvGenerateVideo: "🎬 Jana Video",
+    cvBack: "← Kembali",
+    cvGenerating: "Menjana…",
+    cvGeneratingFrame: "Menjana bingkai pertama…",
+    cvGeneratingFrameSubtitle: "Mencipta adegan pembuka anda dengan Gemini AI",
+    cvAnimatingFrom: "Menganimasikan dari:",
+    cvVideoSuccess: "✅ Video berjaya dijana!",
+    cvDownload: "⬇️ Muat Turun",
+    cvCreateAnother: "🔄 Cipta Lagi",
+    cvQueuePos: "Kedudukan giliran",
+    cvSafeClose: "Mengambil masa 30-90 saat. Anda boleh tutup dengan selamat — semak tab Sejarah kemudian.",
+    cvSubmitting: "Menghantar ke Kling AI…",
+    cvGeneratingVideo: "Menjana video…",
+    // History tab (BM)
+    histTitle: "Video Dijana",
+    histSubtitle: "Video Kling AI anda yang lalu",
+    histRefresh: "🔄 Muat Semula",
+    histEmpty: "Tiada video lagi",
+    histEmptySubtitle: "Video yang anda jana akan muncul di sini",
+    histFirstVideo: "Jana video pertama anda →",
+    histProcessing: "⏳ Memproses",
+    histDone: "✅ Selesai",
+    histFailed: "❌ Gagal",
+    histStillGenerating: "Video masih dijana…",
+    histStarted: "Dimulakan",
+    histMinAgo: "minit lalu",
+    histResume: "Sambung",
+    histFailed2: "❌ Jana gagal.",
+    histTryAgain: "🔄 Cuba semula dengan arahan yang sama",
+    histNewVideo: "🔄 Video Baru",
+    histDownload: "⬇️ Muat Turun",
+    histViewPrompt: "Lihat arahan yang digunakan",
+        promptLangInstruction: "\n\nIMPORTANT: Generate ALL text content in this prompt in Bahasa Malaysia. All labels, descriptions, scene beats, directions, and voiceover guidance must be written in Bahasa Malaysia.",
     storylineLangInstruction: " Sila balas dalam Bahasa Malaysia. Semua penerangan adegan mesti ditulis dalam Bahasa Malaysia.",
   },
 };
@@ -716,7 +902,7 @@ const OPTS = {
   },
   productCategory: {
     en: [
-      { value: "", label: "— Select category —" },
+      { value: "", label: t.cvSelectCategory || {t.cvSelectCategory} },
       { value: "tech_gadget", label: "Physical — tech gadget" },
       { value: "consumer_good", label: "Physical — consumer good" },
       { value: "skincare", label: "Physical — skincare / beauty" },
@@ -724,8 +910,8 @@ const OPTS = {
       { value: "apparel", label: "Physical — apparel / fashion" },
       { value: "food_beverage", label: "Physical — food & beverage" },
       { value: "home_living", label: "Physical — home & living" },
-      { value: "software_app", label: "Software / app" },
-      { value: "service", label: "Service" },
+      { value: "software_app", label: {lang === "zh" ? "软件/应用" : lang === "bm" ? "Perisian / aplikasi" : "Software / app"} },
+      { value: "service", label: {lang === "zh" ? "服务" : lang === "bm" ? "Perkhidmatan" : "Service"} },
       { value: "event_campaign", label: "Event / campaign" },
       { value: "other", label: "Other — type below" },
     ],
@@ -1875,9 +2061,10 @@ const generateFirstFrame = async (f, lang, productFile, talentFile, setLoading, 
 // ── History Tab Component ────────────────────────────────────────────────────
 const HistoryTab = ({
   soraHistory, historyLoading, loadSoraHistory,
-  setTab, setSoraGeneratedPrompt, setSoraStep, setSoraVideoConfig,
-  resumeInProgressJobs,
+  setTab, setSoraAnimationPrompt, setSoraStep, setSoraVideoConfig,
+  resumeInProgressJobs, t, lang,
 }) => {
+  const ht = (key, fallback) => (t && t[key]) ? t[key] : fallback;
   // Load history once when this component mounts
   React.useEffect(() => {
     loadSoraHistory();
@@ -1887,8 +2074,8 @@ const HistoryTab = ({
     <div className="pb-8">
       <div className="flex items-center justify-between mb-4">
         <div>
-          <h2 className="text-sm font-bold text-gray-800">Generated Videos</h2>
-          <p className="text-xs text-gray-400 mt-0.5">Your past Kling AI video generations</p>
+          <h2 className="text-sm font-bold text-gray-800">{ht("histTitle","Generated Videos")}</h2>
+          <p className="text-xs text-gray-400 mt-0.5">{ht("histSubtitle","Your past Kling AI video generations")}</p>
         </div>
         <button onClick={loadSoraHistory}
           className="text-xs text-indigo-500 border border-indigo-200 rounded-lg px-3 py-1.5 hover:bg-indigo-50 transition-all">
@@ -1941,8 +2128,8 @@ const HistoryTab = ({
                   item.status === "processing" ? "bg-blue-100 text-blue-700" :
                   "bg-red-100 text-red-700"
                 }`}>
-                  {item.status === "completed" ? "✅ Done" :
-                   item.status === "processing" ? "⏳ Processing" : "❌ Failed"}
+                  {item.status === "completed" ? {t.histDone || "✅ Done"} :
+                   item.status === "processing" ? ht("histProcessing","⏳ Processing") : ht("histFailed","❌ Failed")}
                 </span>
               </div>
 
@@ -1985,7 +2172,7 @@ const HistoryTab = ({
                     <div className="flex-1">
                       <p className="text-xs font-medium text-blue-700">Video still generating…</p>
                       <p className="text-xs text-blue-500 mt-0.5">
-                        Started {Math.round((Date.now() - new Date(item.created_at).getTime()) / 60000)} min ago
+                        {ht("histStarted","Started")} {Math.round((Date.now() - new Date(item.created_at).getTime()) / 60000)} min ago
                       </p>
                     </div>
                     <button onClick={() => { setTab("sora"); resumeInProgressJobs(); }}
@@ -2003,7 +2190,7 @@ const HistoryTab = ({
                     ❌ Generation failed on fal.ai.
                   </p>
                   <button onClick={() => {
-                    setSoraGeneratedPrompt(item.prompt || "");
+                    setSoraAnimationPrompt(item.prompt || "");
                     setSoraVideoConfig(item.video_config || null);
                     setSoraStep("prompt-ready");
                     setTab("sora");
@@ -2262,6 +2449,7 @@ export default function App() {
           videoLength: sora.videoLength,
           hasProductImage: !!soraProductFile,
           hasCharacterImage: !!soraCharacterFile,
+          lang, // pass language for localized output
         }),
       });
       const data = await res.json();
@@ -2303,6 +2491,7 @@ export default function App() {
           restrictions: sora.restrictions,
           hasProductImage: !!soraProductFile,
           hasCharacterImage: !!soraCharacterFile,
+          lang, // pass language for localized output
         }),
       });
       const promptData = await promptRes.json();
@@ -2548,7 +2737,7 @@ export default function App() {
       {/* ── Tabs (center aligned, no Help tab) ── */}
       <div className="border-b border-gray-200 bg-white">
         <div className="flex justify-center overflow-x-auto scrollbar-hide" style={{scrollbarWidth:'none',msOverflowStyle:'none'}}>
-          {[["sora", t.tabSora], ["history", "🎞️ History"], ["builder", t.tabBuilder], ["output", t.tabOutput]].map(([v, l]) => (
+          {[["sora", t.tabSora], ["history", t.tabHistory || "🎞️ History"], ["builder", t.tabBuilder], ["output", t.tabOutput]].map(([v, l]) => (
             <button key={v} onClick={() => setTab(v)}
               className={`flex-shrink-0 px-4 py-2.5 text-xs font-medium border-b-2 transition-all whitespace-nowrap ${tab === v ? "border-blue-500 text-blue-600" : "border-transparent text-gray-400"}`}>
               {l}{v === "output" && clips.length > 0 ? ` (${clips.length})` : ""}
@@ -2599,9 +2788,9 @@ export default function App() {
                 </svg>
                 <div>
                   <p className="text-sm font-semibold text-gray-800">
-                    {soraStep === "generating-video" ? "Submitting to Kling AI…" : `Generating video…${soraQueuePos != null ? ` (#${soraQueuePos} in queue)` : ""}`}
+                    {soraStep === "generating-video" ? {t.cvSubmitting} : `Generating video…${soraQueuePos != null ? ` (#${soraQueuePos} in queue)` : ""}`}
                   </p>
-                  <p className="text-xs text-gray-400 mt-1">Takes 30–90 seconds. You can safely close — check History tab later.</p>
+                  <p className="text-xs text-gray-400 mt-1">{t.cvSafeClose || "{t.cvSafeClose || "Takes 30–90 seconds. You can safely close — check History tab later."}"}</p>
                 </div>
                 {soraFirstFrame && (
                   <div>
@@ -2621,7 +2810,7 @@ export default function App() {
                   <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"/>
                 </svg>
                 <p className="text-sm font-semibold text-gray-800">Generating first frame…</p>
-                <p className="text-xs text-gray-400">Creating your opening scene with Gemini AI</p>
+                <p className="text-xs text-gray-400">{t.cvGeneratingFrameSubtitle || "Creating your opening scene with Gemini AI"}</p>
               </div>
             )}
 
@@ -2742,7 +2931,7 @@ export default function App() {
 
                 {/* Progress steps */}
                 <div className="flex items-center gap-1 text-xs">
-                  {["Upload & Info", "Storyline", "First Frame", "Generate Video"].map((label, i) => (
+                  {[t.cvStep1 || {t.cvStep1}, t.cvStep2 || {t.cvStep2}, t.cvStep3 || {t.cvStep3}, t.cvStep4 || {t.cvStep4}].map((label, i) => (
                     <React.Fragment key={i}>
                       <div className="flex items-center gap-1.5">
                         <span className="w-5 h-5 rounded-full bg-indigo-500 text-white text-xs font-bold flex items-center justify-center flex-shrink-0">{i+1}</span>
@@ -2754,11 +2943,11 @@ export default function App() {
                 </div>
 
                 {/* Upload photos */}
-                <Section emoji="📸" title="Upload Photos" subtitle="Product photo required · Character optional">
+                <Section emoji="📸" title=t.cvUploadPhotos || "Upload Photos" subtitle=t.cvUploadSubtitle || "Product photo required · Character optional">
                   <div className="grid grid-cols-2 gap-3">
                     {[
-                      { file: soraProductFile, setFile: setSoraProductFile, label: "Product photo *", emoji: "📦", required: true },
-                      { file: soraCharacterFile, setFile: setSoraCharacterFile, label: "Character (optional)", emoji: "🧑", required: false },
+                      { file: soraProductFile, setFile: setSoraProductFile, label: t.cvProductPhoto || {t.cvProductPhoto}, emoji: "📦", required: true },
+                      { file: soraCharacterFile, setFile: setSoraCharacterFile, label: t.cvCharacterPhoto || {t.cvCharacterPhoto}, emoji: "🧑", required: false },
                     ].map(({ file, setFile, label, emoji, required }) => (
                       <Field key={label} label={label}>
                         <label className={`flex flex-col items-center justify-center w-full h-28 border-2 border-dashed rounded-xl cursor-pointer transition-all ${file ? "border-indigo-300 bg-indigo-50" : "border-gray-200 bg-gray-50 hover:border-indigo-300 hover:bg-indigo-50"}`}>
@@ -2771,7 +2960,7 @@ export default function App() {
                           ) : (
                             <div className="text-center">
                               <p className="text-2xl">{emoji}</p>
-                              <p className="text-xs text-gray-500 mt-1">{required ? "Required" : "Optional"}</p>
+                              <p className="text-xs text-gray-500 mt-1">{required ? t.cvRequired || {t.cvRequired} : "Optional"}</p>
                             </div>
                           )}
                           <input type="file" accept="image/*" className="hidden"
@@ -2783,55 +2972,55 @@ export default function App() {
                 </Section>
 
                 {/* Product info */}
-                <Section emoji="📝" title="Product Info" subtitle="More detail = better video">
-                  <Field label="Category">
+                <Section emoji="📝" title={t.cvProductInfo || "Product Info"} subtitle={t.cvProductInfoSubtitle || "More detail = better video"}>
+                  <Field label=t.cvCategory || {t.cvCategory}>
                     <select value={sora.productCategory} onChange={e => setSoraField("productCategory")(e.target.value)}
                       className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-blue-400 bg-white">
-                      <option value="">— Select category —</option>
-                      <option value="tech_gadget">Tech gadget / electronics</option>
-                      <option value="consumer_good">Consumer good / household</option>
-                      <option value="skincare">Skincare / beauty</option>
-                      <option value="vitamin_health">Vitamin / health supplement</option>
-                      <option value="apparel">Apparel / fashion</option>
-                      <option value="sports_fitness">Sports / fitness equipment</option>
-                      <option value="food_beverage">Food & beverage</option>
-                      <option value="home_living">Home & living</option>
-                      <option value="jewellery_accessories">Jewellery / accessories</option>
-                      <option value="software_app">Software / app</option>
-                      <option value="service">Service</option>
+                      <option value="">{lang === "zh" ? "— 选择类别 —" : lang === "bm" ? "— Pilih kategori —" : "— Select category —"}</option>
+                      <option value="tech_gadget">{lang === "zh" ? "科技产品/电子产品" : lang === "bm" ? "Alat teknologi / elektronik" : "Tech gadget / electronics"}</option>
+                      <option value="consumer_good">{lang === "zh" ? "消费品/家居用品" : lang === "bm" ? "Barangan pengguna / rumah" : "Consumer good / household"}</option>
+                      <option value="skincare">{lang === "zh" ? "护肤/美妆" : lang === "bm" ? "Penjagaan kulit / kecantikan" : "Skincare / beauty"}</option>
+                      <option value="vitamin_health">{lang === "zh" ? "维生素/保健品" : lang === "bm" ? "Vitamin / suplemen kesihatan" : "Vitamin / health supplement"}</option>
+                      <option value="apparel">{lang === "zh" ? "服装/时尚" : lang === "bm" ? "Pakaian / fesyen" : "Apparel / fashion"}</option>
+                      <option value="sports_fitness">{lang === "zh" ? "体育/健身器材" : lang === "bm" ? "Sukan / peralatan kecergasan" : "Sports / fitness equipment"}</option>
+                      <option value="food_beverage">{lang === "zh" ? "食品饮料" : lang === "bm" ? "Makanan & minuman" : "Food & beverage"}</option>
+                      <option value="home_living">{lang === "zh" ? "家居生活" : lang === "bm" ? "Rumah & kehidupan" : "Home & living"}</option>
+                      <option value="jewellery_accessories">{lang === "zh" ? "珠宝/配饰" : lang === "bm" ? "Barang kemas / aksesori" : "Jewellery / accessories"}</option>
+                      <option value="software_app">{lang === "zh" ? "软件/应用" : lang === "bm" ? "Perisian / aplikasi" : "Software / app"}</option>
+                      <option value="service">{lang === "zh" ? "服务" : lang === "bm" ? "Perkhidmatan" : "Service"}</option>
                     </select>
                   </Field>
-                  <Field label="Product description *">
+                  <Field label=t.cvProductDesc || {t.cvProductDesc}>
                     <TextInput value={sora.productDescription} onChange={setSoraField("productDescription")}
                       placeholder="e.g. Felet Silver 5000 badminton shoes — ultra-lightweight with silver metallic finish" />
                   </Field>
-                  <Field label="USP *">
+                  <Field label=t.cvUSP || {t.cvUSP}>
                     <TextInput value={sora.productUSP} onChange={setSoraField("productUSP")}
                       placeholder="e.g. Limited edition — only 2000 pairs in Malaysia" />
                   </Field>
                 </Section>
 
                 {/* Video settings */}
-                <Section emoji="🎬" title="Video Settings">
-                  <Field label="Sales funnel">
+                <Section emoji="🎬" title=t.cvVideoSettings || "Video Settings">
+                  <Field label={t.cvSalesFunnel}>
                     <Chips value={sora.salesFunnel} onChange={setSoraField("salesFunnel")} single
                       options={[{value:"upper",label:"Awareness"},{value:"middle",label:"Consideration"},{value:"lower",label:"Conversion"}]} />
                   </Field>
-                  <Field label="Ratio">
+                  <Field label={t.cvRatio}>
                     <Chips value={sora.videoRatio} onChange={setSoraField("videoRatio")} single
                       options={[{value:"9_16",label:"9:16 Portrait"},{value:"16_9",label:"16:9 Landscape"}]} />
                   </Field>
-                  <Field label="Duration">
+                  <Field label={t.cvDuration}>
                     <Chips value={sora.videoLength} onChange={setSoraField("videoLength")} single
                       options={[{value:"5",label:"5 sec"},{value:"10",label:"10 sec"}]} />
                   </Field>
                 </Section>
 
                 {/* Storyline */}
-                <Section emoji="✍️" title="Storyline">
-                  <Field label="Who decides the storyline?">
+                <Section emoji="✍️" title={t.cvStoryline}>
+                  <Field label={t.cvStorylineQuestion}>
                     <div className="flex gap-2">
-                      {[{v:true,l:"🤖 AI proposes 5 ideas"},{v:false,l:"✍️ I'll write my own"}].map(({v,l}) => (
+                      {[{v:true,l:{t.cvAIDecides}},{v:false,l:{t.cvUserWrites}}].map(({v,l}) => (
                         <button key={String(v)} onClick={() => setSoraField("aiDecideStoryline")(v)}
                           className={`flex-1 py-2.5 rounded-xl text-xs font-medium border-2 transition-all ${sora.aiDecideStoryline === v ? "border-indigo-500 bg-indigo-50 text-indigo-700" : "border-gray-200 text-gray-500"}`}>
                           {l}
@@ -2840,7 +3029,7 @@ export default function App() {
                     </div>
                   </Field>
                   {!sora.aiDecideStoryline && (
-                    <Field label="Your storyline">
+                    <Field label={t.cvYourStoryline}>
                       <textarea value={sora.userStoryline} onChange={e => setSoraField("userStoryline")(e.target.value)}
                         rows={3} placeholder="Describe your video idea… e.g. A player loses a match due to poor shoes, discovers Felet Silver 5000, wins the next game."
                         className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-blue-400 resize-none" />
@@ -2858,12 +3047,12 @@ export default function App() {
                 {soraShowAdvanced && (
                   <div className="space-y-3 border border-gray-200 rounded-xl p-4 bg-gray-50">
                     {[
-                      {field:"tone", label:"Tone", placeholder:"e.g. premium, playful, emotional"},
-                      {field:"cameraMotion", label:"Camera motion", placeholder:"e.g. slow dolly in, handheld tracking"},
-                      {field:"lightingStyle", label:"Lighting", placeholder:"e.g. golden hour, studio rim lighting"},
-                      {field:"backgroundSetting", label:"Background", placeholder:"e.g. minimalist studio, outdoor court"},
-                      {field:"audienceEmotion", label:"Emotion arc", placeholder:"e.g. desire, aspiration, urgency"},
-                      {field:"restrictions", label:"Restrictions", placeholder:"e.g. no text overlays, no close-ups of face"},
+                      {field:"tone", label:t.cvTone, placeholder:"e.g. premium, playful, emotional"},
+                      {field:"cameraMotion", label:t.cvCamera, placeholder:"e.g. slow dolly in, handheld tracking"},
+                      {field:"lightingStyle", label:t.cvLighting, placeholder:"e.g. golden hour, studio rim lighting"},
+                      {field:"backgroundSetting", label:t.cvBackground, placeholder:"e.g. minimalist studio, outdoor court"},
+                      {field:"audienceEmotion", label:t.cvEmotion, placeholder:"e.g. desire, aspiration, urgency"},
+                      {field:"restrictions", label:t.cvRestrictions, placeholder:"e.g. no text overlays, no close-ups of face"},
                     ].map(({field, label, placeholder}) => (
                       <Field key={field} label={label}>
                         <TextInput value={sora[field]} onChange={setSoraField(field)} placeholder={placeholder} />
@@ -2884,15 +3073,15 @@ export default function App() {
                     }}
                     disabled={!sora.productDescription || !sora.productUSP || !soraProductFile}
                     className={`w-full py-4 rounded-xl font-bold text-sm transition-all flex items-center justify-center gap-2 ${!sora.productDescription || !sora.productUSP || !soraProductFile ? "bg-gray-200 text-gray-400 cursor-not-allowed" : "bg-indigo-500 text-white hover:bg-indigo-600 active:scale-95"}`}>
-                    {sora.aiDecideStoryline ? "🤖 Generate 5 Storyline Ideas (Free)" : "✨ Generate First Frame (Free)"}
+                    {sora.aiDecideStoryline ? t.cvGenerate5 || {t.cvGenerate5} : t.cvGenerateFrame || {t.cvGenerateFrame}}
                   </button>
                   {(!soraProductFile || !sora.productDescription || !sora.productUSP) && (
                     <p className="text-xs text-gray-400 text-center mt-2">
-                      {!soraProductFile ? "📦 Upload a product photo to continue" : "Fill in product description and USP to continue"}
+                      {!soraProductFile ? {t.cvNeedProduct} : {t.cvNeedInfo}}
                     </p>
                   )}
                   <p className="text-xs text-gray-400 text-center mt-2">
-                    First frame generation is free · Video costs {getVideoCreditCost(sora.videoLength)} credits
+                    {t.cvFrameFree} {getVideoCreditCost(sora.videoLength)} {t.cvCredits}
                   </p>
                 </div>
               </div>
@@ -2907,10 +3096,12 @@ export default function App() {
             historyLoading={historyLoading}
             loadSoraHistory={loadSoraHistory}
             setTab={setTab}
-            setSoraGeneratedPrompt={setSoraGeneratedPrompt}
+            setSoraAnimationPrompt={setSoraAnimationPrompt}
             setSoraStep={setSoraStep}
             setSoraVideoConfig={setSoraVideoConfig}
             resumeInProgressJobs={resumeInProgressJobs}
+            t={t}
+            lang={lang}
           />
         )}
 
