@@ -2361,6 +2361,18 @@ export default function App() {
       }
       setSoraStep("generating-video");
 
+      // Encode product + character as reference elements for Kling
+      let productImageBase64 = null, productImageMime = null;
+      let characterImageBase64 = null, characterImageMime = null;
+      if (soraProductFile) {
+        const enc = await fileToBase64(soraProductFile);
+        productImageBase64 = enc.data; productImageMime = enc.mimeType;
+      }
+      if (soraCharacterFile) {
+        const enc = await fileToBase64(soraCharacterFile);
+        characterImageBase64 = enc.data; characterImageMime = enc.mimeType;
+      }
+
       const videoRes = await fetch("/api/generate-sora-video", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -2369,6 +2381,10 @@ export default function App() {
           videoConfig: soraVideoConfig,
           firstFrameBase64: soraFirstFrame.data,
           firstFrameMime: soraFirstFrame.mimeType,
+          productImageBase64,    // → @Element1 in Kling (product reference)
+          productImageMime,
+          characterImageBase64,  // → @Element2 in Kling (character reference)
+          characterImageMime,
         }),
       });
       const videoData = await videoRes.json();
