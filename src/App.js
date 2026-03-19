@@ -1588,17 +1588,15 @@ const init = {
 
 // ── Sora form state ────────────────────────────────────────────────────────
 const soraInit = {
-  // Product info
   productDescription: "",
   productUSP: "",
   productCategory: "",
-  storyline: "",
-  aiDecideStoryline: false,
-  // Video settings
   salesFunnel: "lower",
   videoRatio: "9_16",
   videoLength: "10",
-  // Advanced
+  aiDecideStoryline: true,
+  userStoryline: "",
+  // Advanced (optional)
   videoStyle: "", tone: "", cameraMotion: "", lightingStyle: "",
   backgroundSetting: "", audienceEmotion: "", restrictions: "",
 };
@@ -2099,10 +2097,14 @@ export default function App() {
   const [soraHistory, setSoraHistory] = useState([]);
   const [historyLoading, setHistoryLoading] = useState(false);
   const [soraDbId, setSoraDbId] = useState(null);
-  // New Create Video flow states
-  const [soraImagePrompt, setSoraImagePrompt] = useState("");
+  // Create Video flow states
+  const [soraStorylines, setSoraStorylines] = useState([]);
+  const [soraStorylinesLoading, setSoraStorylinesLoading] = useState(false);
+  const [soraSelectedStoryline, setSoraSelectedStoryline] = useState(null);
   const [soraFirstFrame, setSoraFirstFrame] = useState(null);
   const [soraFrameLoading, setSoraFrameLoading] = useState(false);
+  const [soraAnimationPrompt, setSoraAnimationPrompt] = useState("");
+  const [soraShowAdvanced, setSoraShowAdvanced] = useState(false);
   const soraPollingRef = useRef(null);
 
   useEffect(() => {
@@ -2222,16 +2224,62 @@ export default function App() {
   };
 
   // ── Step A: Generate AI prompt and show preview for user to review/edit ──
-  // ── NEW FLOW: Step 1 — Generate first frame + prompts ──────────────────
-  const handleGenerateFirstFrame = async () => {
-    setSoraError("");
+
+  // ── RESET helper ────────────────────────────────────────────────────────
+  const resetCreateVideo = () => {
+    setSoraStep("idle");
+    setSoraVideoUrl("");
     setSoraFirstFrame(null);
-    setSoraImagePrompt("");
-    setSoraGeneratedPrompt("");
+    setSoraAnimationPrompt("");
+    setSoraError("");
+    setSoraQueuePos(null);
+    setSoraVideoConfig(null);
+    setSoraDbId(null);
+    setSoraStorylines([]);
+    setSoraSelectedStoryline(null);
+    setSoraStorylinesLoading(false);
+    setSoraFrameLoading(false);
+  };
+
+  // ── FLOW B: Generate 5 storyline proposals ────────────────────────────
+  const handleGenerateStorylines = async () => {
+    setSoraStorylinesLoading(true);
+    setSoraStorylines([]);
+    setSoraSelectedStoryline(null);
+    setSoraError("");
+    try {
+      const res = await fetch("/api/generate-storylines", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          productDescription: sora.productDescription,
+          productUSP: sora.productUSP,
+          productCategory: sora.productCategory,
+          salesFunnel: sora.salesFunnel,
+          videoLength: sora.videoLength,
+          hasProductImage: !!soraProductFile,
+          hasCharacterImage: !!soraCharacterFile,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Storyline generation failed");
+      setSoraStorylines(data.storylines || []);
+      setSoraStep("pick-storyline");
+    } catch (err) {
+      setSoraError(err.message || "Could not generate storylines. Please try again.");
+    }
+    setSoraStorylinesLoading(false);
+  };
+
+  // ── FLOW A+B: Generate first frame + prompts ─────────────────────────
+  const handleGenerateFrame = async (storylineText) => {
     setSoraFrameLoading(true);
+    setSoraFirstFrame(null);
+    setSoraAnimationPrompt("");
+    setSoraError("");
     setSoraStep("generating-frame");
     try {
-      // Call generate-video-prompt to get imagePrompt + animationPrompt + config
+      // Step 1: Get image prompt + animation prompt + config (3 parallel API calls)
       const promptRes = await fetch("/api/generate-video-prompt", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -2239,8 +2287,7 @@ export default function App() {
           productDescription: sora.productDescription,
           productUSP: sora.productUSP,
           productCategory: sora.productCategory,
-          storyline: sora.storyline,
-          aiDecideStoryline: sora.aiDecideStoryline,
+          selectedStoryline: storylineText,
           salesFunnel: sora.salesFunnel,
           videoRatio: sora.videoRatio,
           videoLength: sora.videoLength,
@@ -2258,11 +2305,10 @@ export default function App() {
       const promptData = await promptRes.json();
       if (!promptRes.ok) throw new Error(promptData.error || "Prompt generation failed");
 
-      setSoraImagePrompt(promptData.imagePrompt);
-      setSoraGeneratedPrompt(promptData.animationPrompt);
+      setSoraAnimationPrompt(promptData.animationPrompt);
       setSoraVideoConfig(promptData.videoConfig || null);
 
-      // Now generate the first frame image using generate-image.js
+      // Step 2: Generate first frame image
       const imageBody = {
         prompt: promptData.imagePrompt,
         aspectRatio: sora.videoRatio === "9_16" ? "9:16" : "16:9",
@@ -2279,37 +2325,47 @@ export default function App() {
       if (!imageRes.ok) throw new Error(imageData.error?.error?.message || imageData.error || "Image generation failed");
 
       setSoraFirstFrame({ data: imageData.imageData, mimeType: imageData.mimeType });
-      setSoraStep("frame-ready");
+      setSoraStep("review-frame");
     } catch (err) {
       setSoraError(err.message || "Could not generate first frame. Please try again.");
-      setSoraStep("error");
+      setSoraStep(soraSelectedStoryline ? "pick-storyline" : "idle");
     }
     setSoraFrameLoading(false);
   };
 
-  // ── NEW FLOW: Step 2 — Generate video from first frame ──────────────────
-  const handleGenerateVideoFromFrame = async () => {
+  // ── Regenerate first frame (costs 2 credits) ─────────────────────────
+  const handleRegenerateFrame = async () => {
+    const enough = await hasEnoughCredits(user.id, CREDIT_COSTS.regenerate_frame);
+    if (!enough) {
+      setSoraError(`Insufficient credits. Regenerating costs ${CREDIT_COSTS.regenerate_frame} credits.`);
+      return;
+    }
+    const deduct = await deductCredits(user.id, CREDIT_COSTS.regenerate_frame, "First frame regeneration");
+    if (deduct.success) setUserCredits(deduct.balance);
+    const storyline = sora.aiDecideStoryline ? soraSelectedStoryline?.description : sora.userStoryline;
+    await handleGenerateFrame(storyline);
+  };
+
+  // ── Generate video from first frame ──────────────────────────────────
+  const handleGenerateVideo = async () => {
     if (!soraFirstFrame) return;
     setSoraError("");
     setSoraVideoUrl("");
     setSoraQueuePos(null);
     try {
-      // Credit check
       const videoCost = getVideoCreditCost(sora.videoLength);
       const enough = await hasEnoughCredits(user.id, videoCost);
       if (!enough) {
-        setSoraError(`Insufficient credits. You need ${videoCost} credits for a ${sora.videoLength}s video. Please contact admin to top up.`);
-        setSoraStep("error");
+        setSoraError(`Insufficient credits. You need ${videoCost} credits. Please contact admin to top up.`);
         return;
       }
-
       setSoraStep("generating-video");
 
       const videoRes = await fetch("/api/generate-sora-video", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          prompt: soraGeneratedPrompt,
+          prompt: soraAnimationPrompt,
           videoConfig: soraVideoConfig,
           firstFrameBase64: soraFirstFrame.data,
           firstFrameMime: soraFirstFrame.mimeType,
@@ -2319,8 +2375,8 @@ export default function App() {
       if (!videoRes.ok) throw new Error(videoData.error || "Video submission failed");
 
       // Deduct credits
-      const deductResult = await deductCredits(user.id, videoCost, `Kling ${sora.videoLength}s video (image-to-video)`);
-      if (deductResult.success) setUserCredits(deductResult.balance);
+      const deduct = await deductCredits(user.id, videoCost, `Kling ${sora.videoLength}s video`);
+      if (deduct.success) setUserCredits(deduct.balance);
 
       // Save to Supabase
       const modelPath = videoData.modelId || "fal-ai/kling-video/v2.6/pro/image-to-video";
@@ -2328,7 +2384,7 @@ export default function App() {
         user_id: user.id,
         request_id: videoData.requestId,
         model_id: modelPath,
-        prompt: soraGeneratedPrompt,
+        prompt: soraAnimationPrompt,
         video_config: soraVideoConfig,
         product_description: sora.productDescription,
         status: "processing",
@@ -2336,7 +2392,6 @@ export default function App() {
       if (dbRow) setSoraDbId(dbRow.id);
 
       setSoraStep("polling");
-
       soraPollingRef.current = setInterval(async () => {
         try {
           const statusRes = await fetch(`/api/sora-status?requestId=${videoData.requestId}&modelId=${encodeURIComponent(modelPath)}`);
@@ -2347,188 +2402,26 @@ export default function App() {
             setSoraVideoUrl(statusData.videoUrl);
             setSoraStep("done");
             logUsage(user.id, "kling_video_generated");
-            if (soraDbId) {
-              await supabase.from("sora_generations").update({
-                status: "completed", video_url: statusData.videoUrl, completed_at: new Date().toISOString(),
-              }).eq("id", soraDbId);
-            }
+            if (soraDbId) await supabase.from("sora_generations").update({ status: "completed", video_url: statusData.videoUrl, completed_at: new Date().toISOString() }).eq("id", soraDbId);
             loadSoraHistory();
           } else if (statusData.status === "FAILED") {
             clearInterval(soraPollingRef.current);
             setSoraError(statusData.error || "Video generation failed.");
-            setSoraStep("error");
+            setSoraStep("review-frame");
             if (soraDbId) await supabase.from("sora_generations").update({ status: "failed" }).eq("id", soraDbId);
           }
-        } catch (pollErr) {
+        } catch (e) {
           clearInterval(soraPollingRef.current);
-          setSoraError(pollErr.message || "Polling failed.");
-          setSoraStep("error");
+          setSoraError(e.message || "Polling failed.");
+          setSoraStep("review-frame");
         }
       }, 4000);
     } catch (err) {
       setSoraError(err.message || "Something went wrong.");
-      setSoraStep("error");
+      setSoraStep("review-frame");
     }
   };
 
-  const handlePreviewPrompt = async () => {
-    setSoraError("");
-    setSoraGeneratedPrompt("");
-    setSoraQueuePos(null);
-    if (!sora.productDescription || !sora.productUSP) {
-      setSoraError("Please fill in Product Description and Product USP before generating.");
-      return;
-    }
-    try {
-      setSoraStep("generating-prompt");
-      const promptRes = await fetch("/api/generate-sora-prompt", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          productDescription: sora.productDescription,
-          productUSP: sora.productUSP,
-          productCategory: sora.productCategory,
-          storyline: sora.storyline, // always pass — AI uses as inspiration
-          aiDecideStoryline: sora.aiDecideStoryline,
-          salesFunnel: sora.salesFunnel,
-          videoRatio: sora.videoRatio,
-          videoLength: sora.videoLength,
-          videoStyle: sora.videoStyle,
-          tone: sora.tone,
-          cameraMotion: sora.cameraMotion,
-          lightingStyle: sora.lightingStyle,
-          backgroundSetting: sora.backgroundSetting,
-          audienceEmotion: sora.audienceEmotion,
-          restrictions: sora.restrictions,
-          hasProductImage: !!soraProductFile,
-          hasCharacterImage: !!soraCharacterFile,
-        }),
-      });
-      const promptData = await promptRes.json();
-      if (!promptRes.ok) throw new Error(promptData.error || "Prompt generation failed");
-      setSoraGeneratedPrompt(promptData.prompt);
-      setSoraVideoConfig(promptData.videoConfig || null);
-      setSoraStep("prompt-ready"); // show preview screen
-    } catch (err) {
-      setSoraError(err.message || "Could not generate prompt. Please try again.");
-      setSoraStep("error");
-    }
-  };
-
-  // ── Step B: Send the (possibly user-edited) prompt to Kling via fal.ai ──
-  const handleSendToKling = async () => {
-    setSoraError("");
-    setSoraVideoUrl("");
-    setSoraQueuePos(null);
-    try {
-      // ── Credit check before doing anything ──
-      const videoCost = getVideoCreditCost(sora.videoLength);
-      const enough = await hasEnoughCredits(user.id, videoCost);
-      if (!enough) {
-        setSoraError(`Insufficient credits. You need ${videoCost} credits for a ${sora.videoLength}s video. Please contact admin to top up.`);
-        setSoraStep("error");
-        return;
-      }
-      let productImageBase64 = null;
-      let productImageMime = null;
-      if (soraProductFile) {
-        const encoded = await fileToBase64(soraProductFile);
-        productImageBase64 = encoded.data;
-        productImageMime = encoded.mimeType;
-      }
-
-      setSoraStep("generating-video");
-      // Also encode character image if provided
-      let characterImageBase64 = null;
-      let characterImageMime = null;
-      if (soraCharacterFile) {
-        const encodedChar = await fileToBase64(soraCharacterFile);
-        characterImageBase64 = encodedChar.data;
-        characterImageMime = encodedChar.mimeType;
-      }
-
-      const videoRes = await fetch("/api/generate-sora-video", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          prompt: soraGeneratedPrompt,  // exactly what user sees/edits
-          videoConfig: soraVideoConfig, // AI-resolved technical params
-          productImageBase64,           // → elements[0] @Element1 (product reference)
-          productImageMime,
-          characterImageBase64,         // → elements[1] @Element2 (character reference)
-          characterImageMime,
-        }),
-      });
-      const videoData = await videoRes.json();
-      if (!videoRes.ok) throw new Error(videoData.error || "Video job submission failed");
-
-      setSoraStep("polling");
-      // Always text-to-video — product/character are elements (references not first frame)
-      const modelPath = videoData.modelId || videoData.modelPath || "fal-ai/kling-video/v2.6/pro/text-to-video";
-
-      // ── Deduct credits immediately after successful fal.ai submission ──
-      const videoCostDeduct = getVideoCreditCost(sora.videoLength);
-      const deductResult = await deductCredits(
-        user.id,
-        videoCostDeduct,
-        `Kling ${sora.videoLength}s video generation`
-      );
-      if (deductResult.success) {
-        setUserCredits(deductResult.balance); // update header balance immediately
-      }
-
-      // ── Save job to Supabase immediately so refresh doesn't lose it ──
-      const { data: dbRow } = await supabase.from('sora_generations').insert({
-        user_id: user.id,
-        request_id: videoData.requestId,
-        model_id: modelPath,
-        prompt: soraGeneratedPrompt,
-        video_config: soraVideoConfig,
-        product_description: sora.productDescription,
-        status: 'processing',
-      }).select().single();
-      if (dbRow) setSoraDbId(dbRow.id);
-
-      soraPollingRef.current = setInterval(async () => {
-        try {
-          const statusRes = await fetch(`/api/sora-status?requestId=${videoData.requestId}&modelId=${encodeURIComponent(modelPath)}`);
-          const statusData = await statusRes.json();
-          if (statusData.queuePosition !== null && statusData.queuePosition !== undefined) {
-            setSoraQueuePos(statusData.queuePosition);
-          }
-          if (statusData.status === "COMPLETED") {
-            clearInterval(soraPollingRef.current);
-            setSoraVideoUrl(statusData.videoUrl);
-            setSoraStep("done");
-            logUsage(user.id, "kling_video_generated");
-            // Save completed video URL to Supabase
-            if (soraDbId) {
-              await supabase.from('sora_generations').update({
-                status: 'completed',
-                video_url: statusData.videoUrl,
-                completed_at: new Date().toISOString(),
-              }).eq('id', soraDbId);
-            }
-            loadSoraHistory(); // refresh history tab
-          } else if (statusData.status === "FAILED") {
-            clearInterval(soraPollingRef.current);
-            setSoraError(statusData.error || "Video generation failed. Please try again.");
-            setSoraStep("error");
-            if (soraDbId) {
-              await supabase.from('sora_generations').update({ status: 'failed' }).eq('id', soraDbId);
-            }
-          }
-        } catch (pollErr) {
-          clearInterval(soraPollingRef.current);
-          setSoraError(pollErr.message || "Polling failed. Please try again.");
-          setSoraStep("error");
-        }
-      }, 4000);
-    } catch (err) {
-      setSoraError(err.message || "Something went wrong. Please try again.");
-      setSoraStep("error");
-    }
-  };
 
   // ── Legacy combined handler (kept for compatibility) ──
   const handleGenerateSoraVideo = handlePreviewPrompt;
@@ -2662,96 +2555,104 @@ export default function App() {
 
         {/* ── SORA TAB ── */}
         {tab === "sora" && (
-          <div className="pb-8">
+          <div className="pb-8 space-y-4">
 
-            {/* Error */}
-            {soraStep === "error" && soraError && (
-              <div className="mb-4 bg-red-50 border border-red-200 rounded-xl px-4 py-3 text-sm text-red-600 flex items-start gap-2">
-                <span className="flex-shrink-0">❌</span><span>{soraError}</span>
+            {/* Error banner */}
+            {soraError && (
+              <div className="bg-red-50 border border-red-200 rounded-xl px-4 py-3 text-sm text-red-600 flex items-start gap-2">
+                <span className="flex-shrink-0 mt-0.5">❌</span>
+                <div className="flex-1">{soraError}</div>
+                <button onClick={() => setSoraError("")} className="text-red-400 hover:text-red-600 flex-shrink-0">✕</button>
               </div>
             )}
 
-            {soraStep === "done" ? (
-              /* ── DONE: Show video ── */
+            {/* ── STEP: DONE ── */}
+            {soraStep === "done" && (
               <div className="space-y-4">
-                <div className="bg-green-50 border border-green-200 rounded-xl px-4 py-3 text-sm text-green-700 font-medium text-center">
-                  ✅ Video generated successfully!
-                </div>
-                <video src={soraVideoUrl} controls loop className="w-full rounded-xl border border-gray-200" />
+                <div className="bg-green-50 border border-green-200 rounded-xl px-4 py-3 text-sm text-green-700 font-semibold text-center">✅ Video generated!</div>
+                <video src={soraVideoUrl} controls loop playsInline className="w-full rounded-xl border border-gray-100 shadow-sm" />
                 <div className="flex gap-2">
                   <a href={soraVideoUrl} download target="_blank" rel="noreferrer"
-                    className="flex-1 py-3 rounded-xl bg-green-500 text-white text-sm font-bold text-center hover:bg-green-600 transition-all">
-                    ⬇️ Download Video
+                    className="flex-1 py-3 rounded-xl bg-green-500 text-white text-sm font-bold text-center hover:bg-green-600 active:scale-95 transition-all">
+                    ⬇️ Download
                   </a>
-                  <button onClick={() => { setSoraStep("idle"); setSoraVideoUrl(""); setSoraFirstFrame(null); setSoraGeneratedPrompt(""); setSoraImagePrompt(""); setSoraError(""); setSoraQueuePos(null); setSoraVideoConfig(null); setSoraDbId(null); }}
+                  <button onClick={resetCreateVideo}
                     className="flex-1 py-3 rounded-xl border border-gray-200 text-sm text-gray-600 hover:bg-gray-50 transition-all">
                     🔄 Create Another
                   </button>
                 </div>
               </div>
+            )}
 
-            ) : soraStep === "polling" || soraStep === "generating-video" ? (
-              /* ── POLLING: Generating video ── */
-              <div className="text-center py-12 space-y-4">
+            {/* ── STEP: POLLING ── */}
+            {(soraStep === "polling" || soraStep === "generating-video") && (
+              <div className="text-center py-10 space-y-4">
                 <svg className="animate-spin w-10 h-10 text-indigo-500 mx-auto" fill="none" viewBox="0 0 24 24">
                   <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/>
                   <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"/>
                 </svg>
                 <div>
                   <p className="text-sm font-semibold text-gray-800">
-                    {soraStep === "generating-video" ? "Submitting to Kling AI…" : "Generating your video…"}
+                    {soraStep === "generating-video" ? "Submitting to Kling AI…" : `Generating video…${soraQueuePos != null ? ` (#${soraQueuePos} in queue)` : ""}`}
                   </p>
-                  {soraQueuePos !== null && (
-                    <p className="text-xs text-gray-400 mt-1">Queue position: #{soraQueuePos}</p>
-                  )}
-                  <p className="text-xs text-gray-400 mt-1">This takes 30–90 seconds. You can safely leave this page — check History tab later.</p>
+                  <p className="text-xs text-gray-400 mt-1">Takes 30–90 seconds. You can safely close — check History tab later.</p>
                 </div>
-                {/* Show first frame while waiting */}
                 {soraFirstFrame && (
-                  <div className="mt-4">
-                    <p className="text-xs text-gray-400 mb-2">Animating from this first frame:</p>
+                  <div>
+                    <p className="text-xs text-gray-400 mb-2">Animating from:</p>
                     <img src={`data:${soraFirstFrame.mimeType};base64,${soraFirstFrame.data}`}
-                      className="w-full max-w-xs mx-auto rounded-xl border border-gray-200" alt="First frame" />
+                      className="w-40 mx-auto rounded-xl border border-gray-200 shadow-sm" alt="First frame" />
                   </div>
                 )}
               </div>
+            )}
 
-            ) : soraStep === "frame-ready" ? (
-              /* ── FRAME READY: Review first frame + prompts ── */
+            {/* ── STEP: GENERATING FRAME ── */}
+            {soraStep === "generating-frame" && (
+              <div className="text-center py-10 space-y-3">
+                <svg className="animate-spin w-10 h-10 text-indigo-500 mx-auto" fill="none" viewBox="0 0 24 24">
+                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/>
+                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"/>
+                </svg>
+                <p className="text-sm font-semibold text-gray-800">Generating first frame…</p>
+                <p className="text-xs text-gray-400">Creating your opening scene with Gemini AI</p>
+              </div>
+            )}
+
+            {/* ── STEP: REVIEW FRAME ── */}
+            {soraStep === "review-frame" && soraFirstFrame && (
               <div className="space-y-4">
+                {/* Header */}
                 <div className="bg-blue-50 border border-blue-200 rounded-xl px-4 py-3">
-                  <p className="text-sm font-semibold text-blue-800">Step 2 — Review &amp; Confirm</p>
-                  <p className="text-xs text-blue-600 mt-0.5">Check the first frame and animation prompt. Edit if needed, then generate your video.</p>
+                  <p className="text-sm font-bold text-blue-800">Step 3 — Review First Frame</p>
+                  <p className="text-xs text-blue-600 mt-0.5">Check the opening image. Edit the animation prompt if needed, then generate your video.</p>
                 </div>
 
-                {/* First frame preview */}
+                {/* First frame */}
                 <div>
                   <div className="flex items-center justify-between mb-2">
-                    <p className="text-xs font-semibold text-gray-700">🖼️ First frame (Kling will animate from this)</p>
-                    <button onClick={handleGenerateFirstFrame}
-                      className="text-xs text-indigo-500 border border-indigo-200 rounded-lg px-2 py-1 hover:bg-indigo-50 transition-all">
-                      🔄 Regenerate
+                    <p className="text-xs font-semibold text-gray-700">🖼️ First frame (Kling animates from this)</p>
+                    <button onClick={handleRegenerateFrame}
+                      disabled={soraFrameLoading}
+                      className="text-xs text-amber-600 border border-amber-200 bg-amber-50 rounded-lg px-2.5 py-1 hover:bg-amber-100 transition-all disabled:opacity-50">
+                      🔄 Regenerate ({CREDIT_COSTS.regenerate_frame} credits)
                     </button>
                   </div>
                   <img src={`data:${soraFirstFrame.mimeType};base64,${soraFirstFrame.data}`}
-                    className="w-full rounded-xl border border-gray-200" alt="Generated first frame" />
+                    className="w-full rounded-xl border border-gray-200 shadow-sm" alt="Generated first frame" />
                 </div>
 
                 {/* Animation prompt */}
                 <div>
-                  <p className="text-xs font-semibold text-gray-700 mb-2">🎬 Animation prompt (how Kling will animate)</p>
-                  <textarea
-                    value={soraGeneratedPrompt}
-                    onChange={e => setSoraGeneratedPrompt(e.target.value)}
-                    rows={6}
-                    className="w-full border border-gray-200 rounded-xl px-3 py-2 text-xs text-gray-700 focus:outline-none focus:border-blue-400 leading-relaxed resize-none"
-                  />
-                  <p className="text-xs text-gray-400 mt-1">✏️ You can edit the animation prompt above before generating.</p>
+                  <p className="text-xs font-semibold text-gray-700 mb-1.5">🎬 Animation prompt</p>
+                  <p className="text-xs text-gray-400 mb-2">This tells Kling how to animate the frame. You can edit it.</p>
+                  <textarea value={soraAnimationPrompt} onChange={e => setSoraAnimationPrompt(e.target.value)}
+                    rows={6} className="w-full border border-gray-200 rounded-xl px-3 py-2 text-xs text-gray-700 focus:outline-none focus:border-blue-400 leading-relaxed resize-none" />
                 </div>
 
-                {/* Credit cost + generate button */}
+                {/* Generate button */}
                 <div>
-                  <div className="flex items-center justify-between mb-2 px-1">
+                  <div className="flex items-center justify-between mb-2 px-0.5">
                     <p className="text-xs text-gray-400">⚡ Kling 2.6 Pro · Image-to-video · ~30–90s</p>
                     <div className="flex items-center gap-1 bg-amber-50 border border-amber-100 rounded-lg px-2 py-1">
                       <span className="text-xs font-bold text-amber-700">{getVideoCreditCost(sora.videoLength)}</span>
@@ -2760,100 +2661,124 @@ export default function App() {
                   </div>
                   {userCredits !== null && userCredits < getVideoCreditCost(sora.videoLength) && (
                     <div className="mb-2 bg-red-50 border border-red-200 rounded-lg px-3 py-2 text-xs text-red-600 text-center">
-                      ⚠️ You have <strong>{userCredits}</strong> credits but need <strong>{getVideoCreditCost(sora.videoLength)}</strong>. Please contact admin to top up.
+                      ⚠️ You have <strong>{userCredits}</strong> credits but need <strong>{getVideoCreditCost(sora.videoLength)}</strong>. Contact admin to top up.
                     </div>
                   )}
-                  <button onClick={handleGenerateVideoFromFrame}
-                    disabled={!soraGeneratedPrompt}
-                    className={`w-full py-4 rounded-xl font-bold text-sm transition-all ${!soraGeneratedPrompt ? "bg-gray-200 text-gray-400 cursor-not-allowed" : "bg-indigo-500 text-white hover:bg-indigo-600 active:scale-95"}`}>
-                    <span className="flex items-center justify-center gap-2">
-                      🎬 Generate Video from First Frame
-                      <span className="bg-white bg-opacity-20 text-white text-xs font-bold px-2 py-0.5 rounded-full">
-                        {getVideoCreditCost(sora.videoLength)} credits
-                      </span>
-                    </span>
+                  <button onClick={handleGenerateVideo}
+                    disabled={!soraAnimationPrompt}
+                    className={`w-full py-4 rounded-xl font-bold text-sm transition-all flex items-center justify-center gap-2 ${!soraAnimationPrompt ? "bg-gray-200 text-gray-400 cursor-not-allowed" : "bg-indigo-500 text-white hover:bg-indigo-600 active:scale-95"}`}>
+                    🎬 Generate Video
+                    <span className="bg-white bg-opacity-20 text-white text-xs font-bold px-2 py-0.5 rounded-full">{getVideoCreditCost(sora.videoLength)} credits</span>
+                  </button>
+                  <button onClick={() => setSoraStep(sora.aiDecideStoryline ? "pick-storyline" : "idle")}
+                    className="w-full mt-2 py-2 rounded-xl border border-gray-200 text-xs text-gray-500 hover:bg-gray-50 transition-all">
+                    ← Back
                   </button>
                 </div>
               </div>
+            )}
 
-            ) : soraStep === "generating-frame" ? (
-              /* ── GENERATING FRAME ── */
-              <div className="text-center py-12 space-y-3">
-                <svg className="animate-spin w-10 h-10 text-indigo-500 mx-auto" fill="none" viewBox="0 0 24 24">
-                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/>
-                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"/>
-                </svg>
-                <p className="text-sm font-semibold text-gray-800">Generating first frame…</p>
-                <p className="text-xs text-gray-400">Creating your opening scene with Gemini AI</p>
-              </div>
-
-            ) : (
-              /* ── IDLE: Input form ── */
-              <div className="space-y-5">
-
-                {/* Step indicator */}
-                <div className="flex items-center gap-3 bg-indigo-50 border border-indigo-100 rounded-xl px-4 py-3">
-                  <div className="flex items-center gap-2">
-                    <span className="w-6 h-6 rounded-full bg-indigo-500 text-white text-xs font-bold flex items-center justify-center">1</span>
-                    <span className="text-xs text-indigo-700 font-medium">Fill details + upload photos</span>
-                  </div>
-                  <span className="text-gray-300">→</span>
-                  <div className="flex items-center gap-2 opacity-40">
-                    <span className="w-6 h-6 rounded-full bg-gray-400 text-white text-xs font-bold flex items-center justify-center">2</span>
-                    <span className="text-xs text-gray-500 font-medium">Review first frame</span>
-                  </div>
-                  <span className="text-gray-300">→</span>
-                  <div className="flex items-center gap-2 opacity-40">
-                    <span className="w-6 h-6 rounded-full bg-gray-400 text-white text-xs font-bold flex items-center justify-center">3</span>
-                    <span className="text-xs text-gray-500 font-medium">Generate video</span>
-                  </div>
+            {/* ── STEP: PICK STORYLINE (Flow B) ── */}
+            {soraStep === "pick-storyline" && (
+              <div className="space-y-4">
+                <div className="bg-purple-50 border border-purple-200 rounded-xl px-4 py-3">
+                  <p className="text-sm font-bold text-purple-800">Step 2 — Choose Your Storyline</p>
+                  <p className="text-xs text-purple-600 mt-0.5">Pick the concept that best fits your vision. AI will generate the first frame based on your choice.</p>
                 </div>
 
-                {/* Upload section */}
-                <Section emoji="📸" title="Upload Photos" subtitle="Product photo required. Character photo optional.">
+                {soraStorylinesLoading ? (
+                  <div className="text-center py-8 space-y-3">
+                    <svg className="animate-spin w-8 h-8 text-purple-500 mx-auto" fill="none" viewBox="0 0 24 24">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/>
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"/>
+                    </svg>
+                    <p className="text-sm text-gray-500">Generating 5 storyline ideas…</p>
+                  </div>
+                ) : (
+                  <div className="space-y-3">
+                    {soraStorylines.map((s) => (
+                      <button key={s.id} onClick={() => {
+                        setSoraSelectedStoryline(s);
+                        handleGenerateFrame(s.description);
+                      }}
+                        className={`w-full text-left border-2 rounded-xl p-4 transition-all hover:border-indigo-400 hover:bg-indigo-50 active:scale-98 ${soraSelectedStoryline?.id === s.id ? "border-indigo-500 bg-indigo-50" : "border-gray-200 bg-white"}`}>
+                        <div className="flex items-start gap-3">
+                          <span className="flex-shrink-0 w-6 h-6 rounded-full bg-indigo-100 text-indigo-600 text-xs font-bold flex items-center justify-center mt-0.5">{s.id}</span>
+                          <div className="flex-1 min-w-0">
+                            <p className="text-sm font-semibold text-gray-800">{s.title}</p>
+                            <p className="text-xs text-gray-500 mt-1 leading-relaxed">{s.description}</p>
+                            <div className="flex items-center gap-2 mt-2">
+                              <span className="text-xs bg-purple-100 text-purple-700 px-2 py-0.5 rounded-full">{s.emotion}</span>
+                              <span className="text-xs text-gray-400 italic">"{s.hook}"</span>
+                            </div>
+                          </div>
+                        </div>
+                      </button>
+                    ))}
+                    <div className="flex gap-2 pt-1">
+                      <button onClick={handleGenerateStorylines}
+                        className="flex-1 py-2.5 rounded-xl border border-gray-200 text-xs text-gray-600 hover:bg-gray-50 transition-all">
+                        🔄 Regenerate ideas (free)
+                      </button>
+                      <button onClick={() => setSoraStep("idle")}
+                        className="py-2.5 px-4 rounded-xl border border-gray-200 text-xs text-gray-500 hover:bg-gray-50 transition-all">
+                        ← Back
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* ── STEP: IDLE (input form) ── */}
+            {soraStep === "idle" && (
+              <div className="space-y-5">
+
+                {/* Progress steps */}
+                <div className="flex items-center gap-1 text-xs">
+                  {["Upload & Info", "Storyline", "First Frame", "Generate Video"].map((label, i) => (
+                    <React.Fragment key={i}>
+                      <div className="flex items-center gap-1.5">
+                        <span className="w-5 h-5 rounded-full bg-indigo-500 text-white text-xs font-bold flex items-center justify-center flex-shrink-0">{i+1}</span>
+                        <span className="text-indigo-700 font-medium hidden sm:block">{label}</span>
+                      </div>
+                      {i < 3 && <span className="text-gray-300 flex-shrink-0">→</span>}
+                    </React.Fragment>
+                  ))}
+                </div>
+
+                {/* Upload photos */}
+                <Section emoji="📸" title="Upload Photos" subtitle="Product photo required · Character optional">
                   <div className="grid grid-cols-2 gap-3">
-                    <Field label="Product photo *">
-                      <label className={`flex flex-col items-center justify-center w-full h-28 border-2 border-dashed rounded-xl cursor-pointer transition-all ${soraProductFile ? "border-indigo-300 bg-indigo-50" : "border-gray-200 bg-gray-50 hover:border-indigo-300 hover:bg-indigo-50"}`}>
-                        {soraProductFile ? (
-                          <div className="text-center px-2">
-                            <p className="text-2xl">✅</p>
-                            <p className="text-xs font-medium text-indigo-600 truncate max-w-full px-1">{soraProductFile.name}</p>
-                            <p className="text-xs text-gray-400">Click to change</p>
-                          </div>
-                        ) : (
-                          <div className="text-center">
-                            <p className="text-2xl">📦</p>
-                            <p className="text-xs text-gray-500 mt-1">Upload product</p>
-                          </div>
-                        )}
-                        <input type="file" accept="image/*" className="hidden"
-                          onChange={e => { if (e.target.files[0]) setSoraProductFile(e.target.files[0]); }} />
-                      </label>
-                    </Field>
-                    <Field label="Character photo (optional)">
-                      <label className={`flex flex-col items-center justify-center w-full h-28 border-2 border-dashed rounded-xl cursor-pointer transition-all ${soraCharacterFile ? "border-indigo-300 bg-indigo-50" : "border-gray-200 bg-gray-50 hover:border-indigo-300 hover:bg-indigo-50"}`}>
-                        {soraCharacterFile ? (
-                          <div className="text-center px-2">
-                            <p className="text-2xl">✅</p>
-                            <p className="text-xs font-medium text-indigo-600 truncate max-w-full px-1">{soraCharacterFile.name}</p>
-                            <p className="text-xs text-gray-400">Click to change</p>
-                          </div>
-                        ) : (
-                          <div className="text-center">
-                            <p className="text-2xl">🧑</p>
-                            <p className="text-xs text-gray-500 mt-1">Upload character</p>
-                          </div>
-                        )}
-                        <input type="file" accept="image/*" className="hidden"
-                          onChange={e => { if (e.target.files[0]) setSoraCharacterFile(e.target.files[0]); }} />
-                      </label>
-                    </Field>
+                    {[
+                      { file: soraProductFile, setFile: setSoraProductFile, label: "Product photo *", emoji: "📦", required: true },
+                      { file: soraCharacterFile, setFile: setSoraCharacterFile, label: "Character (optional)", emoji: "🧑", required: false },
+                    ].map(({ file, setFile, label, emoji, required }) => (
+                      <Field key={label} label={label}>
+                        <label className={`flex flex-col items-center justify-center w-full h-28 border-2 border-dashed rounded-xl cursor-pointer transition-all ${file ? "border-indigo-300 bg-indigo-50" : "border-gray-200 bg-gray-50 hover:border-indigo-300 hover:bg-indigo-50"}`}>
+                          {file ? (
+                            <div className="text-center px-2">
+                              <p className="text-xl">✅</p>
+                              <p className="text-xs font-medium text-indigo-600 truncate max-w-full px-1 mt-0.5">{file.name}</p>
+                              <p className="text-xs text-gray-400">Tap to change</p>
+                            </div>
+                          ) : (
+                            <div className="text-center">
+                              <p className="text-2xl">{emoji}</p>
+                              <p className="text-xs text-gray-500 mt-1">{required ? "Required" : "Optional"}</p>
+                            </div>
+                          )}
+                          <input type="file" accept="image/*" className="hidden"
+                            onChange={e => { if (e.target.files[0]) setFile(e.target.files[0]); }} />
+                        </label>
+                      </Field>
+                    ))}
                   </div>
                 </Section>
 
-                {/* Product details */}
-                <Section emoji="📝" title="Product Details" subtitle="Be specific — the more detail, the better the video.">
-                  <Field label="Product category">
+                {/* Product info */}
+                <Section emoji="📝" title="Product Info" subtitle="More detail = better video">
+                  <Field label="Category">
                     <select value={sora.productCategory} onChange={e => setSoraField("productCategory")(e.target.value)}
                       className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-blue-400 bg-white">
                       <option value="">— Select category —</option>
@@ -2863,8 +2788,8 @@ export default function App() {
                       <option value="vitamin_health">Vitamin / health supplement</option>
                       <option value="apparel">Apparel / fashion</option>
                       <option value="sports_fitness">Sports / fitness equipment</option>
-                      <option value="food_beverage">Food &amp; beverage</option>
-                      <option value="home_living">Home &amp; living</option>
+                      <option value="food_beverage">Food & beverage</option>
+                      <option value="home_living">Home & living</option>
                       <option value="jewellery_accessories">Jewellery / accessories</option>
                       <option value="software_app">Software / app</option>
                       <option value="service">Service</option>
@@ -2874,58 +2799,95 @@ export default function App() {
                     <TextInput value={sora.productDescription} onChange={setSoraField("productDescription")}
                       placeholder="e.g. Felet Silver 5000 badminton shoes — ultra-lightweight with silver metallic finish" />
                   </Field>
-                  <Field label="USP (unique selling point) *">
+                  <Field label="USP *">
                     <TextInput value={sora.productUSP} onChange={setSoraField("productUSP")}
                       placeholder="e.g. Limited edition — only 2000 pairs in Malaysia" />
                   </Field>
                 </Section>
 
                 {/* Video settings */}
-                <Section emoji="🎬" title="Video Settings" subtitle="Choose your format and objective.">
+                <Section emoji="🎬" title="Video Settings">
                   <Field label="Sales funnel">
-                    <Chips value={sora.salesFunnel} onChange={setSoraField("salesFunnel")}
-                      options={[{ value: "upper", label: "Awareness" }, { value: "middle", label: "Consideration" }, { value: "lower", label: "Conversion" }]} single />
+                    <Chips value={sora.salesFunnel} onChange={setSoraField("salesFunnel")} single
+                      options={[{value:"upper",label:"Awareness"},{value:"middle",label:"Consideration"},{value:"lower",label:"Conversion"}]} />
                   </Field>
-                  <Field label="Video ratio">
-                    <Chips value={sora.videoRatio} onChange={setSoraField("videoRatio")}
-                      options={[{ value: "9_16", label: "9:16 Portrait" }, { value: "16_9", label: "16:9 Landscape" }]} single />
+                  <Field label="Ratio">
+                    <Chips value={sora.videoRatio} onChange={setSoraField("videoRatio")} single
+                      options={[{value:"9_16",label:"9:16 Portrait"},{value:"16_9",label:"16:9 Landscape"}]} />
                   </Field>
-                  <Field label="Video length">
-                    <Chips value={sora.videoLength} onChange={setSoraField("videoLength")}
-                      options={[{ value: "5", label: "5 sec" }, { value: "10", label: "10 sec" }]} single />
+                  <Field label="Duration">
+                    <Chips value={sora.videoLength} onChange={setSoraField("videoLength")} single
+                      options={[{value:"5",label:"5 sec"},{value:"10",label:"10 sec"}]} />
                   </Field>
                 </Section>
 
                 {/* Storyline */}
-                <Section emoji="✍️" title="Storyline" subtitle="Optional — guide the AI or let it decide.">
-                  <Field label="Storyline direction">
-                    <div className="flex items-center gap-3 mb-2">
-                      <button onClick={() => setSoraField("aiDecideStoryline")(!sora.aiDecideStoryline)}
-                        className={`relative w-9 h-5 flex-shrink-0 rounded-full transition-colors ${sora.aiDecideStoryline ? "bg-blue-500" : "bg-gray-200"}`}>
-                        <div className={`absolute top-0.5 w-4 h-4 bg-white rounded-full shadow-sm transition-transform ${sora.aiDecideStoryline ? "translate-x-4" : "translate-x-0.5"}`} />
-                      </button>
-                      <span className="text-sm text-gray-600">{sora.aiDecideStoryline ? "AI decides the best story" : "I'll guide the story"}</span>
+                <Section emoji="✍️" title="Storyline">
+                  <Field label="Who decides the storyline?">
+                    <div className="flex gap-2">
+                      {[{v:true,l:"🤖 AI proposes 5 ideas"},{v:false,l:"✍️ I'll write my own"}].map(({v,l}) => (
+                        <button key={String(v)} onClick={() => setSoraField("aiDecideStoryline")(v)}
+                          className={`flex-1 py-2.5 rounded-xl text-xs font-medium border-2 transition-all ${sora.aiDecideStoryline === v ? "border-indigo-500 bg-indigo-50 text-indigo-700" : "border-gray-200 text-gray-500"}`}>
+                          {l}
+                        </button>
+                      ))}
                     </div>
-                    {!sora.aiDecideStoryline && (
-                      <TextInput value={sora.storyline} onChange={setSoraField("storyline")}
-                        placeholder="e.g. A player loses a match because of poor shoes, then discovers the Felet Silver 5000..." />
-                    )}
                   </Field>
+                  {!sora.aiDecideStoryline && (
+                    <Field label="Your storyline">
+                      <textarea value={sora.userStoryline} onChange={e => setSoraField("userStoryline")(e.target.value)}
+                        rows={3} placeholder="Describe your video idea… e.g. A player loses a match due to poor shoes, discovers Felet Silver 5000, wins the next game."
+                        className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-blue-400 resize-none" />
+                    </Field>
+                  )}
                 </Section>
 
-                {/* Generate button */}
+                {/* Advanced settings toggle */}
+                <button onClick={() => setSoraShowAdvanced(!soraShowAdvanced)}
+                  className="w-full flex items-center justify-between px-4 py-3 border border-dashed border-gray-300 rounded-xl text-sm text-gray-500 hover:bg-gray-50 transition-all">
+                  <span>⚙️ Advanced settings (optional)</span>
+                  <span className="text-gray-400">{soraShowAdvanced ? "▲" : "▼"}</span>
+                </button>
+
+                {soraShowAdvanced && (
+                  <div className="space-y-3 border border-gray-200 rounded-xl p-4 bg-gray-50">
+                    {[
+                      {field:"tone", label:"Tone", placeholder:"e.g. premium, playful, emotional"},
+                      {field:"cameraMotion", label:"Camera motion", placeholder:"e.g. slow dolly in, handheld tracking"},
+                      {field:"lightingStyle", label:"Lighting", placeholder:"e.g. golden hour, studio rim lighting"},
+                      {field:"backgroundSetting", label:"Background", placeholder:"e.g. minimalist studio, outdoor court"},
+                      {field:"audienceEmotion", label:"Emotion arc", placeholder:"e.g. desire, aspiration, urgency"},
+                      {field:"restrictions", label:"Restrictions", placeholder:"e.g. no text overlays, no close-ups of face"},
+                    ].map(({field, label, placeholder}) => (
+                      <Field key={field} label={label}>
+                        <TextInput value={sora[field]} onChange={setSoraField(field)} placeholder={placeholder} />
+                      </Field>
+                    ))}
+                  </div>
+                )}
+
+                {/* CTA Button */}
                 <div>
-                  <button onClick={handleGenerateFirstFrame}
+                  <button
+                    onClick={() => {
+                      if (sora.aiDecideStoryline) {
+                        handleGenerateStorylines();
+                      } else {
+                        handleGenerateFrame(sora.userStoryline || sora.productDescription);
+                      }
+                    }}
                     disabled={!sora.productDescription || !sora.productUSP || !soraProductFile}
-                    className={`w-full py-4 rounded-xl font-bold text-sm transition-all ${!sora.productDescription || !sora.productUSP || !soraProductFile ? "bg-gray-200 text-gray-400 cursor-not-allowed" : "bg-indigo-500 text-white hover:bg-indigo-600 active:scale-95"}`}>
-                    ✨ Generate First Frame &amp; Prompt
+                    className={`w-full py-4 rounded-xl font-bold text-sm transition-all flex items-center justify-center gap-2 ${!sora.productDescription || !sora.productUSP || !soraProductFile ? "bg-gray-200 text-gray-400 cursor-not-allowed" : "bg-indigo-500 text-white hover:bg-indigo-600 active:scale-95"}`}>
+                    {sora.aiDecideStoryline ? "🤖 Generate 5 Storyline Ideas (Free)" : "✨ Generate First Frame (Free)"}
                   </button>
-                  {(!sora.productDescription || !sora.productUSP || !soraProductFile) && (
+                  {(!soraProductFile || !sora.productDescription || !sora.productUSP) && (
                     <p className="text-xs text-gray-400 text-center mt-2">
-                      {!soraProductFile ? "Upload a product photo to continue" : "Fill in Product Description and USP to continue"}
+                      {!soraProductFile ? "📦 Upload a product photo to continue" : "Fill in product description and USP to continue"}
                     </p>
                   )}
-                  <p className="text-xs text-gray-400 text-center mt-2">Free to generate first frame · Video costs {getVideoCreditCost(sora.videoLength)} credits</p>
+                  <p className="text-xs text-gray-400 text-center mt-2">
+                    First frame generation is free · Video costs {getVideoCreditCost(sora.videoLength)} credits
+                  </p>
                 </div>
               </div>
             )}
