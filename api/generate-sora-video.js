@@ -1,8 +1,8 @@
 // generate-sora-video.js
-// Kling 2.6 Pro — uses dedicated Elements endpoint for reference image consistency
-// Product = @Element1 (frontal reference)
-// Character = @Element2 (frontal reference)
-// Higher cfg_scale for better reference adherence
+// Kling 2.6 Pro image-to-video via fal.ai SDK
+// Receives: first frame image URL + animation prompt
+// The first frame already contains the correct product/character appearance
+// Kling just needs to animate FROM that frame
 
 import { fal } from "@fal-ai/client";
 
@@ -15,79 +15,42 @@ export default async function handler(req, res) {
 
   try {
     const {
-      prompt,
-      videoConfig,
-      productImageBase64,
-      productImageMime,
-      characterImageBase64,
-      characterImageMime,
+      prompt,           // animation prompt — HOW to animate
+      videoConfig,      // aspect ratio, duration, cfg_scale
+      firstFrameBase64, // base64 of the Gemini-generated first frame
+      firstFrameMime,   // mime type of first frame
     } = req.body;
 
-    if (!prompt) return res.status(400).json({ error: 'Prompt is required' });
+    if (!prompt) return res.status(400).json({ error: 'Animation prompt is required' });
+    if (!firstFrameBase64) return res.status(400).json({ error: 'First frame image is required' });
 
     fal.config({ credentials: process.env.FAL_API_KEY });
 
-    const hasProductImage   = !!productImageBase64;
-    const hasCharacterImage = !!characterImageBase64;
-
     const aspectRatio = videoConfig?.aspect_ratio || '9:16';
     const duration    = videoConfig?.duration     || '10';
-    // Higher cfg_scale = stronger adherence to prompt + reference images
-    // 0.5 = too creative/ignores references, 0.8 = good balance for product ads
-    const cfgScale    = 0.8;
+    const cfgScale    = videoConfig?.cfg_scale    ?? 0.8;
 
-    // ── Upload images to fal storage ──────────────────────────────────────
-    let productImageUrl   = null;
-    let characterImageUrl = null;
+    // ── Upload first frame to fal storage ─────────────────────────────────
+    const frameBlob = base64ToBlob(firstFrameBase64, firstFrameMime || 'image/jpeg');
+    const frameUrl  = await fal.storage.upload(frameBlob);
+    console.log('First frame uploaded to fal storage:', frameUrl);
 
-    if (hasProductImage) {
-      const blob = base64ToBlob(productImageBase64, productImageMime || 'image/jpeg');
-      productImageUrl = await fal.storage.upload(blob);
-      console.log('Product image uploaded:', productImageUrl);
-    }
-
-    if (hasCharacterImage) {
-      const blob = base64ToBlob(characterImageBase64, characterImageMime || 'image/jpeg');
-      characterImageUrl = await fal.storage.upload(blob);
-      console.log('Character image uploaded:', characterImageUrl);
-    }
-
-    // ── Build elements with correct structure ─────────────────────────────
-    // fal.ai Kling elements format:
-    // { images: [{ url: "frontal_image_url" }] }
-    // First image in the array = frontal/main reference
-    const elements = [];
-
-    if (hasProductImage) {
-      // @Element1 = product
-      elements.push({
-        images: [{ url: productImageUrl }]
-      });
-    }
-
-    if (hasCharacterImage) {
-      // @Element2 = character (or @Element1 if no product)
-      elements.push({
-        images: [{ url: characterImageUrl }]
-      });
-    }
-
-    // ── Model: Kling 2.6 Pro ─────────────────────────────────────────────
-    const modelId = 'fal-ai/kling-video/v2.6/pro/text-to-video';
+    // ── Always image-to-video — Kling animates FROM the first frame ───────
+    const modelId = 'fal-ai/kling-video/v2.6/pro/image-to-video';
 
     const input = {
-      prompt,
+      prompt,           // animation instructions only
+      image_url: frameUrl, // the first frame to animate from
       aspect_ratio: aspectRatio,
       duration,
       cfg_scale: cfgScale,
-      ...(elements.length > 0 ? { elements } : {}),
     };
 
-    console.log('=== KLING 2.6 PRO VIDEO GENERATION ===');
+    console.log('=== KLING 2.6 PRO IMAGE-TO-VIDEO ===');
     console.log('Model:', modelId);
     console.log('Ratio:', aspectRatio, '| Duration:', duration, 's | cfg_scale:', cfgScale);
-    console.log('Elements:', elements.length, '| Product:', hasProductImage, '| Character:', hasCharacterImage);
-    console.log('--- FULL PROMPT ---');
+    console.log('First frame URL:', frameUrl);
+    console.log('--- ANIMATION PROMPT ---');
     console.log(prompt);
     console.log('--- END PROMPT ---');
 
