@@ -73,7 +73,13 @@ ${backgroundSetting ? `BACKGROUND: ${backgroundSetting}` : ''}
 Write the first frame scene as a single vivid paragraph. Include subject positioning, expression, product placement, lighting, composition. End with: "Ultra-realistic, cinematic photography, high detail, ${ratioLabel}. ${cat.avoid}."`;
 
     // ── CALL 2: Kling animation prompt ────────────────────────────────────
-    const animationSystem = `You are a motion director writing Kling 2.6 Pro image-to-video animation prompts. The first frame is already generated — Kling animates FROM that exact frame. Write ONLY how to animate it using the Golden Template: (1) Opening motion (2) Primary action (3) Camera movement (4) Dialogue/voiceover (5) Audio mood (6) Negative constraints. Write in flowing cinematic prose. No tags. No bullet points. Real camera language only.`;
+    const animationSystem = `You are a motion director writing Kling 2.6 Pro image-to-video animation prompts. The first frame is already generated — Kling animates FROM that exact frame. Write ONLY how to animate it using the Golden Template: (1) Opening motion (2) Primary action (3) Camera movement (4) Dialogue/voiceover (5) Audio mood (6) Negative constraints. Write in flowing cinematic prose. No tags. No bullet points. Real camera language only.
+
+PRODUCT INTEGRITY RULES — always include these in negative constraints:
+- Product must maintain exact size, proportions and scale throughout — do not resize or distort
+- Product labels, text and branding must remain clearly visible and legible
+- Product colours must stay true to the reference — no colour shifts
+- Product shape must not warp, stretch or deform during animation`;
 
     const animationUser = `Write a Kling 2.6 Pro animation prompt for this ${durationSec}s product ad.
 
@@ -95,7 +101,10 @@ Golden Template to follow:
 3. Camera movement — specific cinematography term and direction
 4. Dialogue/VO — natural lines woven into the scene in quotes
 5. Audio mood — ambient sound + music tone described naturally
-6. Negative constraints — what NOT to render (prevents AI hallucination)
+6. Negative constraints — ALWAYS end with: "No product distortion, no resizing of product, product labels remain legible throughout, no colour shifts on product, no warping or stretching of product shape." Plus any other relevant constraints.
+
+${hasProductImage ? `ELEMENT REFERENCE: Product is uploaded as @Element1 — mention "@Element1 maintains exact size and appearance throughout" in your prompt.` : ''}
+${hasCharacterImage ? `ELEMENT REFERENCE: Character is uploaded as @Element2 — mention "@Element2 maintains consistent appearance throughout" in your prompt.` : ''}
 
 Write as one flowing cinematic paragraph. Kling already sees the first frame — only describe the animation.`;
 
