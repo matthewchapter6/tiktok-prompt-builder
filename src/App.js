@@ -2512,6 +2512,12 @@ export default function App() {
             <p className="text-xs text-gray-500">{t.appSubtitle}</p>
           </div>
           <div className="flex items-center gap-2">
+            {/* ── Help button ── */}
+            <button onClick={() => setTab("help")}
+              className={`text-base px-2 py-1 rounded-lg transition-all ${tab === "help" ? "bg-indigo-50 text-indigo-600" : "text-gray-400 hover:text-gray-600 hover:bg-gray-50"}`}
+              title="Help">
+              ❓
+            </button>
             <LangSelector lang={lang} setLang={setLang} />
             {/* ── Credit balance ── */}
             <div className="flex items-center gap-1.5 bg-amber-50 border border-amber-200 rounded-lg px-2.5 py-1">
@@ -2539,12 +2545,12 @@ export default function App() {
         </div>
       </div>
 
-      {/* ── Tabs ── */}
+      {/* ── Tabs (center aligned, no Help tab) ── */}
       <div className="border-b border-gray-200 bg-white">
-        <div className="flex overflow-x-auto scrollbar-hide px-2" style={{scrollbarWidth:'none',msOverflowStyle:'none'}}>
-          {[["sora", t.tabSora], ["history", "🎞️ History"], ["builder", t.tabBuilder], ["output", t.tabOutput], ["help", "❓ Help"]].map(([v, l]) => (
+        <div className="flex justify-center overflow-x-auto scrollbar-hide" style={{scrollbarWidth:'none',msOverflowStyle:'none'}}>
+          {[["sora", t.tabSora], ["history", "🎞️ History"], ["builder", t.tabBuilder], ["output", t.tabOutput]].map(([v, l]) => (
             <button key={v} onClick={() => setTab(v)}
-              className={`flex-shrink-0 px-3 py-2 text-xs font-medium border-b-2 transition-all whitespace-nowrap ${tab === v ? "border-blue-500 text-blue-600" : "border-transparent text-gray-400"}`}>
+              className={`flex-shrink-0 px-4 py-2.5 text-xs font-medium border-b-2 transition-all whitespace-nowrap ${tab === v ? "border-blue-500 text-blue-600" : "border-transparent text-gray-400"}`}>
               {l}{v === "output" && clips.length > 0 ? ` (${clips.length})` : ""}
             </button>
           ))}
@@ -2922,18 +2928,18 @@ export default function App() {
             {/* Topics */}
             <div className="space-y-3 mb-8">
               {[
-                { emoji: "🔐", title: "How to register", desc: "Sign up and get started with your account" },
-                { emoji: "⚡", title: "How to top up credits", desc: "Add credits to generate videos and images" },
-                { emoji: "🎬", title: "How to generate a video", desc: "Use the Sora tab to create your first AI video" },
-                { emoji: "📝", title: "How to use the Builder", desc: "Generate Grok prompts for TikTok UGC content" },
-                { emoji: "🎞️", title: "Video history & download", desc: "Find and download your past generated videos" },
-                { emoji: "💬", title: "Other questions", desc: "Anything else — just ask us directly" },
+                { emoji: "🔐", title: "How to register", desc: "Sign up using your Google account." },
+                { emoji: "⚡", title: "How to top up credits", desc: "Contact us directly to purchase credits." },
+                { emoji: "🎬", title: "How to generate a video", desc: "Use the "Create Video" tab to generate your first AI video." },
+                { emoji: "📝", title: "How to use the Builder", desc: "Enter your product details and let our AI content creator generate Grok prompts for UGC (User-Generated Content) videos." },
+                { emoji: "🎞️", title: "Video history & downloads", desc: "Access and download any videos generated within the past 30 days." },
+                { emoji: "💬", title: "Other questions", desc: "Have more questions? Message us directly via WhatsApp." },
               ].map((item, i) => (
-                <div key={i} className="flex items-center gap-3 bg-white border border-gray-200 rounded-xl px-4 py-3">
-                  <span className="text-xl flex-shrink-0">{item.emoji}</span>
+                <div key={i} className="flex items-start gap-3 bg-white border border-gray-200 rounded-xl px-4 py-3">
+                  <span className="text-xl flex-shrink-0 mt-0.5">{item.emoji}</span>
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-semibold text-gray-800">{item.title}</p>
-                    <p className="text-xs text-gray-400 mt-0.5">{item.desc}</p>
+                    <p className="text-xs text-gray-400 mt-0.5 leading-relaxed">{item.desc}</p>
                   </div>
                 </div>
               ))}
