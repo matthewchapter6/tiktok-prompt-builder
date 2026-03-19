@@ -15,20 +15,22 @@ export const logUsage = async (userId, action) => {
 };
 
 // ── Credit costs ──────────────────────────────────────────────────────────
-// ── Kling 3.0 Pro pricing (fal.ai, audio ON) ──────────────────────────────
-// API cost: $0.168/s with audio on
-// Formula: (cost × seconds) ÷ $0.10 per credit ÷ 0.35 (65% margin)
-// 5s:  $0.84 API → $2.40 charge → 24 credits
-// Kling 2.6 Pro image-to-video pricing (65% margin, $0.10/credit)
-// Bundled cost: Gemini image gen + Kling video in one charge
-// Kling 2.6 Pro: $0.07/sec | Gemini image: ~$0.02
-// Formula: (API cost) ÷ 0.35 ÷ $0.10
+// Kling 2.6 Pro image-to-video (65% margin, $0.10/credit)
+// 5s bundle (~$0.372 API): 11 credits = $1.10
+// 10s bundle (~$0.722 API): 21 credits = $2.10
+// Regenerate first frame (~$0.02 API): 2 credits = $0.20
 export const CREDIT_COSTS = {
-  video_5s:      12,  // 5s bundle:  $0.37 API → 12 credits = $1.20
-  video_10s:     22,  // 10s bundle: $0.72 API → 22 credits = $2.20
-  image_gemini:   0,  // Bundled into video cost — not charged separately
-  prompt_grok:    0,  // Claude prompt generation = FREE
-  storyline:      0,  // Storyline generation = FREE
+  video_5s:            11,
+  video_10s:           21,
+  regenerate_frame:     2,
+  image_gemini:         0,  // bundled into video cost
+  prompt_grok:          0,
+  storyline:            0,
+};
+
+export const getVideoCreditCost = (videoLength) => {
+  if (videoLength === '5') return CREDIT_COSTS.video_5s;
+  return CREDIT_COSTS.video_10s;
 };
 
 // Helper: get video credit cost by length
