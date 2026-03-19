@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from "react";
-import { supabase, logUsage, fetchCredits, deductCredits, hasEnoughCredits, CREDIT_COSTS } from "./lib/supabase";
+import { supabase, logUsage, fetchCredits, deductCredits, hasEnoughCredits, CREDIT_COSTS, getVideoCreditCost } from "./lib/supabase";
 
 // ── Translations ───────────────────────────────────────────────────────────
 const TRANSLATIONS = {
@@ -1589,9 +1589,10 @@ const init = {
 // ── Sora form state ────────────────────────────────────────────────────────
 const soraInit = {
   videoRatio: "9_16",
-  videoLength: "10", // default to 10s — Kling 2.6 Pro supports 5 or 10
+  videoLength: "10", // 5 or 10 — Kling 2.6 Pro supports both
   productDescription: "",
   productUSP: "",
+  productCategory: "",
   storyline: "",
   aiDecideStoryline: true,
   salesFunnel: "",
@@ -2236,6 +2237,7 @@ export default function App() {
         body: JSON.stringify({
           productDescription: sora.productDescription,
           productUSP: sora.productUSP,
+          productCategory: sora.productCategory,
           storyline: sora.storyline, // always pass — AI uses as inspiration
           aiDecideStoryline: sora.aiDecideStoryline,
           salesFunnel: sora.salesFunnel,
@@ -2270,7 +2272,7 @@ export default function App() {
     setSoraQueuePos(null);
     try {
       // ── Credit check before doing anything ──
-      const videoCost = sora.videoLength === "5" ? CREDIT_COSTS.video_5s : CREDIT_COSTS.video_10s;
+      const videoCost = getVideoCreditCost(sora.videoLength);
       const enough = await hasEnoughCredits(user.id, videoCost);
       if (!enough) {
         setSoraError(`Insufficient credits. You need ${videoCost} credits for a ${sora.videoLength}s video. Please contact admin to top up.`);
@@ -2315,7 +2317,7 @@ export default function App() {
       const modelPath = videoData.modelId || videoData.modelPath || "fal-ai/kling-video/v2.6/pro/text-to-video";
 
       // ── Deduct credits immediately after successful fal.ai submission ──
-      const videoCostDeduct = sora.videoLength === "5" ? CREDIT_COSTS.video_5s : CREDIT_COSTS.video_10s;
+      const videoCostDeduct = getVideoCreditCost(sora.videoLength);
       const deductResult = await deductCredits(
         user.id,
         videoCostDeduct,
@@ -2623,6 +2625,26 @@ export default function App() {
 
               {/* Product Details */}
               <Section emoji="📝" title="Product Details" subtitle="The more detail you give, the better your video will be.">
+                <Field label="Product category">
+                  <select
+                    value={sora.productCategory}
+                    onChange={e => setSoraField("productCategory")(e.target.value)}
+                    className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-blue-400 bg-white">
+                    <option value="">— Select category (helps AI choose visual style) —</option>
+                    <option value="tech_gadget">Tech gadget / electronics</option>
+                    <option value="consumer_good">Consumer good / household</option>
+                    <option value="skincare">Skincare / beauty</option>
+                    <option value="vitamin_health">Vitamin / health supplement</option>
+                    <option value="apparel">Apparel / fashion</option>
+                    <option value="sports_fitness">Sports / fitness equipment</option>
+                    <option value="food_beverage">Food &amp; beverage</option>
+                    <option value="home_living">Home &amp; living</option>
+                    <option value="jewellery_accessories">Jewellery / accessories</option>
+                    <option value="software_app">Software / app</option>
+                    <option value="service">Service</option>
+                    <option value="event_campaign">Event / campaign</option>
+                  </select>
+                </Field>
                 <Field label="Product description" required>
                   <TextArea value={sora.productDescription} onChange={setSoraField("productDescription")}
                     placeholder="What is the product? Who is it for? What does it do? e.g. An ultra-slim portable monitor for remote workers who need a second screen anywhere." rows={3} />
@@ -2824,7 +2846,7 @@ export default function App() {
                       <span className="flex items-center gap-2">
                         🎬 Send to Kling AI &amp; Generate Video
                         <span className="bg-white bg-opacity-20 text-white text-xs font-bold px-2 py-0.5 rounded-full">
-                          {sora.videoLength === "5" ? CREDIT_COSTS.video_5s : CREDIT_COSTS.video_10s} credits
+                          {getVideoCreditCost(sora.videoLength)} credits
                         </span>
                       </span>
                     </button>
@@ -2853,7 +2875,7 @@ export default function App() {
                       <span className="flex items-center gap-2">
                         ✨ Preview AI Prompt &amp; Generate
                         <span className="bg-white bg-opacity-20 text-white text-xs font-bold px-2 py-0.5 rounded-full">
-                          {sora.videoLength === "5" ? CREDIT_COSTS.video_5s : CREDIT_COSTS.video_10s} credits
+                          {getVideoCreditCost(sora.videoLength)} credits
                         </span>
                       </span>
                     )}
@@ -2867,14 +2889,14 @@ export default function App() {
                     <p className="text-xs text-gray-400">⚡ Kling 2.6 Pro · 1080p · ~30–90 seconds</p>
                     <div className="flex items-center gap-1 bg-amber-50 border border-amber-100 rounded-lg px-2 py-1">
                       <span className="text-xs font-bold text-amber-700">
-                        {sora.videoLength === "5" ? CREDIT_COSTS.video_5s : CREDIT_COSTS.video_10s}
+                        {getVideoCreditCost(sora.videoLength)}
                       </span>
                       <span className="text-xs text-amber-500">credits</span>
                     </div>
                   </div>
-                  {userCredits !== null && userCredits < (sora.videoLength === "5" ? CREDIT_COSTS.video_5s : CREDIT_COSTS.video_10s) && (
+                  {userCredits !== null && userCredits < getVideoCreditCost(sora.videoLength) && (
                     <div className="mt-2 bg-red-50 border border-red-200 rounded-lg px-3 py-2 text-xs text-red-600 text-center">
-                      ⚠️ You have <strong>{userCredits}</strong> credits but need <strong>{sora.videoLength === "5" ? CREDIT_COSTS.video_5s : CREDIT_COSTS.video_10s}</strong>. Please contact admin to top up.
+                      ⚠️ You have <strong>{userCredits}</strong> credits but need <strong>{getVideoCreditCost(sora.videoLength)}</strong>. Please contact admin to top up.
                     </div>
                   )}
                 </>
