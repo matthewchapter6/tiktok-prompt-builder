@@ -1957,12 +1957,12 @@ const HistoryTab = ({
                       ⬇️ Download
                     </a>
                     <button onClick={() => {
-                      setSoraGeneratedPrompt(item.prompt || "");
+                      setSoraAnimationPrompt(item.prompt || "");
                       setSoraVideoConfig(item.video_config || null);
-                      setSoraStep("prompt-ready");
+                      setSoraStep("idle");
                       setTab("sora");
                     }} className="flex-1 py-2 rounded-lg border border-gray-200 text-xs text-gray-600 hover:bg-gray-50 transition-all">
-                      🔄 Regenerate
+                      🔄 New Video
                     </button>
                   </div>
                   {item.prompt && (
@@ -2097,6 +2097,7 @@ export default function App() {
   const [soraHistory, setSoraHistory] = useState([]);
   const [historyLoading, setHistoryLoading] = useState(false);
   const [soraDbId, setSoraDbId] = useState(null);
+  const soraDbIdRef = useRef(null); // ref so polling closure always has latest value
   // Create Video flow states
   const [soraStorylines, setSoraStorylines] = useState([]);
   const [soraStorylinesLoading, setSoraStorylinesLoading] = useState(false);
@@ -2209,6 +2210,7 @@ export default function App() {
             status: 'completed', video_url: statusData.videoUrl, completed_at: new Date().toISOString()
           }).eq('id', job.id);
           loadSoraHistory();
+          loadCredits();
         } else if (statusData.status === 'FAILED') {
           clearInterval(soraPollingRef.current);
           setSoraError('Video generation failed.');
@@ -2235,6 +2237,7 @@ export default function App() {
     setSoraQueuePos(null);
     setSoraVideoConfig(null);
     setSoraDbId(null);
+    soraDbIdRef.current = null;
     setSoraStorylines([]);
     setSoraSelectedStoryline(null);
     setSoraStorylinesLoading(false);
@@ -2405,7 +2408,7 @@ export default function App() {
         product_description: sora.productDescription,
         status: "processing",
       }).select().single();
-      if (dbRow) setSoraDbId(dbRow.id);
+      if (dbRow) { setSoraDbId(dbRow.id); soraDbIdRef.current = dbRow.id; }
 
       setSoraStep("polling");
       soraPollingRef.current = setInterval(async () => {
@@ -2418,13 +2421,16 @@ export default function App() {
             setSoraVideoUrl(statusData.videoUrl);
             setSoraStep("done");
             logUsage(user.id, "kling_video_generated");
-            if (soraDbId) await supabase.from("sora_generations").update({ status: "completed", video_url: statusData.videoUrl, completed_at: new Date().toISOString() }).eq("id", soraDbId);
+            const dbId = soraDbIdRef.current;
+            if (dbId) await supabase.from("sora_generations").update({ status: "completed", video_url: statusData.videoUrl, completed_at: new Date().toISOString() }).eq("id", dbId);
             loadSoraHistory();
+            loadCredits(); // refresh credit balance in header
           } else if (statusData.status === "FAILED") {
             clearInterval(soraPollingRef.current);
             setSoraError(statusData.error || "Video generation failed.");
             setSoraStep("review-frame");
-            if (soraDbId) await supabase.from("sora_generations").update({ status: "failed" }).eq("id", soraDbId);
+            const dbId = soraDbIdRef.current;
+            if (dbId) await supabase.from("sora_generations").update({ status: "failed" }).eq("id", dbId);
           }
         } catch (e) {
           clearInterval(soraPollingRef.current);
