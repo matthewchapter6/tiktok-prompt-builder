@@ -2930,7 +2930,7 @@ export default function App() {
               {[
                 { emoji: "🔐", title: "How to register", desc: "Sign up using your Google account." },
                 { emoji: "⚡", title: "How to top up credits", desc: "Contact us directly to purchase credits." },
-                { emoji: "🎬", title: "How to generate a video", desc: "Use the "Create Video" tab to generate your first AI video." },
+                { emoji: "🎬", title: "How to generate a video", desc: "Use the Create Video tab to generate your first AI video." },
                 { emoji: "📝", title: "How to use the Builder", desc: "Enter your product details and let our AI content creator generate Grok prompts for UGC (User-Generated Content) videos." },
                 { emoji: "🎞️", title: "Video history & downloads", desc: "Access and download any videos generated within the past 30 days." },
                 { emoji: "💬", title: "Other questions", desc: "Have more questions? Message us directly via WhatsApp." },
