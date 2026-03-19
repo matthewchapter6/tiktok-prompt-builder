@@ -23,6 +23,12 @@ export const CREDIT_COSTS = {
   storyline:      0,  // Storyline generation   = FREE
 };
 
+// Helper: get video credit cost by length
+export const getVideoCreditCost = (videoLength) => {
+  if (videoLength === '5') return CREDIT_COSTS.video_5s;
+  return CREDIT_COSTS.video_10s;
+};
+
 // ── Fetch user's current credit balance ──────────────────────────────────
 export const fetchCredits = async (userId) => {
   try {
