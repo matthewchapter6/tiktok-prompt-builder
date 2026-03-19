@@ -19,7 +19,13 @@ export default async function handler(req, res) {
       videoStyle, tone, cameraMotion, lightingStyle,
       backgroundSetting, audienceEmotion, restrictions,
       hasProductImage, hasCharacterImage,
+      lang,
     } = req.body;
+
+    const langGuide = {
+      zh: 'LANGUAGE: Write entirely in Simplified Chinese (简体中文). Dialogue, voiceover, descriptions — all in Chinese.',
+      bm: 'LANGUAGE: Write entirely in Bahasa Malaysia. Dialogue, voiceover, descriptions — all in Bahasa Malaysia.',
+    }[lang] || 'LANGUAGE: Write in English.';
 
     const ratioLabel = videoRatio === '9_16' ? '9:16 vertical portrait' : '16:9 horizontal landscape';
     const aspectRatio = videoRatio === '9_16' ? '9:16' : '16:9';
@@ -56,7 +62,7 @@ export default async function handler(req, res) {
     const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${process.env.GOOGLE_API_KEY}`;
 
     // ── CALL 1: Image generation prompt ──────────────────────────────────
-    const imagePromptSystem = `You are a visual director writing Gemini image generation prompts for product ad first frames. Write a precise, vivid single paragraph describing the perfect opening frame. This is a STILL IMAGE — describe exactly what to render. Output only the prompt, no explanation.`;
+    const imagePromptSystem = `You are a visual director writing Gemini image generation prompts for product ad first frames. Write a precise, vivid single paragraph describing the perfect opening frame. This is a STILL IMAGE — describe exactly what to render. Output only the prompt, no explanation. Always write the image prompt in English regardless of language setting (image generation models work best with English prompts).`;
 
     const imagePromptUser = `Write a Gemini image generation prompt for the first frame of this product ad.
 
@@ -73,7 +79,9 @@ ${backgroundSetting ? `BACKGROUND: ${backgroundSetting}` : ''}
 Write the first frame scene as a single vivid paragraph. Include subject positioning, expression, product placement, lighting, composition. End with: "Ultra-realistic, cinematic photography, high detail, ${ratioLabel}. ${cat.avoid}."`;
 
     // ── CALL 2: Kling animation prompt ────────────────────────────────────
-    const animationSystem = `You are a motion director writing Kling 2.6 Pro image-to-video animation prompts. The first frame is already generated — Kling animates FROM that exact frame. Write ONLY how to animate it using the Golden Template: (1) Opening motion (2) Primary action (3) Camera movement (4) Dialogue/voiceover (5) Audio mood (6) Negative constraints. Write in flowing cinematic prose. No tags. No bullet points. Real camera language only.
+    const animationSystem = `${langInstruction ? langInstruction + ' ' : ''}You are a motion director writing Kling 2.6 Pro image-to-video animation prompts. The first frame is already generated — Kling animates FROM that exact frame. Write ONLY how to animate it using the Golden Template: (1) Opening motion (2) Primary action (3) Camera movement (4) Dialogue/voiceover (5) Audio mood (6) Negative constraints. Write in flowing cinematic prose. No tags. No bullet points. Real camera language only.
+
+${langGuide}
 
 PRODUCT INTEGRITY RULES — always include these in negative constraints:
 - Product must maintain exact size, proportions and scale throughout — do not resize or distort
