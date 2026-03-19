@@ -72,15 +72,8 @@ export default async function handler(req, res) {
       });
     }
 
-    // ── Choose correct model endpoint ─────────────────────────────────────
-    // Use dedicated elements endpoint when we have reference images
-    // This gives MUCH better reference adherence than standard text-to-video
-    let modelId;
-    if (elements.length > 0) {
-      modelId = 'fal-ai/kling-video/v2.6/pro/text-to-video';
-    } else {
-      modelId = 'fal-ai/kling-video/v2.6/pro/text-to-video';
-    }
+    // ── Model: Kling 2.6 Pro ─────────────────────────────────────────────
+    const modelId = 'fal-ai/kling-video/v2.6/pro/text-to-video';
 
     const input = {
       prompt,
