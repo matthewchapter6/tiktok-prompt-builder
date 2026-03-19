@@ -2423,9 +2423,6 @@ export default function App() {
   };
 
 
-  // ── Legacy combined handler (kept for compatibility) ──
-  const handleGenerateSoraVideo = handlePreviewPrompt;
-
   if (authLoading) return (
     <div className="min-h-screen bg-gray-50 flex items-center justify-center">
       <p className="text-gray-400 text-sm">Loading...</p>
@@ -2454,25 +2451,6 @@ export default function App() {
     { value: "middle", emoji: "🔶", label: t.funnelMiddleLabel, tag: t.funnelMiddleTag, description: t.funnelMiddleDesc, objective: t.funnelMiddleObj, examples: t.funnelMiddleEx, color: "yellow" },
     { value: "lower", emoji: "🔻", label: t.funnelLowerLabel, tag: t.funnelLowerTag, description: t.funnelLowerDesc, objective: t.funnelLowerObj, examples: t.funnelLowerEx, color: "green" },
   ];
-
-  const handleGenerateFirstFrame = async () => {
-    // Credit check for Gemini image generation
-    if (CREDIT_COSTS.image_gemini > 0) {
-      const enough = await hasEnoughCredits(user.id, CREDIT_COSTS.image_gemini);
-      if (!enough) {
-        setFrameError(`Insufficient credits. You need ${CREDIT_COSTS.image_gemini} credits for image generation.`);
-        return;
-      }
-    }
-    await generateFirstFrame(f, lang, productFile, talentFile, setFrameLoading, async (img) => {
-      setGeneratedImage(img);
-      // Deduct credits after successful generation
-      if (CREDIT_COSTS.image_gemini > 0) {
-        const result = await deductCredits(user.id, CREDIT_COSTS.image_gemini, 'Gemini first frame image');
-        if (result.success) setUserCredits(result.balance);
-      }
-    }, setFrameError);
-  };
 
   const generate = (withFrame) => {
     const result = buildClipPrompts(f, storyline, withFrame && hasFirstFrame, lang);
@@ -3262,7 +3240,7 @@ export default function App() {
                 </div>
 
                 <button
-                  onClick={handleGenerateFirstFrame}
+                  onClick={() => generateFirstFrame(f, lang, productFile, talentFile, setFrameLoading, setGeneratedImage, setFrameError)}
                   disabled={frameLoading || !f.productName}
                   className={`w-full py-2 rounded-lg text-sm font-medium border transition-all ${frameLoading || !f.productName ? "bg-gray-100 text-gray-400 border-gray-200 cursor-not-allowed" : "bg-indigo-500 text-white border-indigo-500 hover:bg-indigo-600 active:scale-95"}`}>
                   <span className="flex items-center gap-2">
