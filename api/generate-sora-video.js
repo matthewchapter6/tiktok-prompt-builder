@@ -9,7 +9,13 @@ export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
 
   try {
-    const { prompt, videoConfig, firstFrameBase64, firstFrameMime } = req.body;
+    const {
+      prompt, videoConfig,
+      firstFrameBase64, firstFrameMime,
+      productImageBase64, productImageMime,   // optional: product reference for elements
+      characterImageBase64, characterImageMime, // optional: character reference for elements
+    } = req.body;
+
     if (!prompt) return res.status(400).json({ error: 'Animation prompt required' });
     if (!firstFrameBase64) return res.status(400).json({ error: 'First frame image required' });
 
@@ -19,16 +25,42 @@ export default async function handler(req, res) {
     const duration    = videoConfig?.duration     || '10';
     const cfgScale    = videoConfig?.cfg_scale    ?? 0.8;
 
-    // Upload first frame to fal storage
+    // ── Upload first frame (required) ─────────────────────────────────────
     const frameBlob = base64ToBlob(firstFrameBase64, firstFrameMime || 'image/jpeg');
     const frameUrl  = await fal.storage.upload(frameBlob);
     console.log('First frame uploaded:', frameUrl);
 
+    // ── Upload product + character as elements (optional references) ──────
+    // Elements maintain visual consistency alongside the first frame
+    // Product = @Element1, Character = @Element2 (referenced in animation prompt)
+    const elements = [];
+    if (productImageBase64) {
+      const blob = base64ToBlob(productImageBase64, productImageMime || 'image/jpeg');
+      const url  = await fal.storage.upload(blob);
+      elements.push({ images: [{ url }] }); // @Element1
+      console.log('Product reference uploaded as @Element1');
+    }
+    if (characterImageBase64) {
+      const blob = base64ToBlob(characterImageBase64, characterImageMime || 'image/jpeg');
+      const url  = await fal.storage.upload(blob);
+      elements.push({ images: [{ url }] }); // @Element2
+      console.log('Character reference uploaded as @Element2');
+    }
+
     const modelId = 'fal-ai/kling-video/v2.6/pro/image-to-video';
-    const input = { prompt, image_url: frameUrl, aspect_ratio: aspectRatio, duration, cfg_scale: cfgScale };
+
+    const input = {
+      prompt,
+      image_url: frameUrl,        // first frame — Kling animates FROM this
+      aspect_ratio: aspectRatio,
+      duration,
+      cfg_scale: cfgScale,
+      ...(elements.length > 0 ? { elements } : {}), // product/character references
+    };
 
     console.log('=== KLING 2.6 PRO IMAGE-TO-VIDEO ===');
     console.log('Ratio:', aspectRatio, '| Duration:', duration, 's | cfg_scale:', cfgScale);
+    console.log('Elements:', elements.length, '(product + character references)');
     console.log('--- ANIMATION PROMPT ---');
     console.log(prompt);
     console.log('--- END ---');
