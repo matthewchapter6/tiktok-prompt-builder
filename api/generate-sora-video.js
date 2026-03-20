@@ -5,6 +5,9 @@
 
 import { fal } from "@fal-ai/client";
 
+// ✅ Configure once at module level, not per-request
+fal.config({ credentials: process.env.FAL_API_KEY });
+
 export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
@@ -24,35 +27,31 @@ export default async function handler(req, res) {
     if (!prompt) return res.status(400).json({ error: 'Animation prompt required' });
     if (!firstFrameBase64) return res.status(400).json({ error: 'First frame image required' });
 
-    fal.config({ credentials: process.env.FAL_API_KEY });
-
     const aspectRatio = videoConfig?.aspect_ratio || '9:16';
     const duration    = videoConfig?.duration     || '10';
 
-    // ── Upload first frame ────────────────────────────────────────────────
-    const frameBlob = base64ToBlob(firstFrameBase64, firstFrameMime || 'image/jpeg');
-    const frameUrl  = await fal.storage.upload(frameBlob);
-    console.log('First frame uploaded:', frameUrl);
+    // ── Convert base64 to Blobs ───────────────────────────────────────────
+    const frameBlob     = base64ToBlob(firstFrameBase64, firstFrameMime || 'image/jpeg');
+    const productBlob   = productImageBase64
+      ? base64ToBlob(productImageBase64, productImageMime || 'image/jpeg')
+      : null;
+    const characterBlob = characterImageBase64
+      ? base64ToBlob(characterImageBase64, characterImageMime || 'image/jpeg')
+      : null;
 
-    // ── Upload product + character if provided ────────────────────────────
-    let productUrl   = null;
-    let characterUrl = null;
-    if (productImageBase64) {
-      const blob = base64ToBlob(productImageBase64, productImageMime || 'image/jpeg');
-      productUrl = await fal.storage.upload(blob);
-      console.log('Product image uploaded');
-    }
-    if (characterImageBase64) {
-      const blob = base64ToBlob(characterImageBase64, characterImageMime || 'image/jpeg');
-      characterUrl = await fal.storage.upload(blob);
-      console.log('Character image uploaded');
-    }
+    // ✅ Upload all images in PARALLEL — 3x faster, avoids timeout
+    console.log(`[generate-sora-video] Uploading ${1 + (productBlob ? 1 : 0) + (characterBlob ? 1 : 0)} images in parallel...`);
+    const [frameUrl, productUrl, characterUrl] = await Promise.all([
+      fal.storage.upload(frameBlob),
+      productBlob   ? fal.storage.upload(productBlob)   : Promise.resolve(null),
+      characterBlob ? fal.storage.upload(characterBlob) : Promise.resolve(null),
+    ]);
+    console.log(`[generate-sora-video] Uploads done. frameUrl=${frameUrl}`);
 
     let modelId, input;
 
     if (model === 'kling') {
       // ── KLING 2.6 PRO ─────────────────────────────────────────────────
-      // image_url = first frame, elements = product + character references
       const cfgScale = videoConfig?.cfg_scale ?? 0.8;
       const elements = [];
       if (productUrl)   elements.push({ images: [{ url: productUrl }] });   // @Element1
@@ -69,20 +68,19 @@ export default async function handler(req, res) {
         ...(elements.length > 0 ? { elements } : {}),
       };
 
-      console.log('=== KLING 2.6 PRO IMAGE-TO-VIDEO ===');
+      console.log('[generate-sora-video] === KLING 2.6 PRO IMAGE-TO-VIDEO ===');
       console.log(`Ratio: ${aspectRatio} | Duration: ${duration}s | Audio: ON`);
       console.log(`Elements: ${elements.length} (product + character)`);
 
     } else {
       // ── WAN 2.6 R2V FLASH ─────────────────────────────────────────────
-      // All references passed as image_urls:
       // [0] product photo   → Character1 in prompt
       // [1] character photo → Character2 in prompt
       // [2] first frame     → Character3 in prompt
       const imageUrls = [];
       if (productUrl)   imageUrls.push(productUrl);   // Character1
       if (characterUrl) imageUrls.push(characterUrl); // Character2
-      imageUrls.push(frameUrl);                        // Character3 (or Character1 if no product/character)
+      imageUrls.push(frameUrl);                        // Character3 (or Character1 if no others)
 
       modelId = 'fal-ai/wan/v2.6/reference-to-video/flash';
       input = {
@@ -95,7 +93,7 @@ export default async function handler(req, res) {
         negative_prompt: 'distorted product, blurry, low quality, warped text, deformed labels',
       };
 
-      console.log('=== WAN 2.6 R2V FLASH ===');
+      console.log('[generate-sora-video] === WAN 2.6 R2V FLASH ===');
       console.log(`Ratio: ${aspectRatio} | Duration: ${duration}s | Audio: ON | Resolution: 720p`);
       console.log(`References: ${imageUrls.length} images (Character1–Character${imageUrls.length})`);
     }
@@ -105,9 +103,9 @@ export default async function handler(req, res) {
     console.log('--- END ---');
 
     const { request_id, status_url, response_url } = await fal.queue.submit(modelId, { input });
-    console.log('Submitted. request_id:', request_id);
+    console.log('[generate-sora-video] Submitted. request_id:', request_id);
 
-    res.status(200).json({
+    return res.status(200).json({
       requestId: request_id,
       statusUrl: status_url,
       responseUrl: response_url,
@@ -116,8 +114,8 @@ export default async function handler(req, res) {
     });
 
   } catch (error) {
-    console.error('generate-sora-video error:', error);
-    res.status(500).json({ error: error.message || 'Video generation failed' });
+    console.error('[generate-sora-video] Error:', error.message || error);
+    return res.status(500).json({ error: error.message || 'Video generation failed' });
   }
 }
 
