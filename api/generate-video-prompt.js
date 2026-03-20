@@ -19,13 +19,29 @@ export default async function handler(req, res) {
       videoStyle, tone, cameraMotion, lightingStyle,
       backgroundSetting, audienceEmotion, restrictions,
       hasProductImage, hasCharacterImage,
-      lang,
+      lang = 'en',
+      model = 'wan', // 'wan' | 'kling'
     } = req.body;
 
     const langGuide = {
       zh: 'LANGUAGE: Write entirely in Simplified Chinese (简体中文). Dialogue, voiceover, descriptions — all in Chinese.',
       bm: 'LANGUAGE: Write entirely in Bahasa Malaysia. Dialogue, voiceover, descriptions — all in Bahasa Malaysia.',
     }[lang] || 'LANGUAGE: Write in English.';
+
+    // Reference tags per model
+    const refTags = model === 'kling'
+      ? {
+          product:   hasProductImage ? '@Element1' : null,
+          character: hasCharacterImage ? '@Element2' : null,
+          frame:     null,
+        }
+      : {
+          product:   hasProductImage ? 'Character1' : null,
+          character: hasProductImage && hasCharacterImage ? 'Character2' : hasCharacterImage ? 'Character1' : null,
+          frame:     hasProductImage && hasCharacterImage ? 'Character3' : (hasProductImage || hasCharacterImage) ? 'Character2' : 'Character1',
+        };
+
+    const modelName = model === 'kling' ? 'Kling 2.6 Pro' : 'Wan 2.6 R2V Flash';
 
     const ratioLabel = videoRatio === '9_16' ? '9:16 vertical portrait' : '16:9 horizontal landscape';
     const aspectRatio = videoRatio === '9_16' ? '9:16' : '16:9';
@@ -79,7 +95,7 @@ ${backgroundSetting ? `BACKGROUND: ${backgroundSetting}` : ''}
 Write the first frame scene as a single vivid paragraph. Include subject positioning, expression, product placement, lighting, composition. End with: "Ultra-realistic, cinematic photography, high detail, ${ratioLabel}. ${cat.avoid}."`;
 
     // ── CALL 2: Kling animation prompt ────────────────────────────────────
-    const animationSystem = `${langInstruction ? langInstruction + ' ' : ''}You are a motion director writing Kling 2.6 Pro image-to-video animation prompts. The first frame is already generated — Kling animates FROM that exact frame. Write ONLY how to animate it using the Golden Template: (1) Opening motion (2) Primary action (3) Camera movement (4) Dialogue/voiceover (5) Audio mood (6) Negative constraints. Write in flowing cinematic prose. No tags. No bullet points. Real camera language only.
+    const animationSystem = `${langInstruction ? langInstruction + ' ' : ''}You are a motion director writing ${modelName} image-to-video animation prompts. The first frame is already generated — Kling animates FROM that exact frame. Write ONLY how to animate it using the Golden Template: (1) Opening motion (2) Primary action (3) Camera movement (4) Dialogue/voiceover (5) Audio mood (6) Negative constraints. Write in flowing cinematic prose. No tags. No bullet points. Real camera language only.
 
 ${langGuide}
 
@@ -111,10 +127,11 @@ Golden Template to follow:
 5. Audio mood — ambient sound + music tone described naturally
 6. Negative constraints — ALWAYS end with: "No product distortion, no resizing of product, product labels remain legible throughout, no colour shifts on product, no warping or stretching of product shape." Plus any other relevant constraints.
 
-${hasProductImage ? `ELEMENT REFERENCE: Product is uploaded as @Element1 — mention "@Element1 maintains exact size and appearance throughout" in your prompt.` : ''}
-${hasCharacterImage ? `ELEMENT REFERENCE: Character is uploaded as @Element2 — mention "@Element2 maintains consistent appearance throughout" in your prompt.` : ''}
+${refTags.product ? `REFERENCE TAG FOR PRODUCT: Use "${refTags.product}" whenever you reference the product — e.g. "${refTags.product} maintains its exact appearance throughout". This tag is critical for visual consistency.` : ''}
+${refTags.character ? `REFERENCE TAG FOR CHARACTER: Use "${refTags.character}" whenever you reference the person — e.g. "${refTags.character} moves naturally through the scene". This tag is critical for face consistency.` : ''}
+${refTags.frame ? `REFERENCE TAG FOR FIRST FRAME SCENE: Use "${refTags.frame}" to reference the overall starting scene composition.` : ''}
 
-Write as one flowing cinematic paragraph. Kling already sees the first frame — only describe the animation.`;
+Write as one flowing cinematic paragraph. The AI model already sees the first frame — only describe the animation.`;
 
     // ── CALL 3: Claude config JSON ────────────────────────────────────────
     const claudeConfigSystem = `You are a Kling AI technical configuration specialist. Return ONLY valid JSON. No explanation. No markdown.`;
