@@ -80,13 +80,16 @@ export default async function handler(req, res) {
       };
 
     } else {
-      // ── WAN 2.6 R2V FLASH ─────────────────────────────────────────────
+      // ── WAN 2.6 REFERENCE-TO-VIDEO FLASH ─────────────────────────────
+      // Accepts up to 5 images — product, character, first frame
+      // Characters referenced as Character1, Character2, etc. in prompt
       const imageUrls = [];
       if (productUrl)   imageUrls.push(productUrl);
       if (characterUrl) imageUrls.push(characterUrl);
       imageUrls.push(frameUrl);
 
-      modelId = "fal-ai/wan/v2.6/reference-to-video/flash";
+      // NOTE: correct model ID is "wan/v2.6/reference-to-video/flash" (no fal-ai/ prefix)
+      modelId = "wan/v2.6/reference-to-video/flash";
       input = {
         prompt,
         image_urls: imageUrls,
@@ -97,6 +100,7 @@ export default async function handler(req, res) {
         negative_prompt: "distorted product, blurry, low quality, warped text, deformed labels",
       };
       console.log("[generate-sora-video] === WAN 2.6 R2V FLASH ===");
+      console.log("[generate-sora-video] image_urls count:", imageUrls.length);
     }
 
     console.log(`[generate-sora-video] Ratio: ${aspectRatio} | Duration: ${duration}s`);
