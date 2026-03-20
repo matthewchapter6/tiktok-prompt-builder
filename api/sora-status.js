@@ -16,7 +16,6 @@ export default async function handler(req, res) {
   const { requestId, modelId } = req.query;
   if (!requestId) return res.status(400).json({ error: 'requestId is required' });
 
-  // Decode modelId — App.js sends encodeURIComponent(modelId)
   const modelPath = modelId
     ? decodeURIComponent(modelId)
     : 'fal-ai/kling-video/v2.6/pro/image-to-video';
@@ -24,21 +23,18 @@ export default async function handler(req, res) {
   console.log(`[sora-status] model=${modelPath} requestId=${requestId}`);
 
   try {
-    // ✅ Wrap with a 20s timeout so it never hangs silently
     const statusPromise = fal.queue.status(modelPath, { requestId, logs: false });
     const timeoutPromise = new Promise((_, reject) =>
       setTimeout(() => reject(new Error('fal.ai status check timed out after 20s')), 20000)
     );
 
     const status = await Promise.race([statusPromise, timeoutPromise]);
-
     console.log(`[sora-status] status=${status.status} queuePos=${status.queue_position ?? 'n/a'}`);
 
     if (status.status === 'COMPLETED') {
-
       let videoUrl = null;
 
-      // ── Strategy 1: result already embedded in status.data (Kling model) ──
+      // ── Strategy 1: result already embedded in status.data (Kling) ──
       if (status.data) {
         const d = status.data;
         videoUrl =
@@ -51,11 +47,16 @@ export default async function handler(req, res) {
         console.log(`[sora-status] Strategy 1 (status.data): videoUrl=${videoUrl}`);
       }
 
-      // ── Strategy 2: use fal.queue.result() SDK method (WAN model) ──
-      if (!videoUrl) {
-        console.log(`[sora-status] Strategy 2: calling fal.queue.result()`);
+      // ── Strategy 2: extract base model from response_url, then call fal.queue.result() ──
+      // WAN returns response_url like: https://queue.fal.run/fal-ai/wan/requests/xxx
+      // We must use "fal-ai/wan" (not the full subpath) when calling fal.queue.result()
+      if (!videoUrl && status.response_url) {
+        // Extract base model e.g. "fal-ai/wan" from the response_url
+        const match = status.response_url.match(/queue\.fal\.run\/([^/]+\/[^/]+)\/requests/);
+        const baseModel = match ? match[1] : modelPath;
+        console.log(`[sora-status] Strategy 2: fal.queue.result() with baseModel=${baseModel}`);
         try {
-          const result = await fal.queue.result(modelPath, { requestId });
+          const result = await fal.queue.result(baseModel, { requestId });
           console.log('[sora-status] fal.queue.result raw:', JSON.stringify(result, null, 2));
           const d = result?.data || result;
           videoUrl =
@@ -67,7 +68,7 @@ export default async function handler(req, res) {
             null;
           console.log(`[sora-status] Strategy 2 result: videoUrl=${videoUrl}`);
         } catch (resultErr) {
-          console.error('[sora-status] fal.queue.result failed:', resultErr.message);
+          console.error('[sora-status] Strategy 2 failed:', resultErr.message);
         }
       }
 
