@@ -35,31 +35,28 @@ export default async function handler(req, res) {
       new Promise((_, reject) => setTimeout(() => reject(new Error("timeout")), 20000))
     ]);
 
-    // Log the FULL status object so we can see exactly what fal returns
-    console.log(`[sora-status] FULL status object: ${JSON.stringify(status)}`);
+    console.log(`[sora-status] status=${status.status} inference_time=${status.metrics?.inference_time ?? "n/a"}`);
 
     if (status.status === "COMPLETED") {
       let videoUrl = extractVideoUrl(status.data);
       console.log(`[sora-status] videoUrl from status.data: ${videoUrl ?? "null"}`);
 
-      if (!videoUrl) {
-        // Always use full model path — never trust status.response_url (it omits version)
-        const resultUrl = `https://queue.fal.run/${modelPath}/requests/${requestId}`;
-        console.log(`[sora-status] Fetching: ${resultUrl}`);
-
+      // Use the response_url from the status object directly — this is the correct endpoint
+      if (!videoUrl && status.response_url) {
+        console.log(`[sora-status] Fetching response_url: ${status.response_url}`);
         try {
-          const r = await fetch(resultUrl, {
+          const r = await fetch(status.response_url, {
             headers: { "Authorization": `Key ${process.env.FAL_API_KEY}` }
           });
           const body = await r.text();
-          console.log(`[sora-status] HTTP ${r.status} body: ${body.slice(0, 500)}`);
+          console.log(`[sora-status] response_url HTTP ${r.status} body: ${body.slice(0, 1000)}`);
           if (r.ok) {
             const data = JSON.parse(body);
             videoUrl = extractVideoUrl(data);
-            console.log(`[sora-status] videoUrl from direct fetch: ${videoUrl ?? "null"}`);
+            console.log(`[sora-status] videoUrl from response_url: ${videoUrl ?? "null"}`);
           }
         } catch (e) {
-          console.log(`[sora-status] direct fetch failed: ${e.message}`);
+          console.log(`[sora-status] response_url fetch error: ${e.message}`);
         }
       }
 
