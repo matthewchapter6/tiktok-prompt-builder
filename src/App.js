@@ -132,7 +132,7 @@ const TRANSLATIONS = {
     btnCopy: "📋 Copy",
     btnCopiedOne: "✅ Copied!",
     btnEdit: "← Edit",
-    btnBackToBuilder: "{t.cvBack || "← Back"} to Builder",
+    btnBackToBuilder: "← Back to Builder",
     btnCollapseAdvanced: "Collapse Advanced Settings",
     btnShowAdvanced: "Show Advanced Settings",
     btnHideAdvanced: "Hide Advanced Settings",
