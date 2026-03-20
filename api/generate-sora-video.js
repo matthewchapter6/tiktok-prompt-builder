@@ -99,6 +99,7 @@ export default async function handler(req, res) {
 
     console.log(`[generate-sora-video] Ratio: ${aspectRatio} | Duration: ${duration}s`);
     console.log("[generate-sora-video] Prompt:", prompt.slice(0, 100));
+    console.log("[generate-sora-video] Full input:", JSON.stringify(input));
 
     // ✅ Webhook URL — fal.ai will POST the result here when done
     // This bypasses the broken WAN queue result endpoint entirely
