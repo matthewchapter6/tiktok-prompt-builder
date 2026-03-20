@@ -1,13 +1,15 @@
 // sora-status.js — polls fal.ai for video generation status
-// ✅ NO fal SDK — pure Node https to avoid SDK fetch interception
-// ✅ Status check uses BASE model, result fetch uses FULL model path
+// ✅ NO fal SDK — pure Node https with redirect following
 
 import https from "https";
+import http from "http";
 
-// ── Pure Node.js HTTPS GET ────────────────────────────────────────────────
-const rawGet = (url, apiKey) => new Promise((resolve, reject) => {
+// ── Raw HTTPS/HTTP GET with redirect following (up to 5 hops) ────────────
+const rawGet = (url, apiKey, redirectCount = 0) => new Promise((resolve, reject) => {
+  if (redirectCount > 5) return reject(new Error("Too many redirects"));
   const parsed = new URL(url);
-  const req = https.request(
+  const lib = parsed.protocol === "https:" ? https : http;
+  const req = lib.request(
     {
       hostname: parsed.hostname,
       path: parsed.pathname + parsed.search,
@@ -18,11 +20,20 @@ const rawGet = (url, apiKey) => new Promise((resolve, reject) => {
       },
     },
     (res) => {
+      // ✅ Follow redirects (301, 302, 303, 307, 308)
+      if ([301, 302, 303, 307, 308].includes(res.statusCode) && res.headers.location) {
+        const nextUrl = res.headers.location.startsWith("http")
+          ? res.headers.location
+          : `${parsed.protocol}//${parsed.hostname}${res.headers.location}`;
+        console.log(`[sora-status] Redirect ${res.statusCode} → ${nextUrl}`);
+        return rawGet(nextUrl, apiKey, redirectCount + 1).then(resolve).catch(reject);
+      }
       let body = "";
       res.on("data", chunk => body += chunk);
       res.on("end", () => {
+        console.log(`[sora-status] HTTP ${res.statusCode} body: ${body.slice(0, 300)}`);
         try { resolve({ statusCode: res.statusCode, data: JSON.parse(body) }); }
-        catch (e) { reject(new Error(`JSON parse failed: ${body.slice(0, 200)}`)); }
+        catch (e) { resolve({ statusCode: res.statusCode, data: null, raw: body.slice(0, 300) }); }
       });
     }
   );
@@ -41,37 +52,52 @@ export default async function handler(req, res) {
   const { requestId, modelId } = req.query;
   if (!requestId) return res.status(400).json({ error: "requestId is required" });
 
-  // Full model path e.g. "fal-ai/wan/v2.6/reference-to-video/flash"
   const modelPath = modelId
     ? decodeURIComponent(modelId)
     : "fal-ai/kling-video/v2.6/pro/image-to-video";
 
-  // Base model e.g. "fal-ai/wan" — used for status check only
   const baseModel = modelPath.split("/").slice(0, 2).join("/");
-
   const apiKey = process.env.FAL_API_KEY;
 
   console.log(`[sora-status] model=${modelPath} baseModel=${baseModel} requestId=${requestId}`);
 
   try {
-    // ── Step 1: Status check uses BASE model ─────────────────────────────
+    // ── Step 1: Status check (base model) ────────────────────────────────
     const statusUrl = `https://queue.fal.run/${baseModel}/requests/${requestId}/status`;
     console.log(`[sora-status] statusUrl=${statusUrl}`);
-
     const statusResp = await rawGet(statusUrl, apiKey);
-    console.log(`[sora-status] statusCode=${statusResp.statusCode} status=${statusResp.data?.status}`);
-
     const statusData = statusResp.data;
     const currentStatus = statusData?.status || statusData?.state || "IN_QUEUE";
+    console.log(`[sora-status] currentStatus=${currentStatus}`);
 
     if (currentStatus === "COMPLETED" || currentStatus === "OK") {
-      // ── Step 2: Result fetch uses FULL model path ─────────────────────
+
+      // ── Strategy A: use response_url from status (with redirect following) ──
+      const responseUrl = statusData?.response_url;
+      if (responseUrl) {
+        console.log(`[sora-status] Strategy A: fetching response_url=${responseUrl}`);
+        const resultResp = await rawGet(responseUrl, apiKey);
+        console.log(`[sora-status] Strategy A result:`, JSON.stringify(resultResp.data, null, 2));
+        const d = resultResp.data;
+        const videoUrl =
+          d?.video?.url         ||
+          d?.video_url          ||
+          d?.videos?.[0]?.url   ||
+          d?.output?.video?.url ||
+          d?.output?.video_url  ||
+          d?.url                ||
+          null;
+        if (videoUrl) {
+          console.log(`[sora-status] COMPLETED via Strategy A. videoUrl=${videoUrl}`);
+          return res.status(200).json({ status: "COMPLETED", videoUrl });
+        }
+      }
+
+      // ── Strategy B: full model path result URL ────────────────────────
       const resultUrl = `https://queue.fal.run/${modelPath}/requests/${requestId}`;
-      console.log(`[sora-status] resultUrl=${resultUrl}`);
-
+      console.log(`[sora-status] Strategy B: fetching resultUrl=${resultUrl}`);
       const resultResp = await rawGet(resultUrl, apiKey);
-      console.log(`[sora-status] result raw:`, JSON.stringify(resultResp.data, null, 2));
-
+      console.log(`[sora-status] Strategy B result:`, JSON.stringify(resultResp.data, null, 2));
       const d = resultResp.data;
       const videoUrl =
         d?.video?.url         ||
@@ -87,12 +113,9 @@ export default async function handler(req, res) {
     }
 
     if (currentStatus === "FAILED" || currentStatus === "ERROR") {
-      console.log("[sora-status] FAILED");
       return res.status(200).json({ status: "FAILED", error: "Video generation failed on fal.ai" });
     }
 
-    // IN_QUEUE or IN_PROGRESS
-    console.log(`[sora-status] still running: ${currentStatus}`);
     return res.status(200).json({
       status: currentStatus,
       queuePosition: statusData?.queue_position ?? null,
