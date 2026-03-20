@@ -1,5 +1,6 @@
 // sora-status.js — polls fal.ai for video generation status
 // ✅ NO fal SDK — pure Node https to avoid SDK fetch interception
+// ✅ Status check uses BASE model, result fetch uses FULL model path
 
 import https from "https";
 
@@ -20,7 +21,7 @@ const rawGet = (url, apiKey) => new Promise((resolve, reject) => {
       let body = "";
       res.on("data", chunk => body += chunk);
       res.on("end", () => {
-        try { resolve({ status: res.statusCode, data: JSON.parse(body) }); }
+        try { resolve({ statusCode: res.statusCode, data: JSON.parse(body) }); }
         catch (e) { reject(new Error(`JSON parse failed: ${body.slice(0, 200)}`)); }
       });
     }
@@ -45,23 +46,26 @@ export default async function handler(req, res) {
     ? decodeURIComponent(modelId)
     : "fal-ai/kling-video/v2.6/pro/image-to-video";
 
+  // Base model e.g. "fal-ai/wan" — used for status check only
+  const baseModel = modelPath.split("/").slice(0, 2).join("/");
+
   const apiKey = process.env.FAL_API_KEY;
 
-  console.log(`[sora-status] model=${modelPath} requestId=${requestId}`);
+  console.log(`[sora-status] model=${modelPath} baseModel=${baseModel} requestId=${requestId}`);
 
   try {
-    // ── Step 1: Check status using full model path ────────────────────────
-    const statusUrl = `https://queue.fal.run/${modelPath}/requests/${requestId}/status`;
+    // ── Step 1: Status check uses BASE model ─────────────────────────────
+    const statusUrl = `https://queue.fal.run/${baseModel}/requests/${requestId}/status`;
     console.log(`[sora-status] statusUrl=${statusUrl}`);
 
     const statusResp = await rawGet(statusUrl, apiKey);
+    console.log(`[sora-status] statusCode=${statusResp.statusCode} status=${statusResp.data?.status}`);
+
     const statusData = statusResp.data;
     const currentStatus = statusData?.status || statusData?.state || "IN_QUEUE";
 
-    console.log(`[sora-status] currentStatus=${currentStatus}`);
-
     if (currentStatus === "COMPLETED" || currentStatus === "OK") {
-      // ── Step 2: Fetch result using full model path ──────────────────────
+      // ── Step 2: Result fetch uses FULL model path ─────────────────────
       const resultUrl = `https://queue.fal.run/${modelPath}/requests/${requestId}`;
       console.log(`[sora-status] resultUrl=${resultUrl}`);
 
