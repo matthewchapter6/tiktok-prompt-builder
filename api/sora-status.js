@@ -35,10 +35,19 @@ export default async function handler(req, res) {
     console.log(`[sora-status] status=${status.status} queuePos=${status.queue_position ?? 'n/a'}`);
 
     if (status.status === 'COMPLETED') {
-      const data = status.data || status;
 
-      // ✅ DEBUG — paste this full log output into the chat so we can find the correct video URL path
-      console.log('[sora-status] COMPLETED raw data:', JSON.stringify(status, null, 2));
+      let data = status.data || null;
+
+      // ✅ FIX: WAN model returns COMPLETED but does NOT embed data in status response.
+      // We must fetch the result separately from response_url.
+      if (!data && status.response_url) {
+        console.log(`[sora-status] data missing — fetching from response_url: ${status.response_url}`);
+        const resultRes = await fetch(status.response_url, {
+          headers: { 'Authorization': `Key ${process.env.FAL_API_KEY}` }
+        });
+        data = await resultRes.json();
+        console.log('[sora-status] response_url result:', JSON.stringify(data, null, 2));
+      }
 
       const videoUrl =
         data?.video?.url ||
