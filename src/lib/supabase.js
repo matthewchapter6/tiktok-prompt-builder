@@ -93,25 +93,27 @@ export const deductCredits = async (userId, cost, description) => {
       .from('user_credits')
       .update({
         credits: newBalance,
-        total_used: supabase.rpc ? undefined : undefined, // handled below
         updated_at: new Date().toISOString(),
       })
       .eq('id', userId);
 
     if (updateErr) throw updateErr;
 
-    // Increment total_used separately
-    await supabase.rpc('increment_total_used', { user_id: userId, amount: cost })
-      .catch(() => {}); // non-critical if RPC doesn't exist yet
+    // Increment total_used (non-critical)
+    try {
+      await supabase.rpc('increment_total_used', { user_id: userId, amount: cost });
+    } catch (_) {}
 
-    // Log transaction
-    await supabase.from('credit_transactions').insert({
-      user_id: userId,
-      action: 'deduct',
-      amount: -cost,
-      description,
-      balance_after: newBalance,
-    }).catch(() => {}); // non-critical
+    // Log transaction (non-critical)
+    try {
+      await supabase.from('credit_transactions').insert({
+        user_id: userId,
+        action: 'deduct',
+        amount: -cost,
+        description,
+        balance_after: newBalance,
+      });
+    } catch (_) {}
 
     return { success: true, balance: newBalance };
   } catch (e) {
