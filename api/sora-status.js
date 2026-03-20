@@ -35,9 +35,10 @@ export default async function handler(req, res) {
     console.log(`[sora-status] status=${status.status} queuePos=${status.queue_position ?? 'n/a'}`);
 
     if (status.status === 'COMPLETED') {
-      // ✅ Result is already embedded inside the status response — no second call needed
-      // Calling fal.queue.result() separately causes "Not Found" 500 error
       const data = status.data || status;
+
+      // ✅ DEBUG — paste this full log output into the chat so we can find the correct video URL path
+      console.log('[sora-status] COMPLETED raw data:', JSON.stringify(status, null, 2));
 
       const videoUrl =
         data?.video?.url ||
@@ -45,6 +46,7 @@ export default async function handler(req, res) {
         data?.videos?.[0]?.url ||
         data?.output?.video?.url ||
         data?.output?.video_url ||
+        data?.url ||
         null;
 
       console.log(`[sora-status] COMPLETED. videoUrl=${videoUrl}`);
