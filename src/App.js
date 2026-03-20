@@ -161,7 +161,7 @@ const TRANSLATIONS = {
 
     // Step labels
     step1Title: "Generate First Frame",
-    step1Optional: t.cvOptional || {t.cvOptional},
+    step1Optional: "Optional",
     step1Sub: "Use Gemini to create a reference image — then review before generating prompts",
     step2Title: "Generate Prompts",
     step2SubReady: "First frame ready — choose text-only or image-to-video mode",
