@@ -57,9 +57,17 @@ export default async function handler(req, res) {
       if (productUrl)   elements.push({ images: [{ url: productUrl }] });
       if (characterUrl) elements.push({ images: [{ url: characterUrl }] });
 
+      // Strip @Element1/@Element2 refs from prompt if no element images uploaded
+      const cleanPrompt = elements.length > 0
+        ? prompt
+        : prompt.replace(/@Element\d+/g, "").replace(/\s+/g, " ").trim();
+      if (elements.length === 0 && cleanPrompt !== prompt) {
+        console.log("[generate-sora-video] Stripped @Element refs (no element images)");
+      }
+
       modelId = "fal-ai/kling-video/v2.6/pro/image-to-video";
       input = {
-        prompt,
+        prompt: cleanPrompt,
         image_url: frameUrl,
         aspect_ratio: aspectRatio,
         duration,
