@@ -1777,6 +1777,7 @@ const soraInit = {
   productDescription: "",
   productUSP: "",
   productCategory: "",
+  videoModel: "wan",    // 'wan' | 'kling'
   salesFunnel: "lower",
   videoRatio: "9_16",
   videoLength: "10",
@@ -2492,6 +2493,7 @@ export default function App() {
           hasProductImage: !!soraProductFile,
           hasCharacterImage: !!soraCharacterFile,
           lang, // pass language for localized output
+          model: sora.videoModel, // pass model for correct reference tags
         }),
       });
       const promptData = await promptRes.json();
@@ -2545,7 +2547,7 @@ export default function App() {
     setSoraVideoUrl("");
     setSoraQueuePos(null);
     try {
-      const videoCost = getVideoCreditCost(sora.videoLength);
+      const videoCost = getVideoCreditCost(sora.videoLength, sora.videoModel);
       const enough = await hasEnoughCredits(user.id, videoCost);
       if (!enough) {
         setSoraError(`Insufficient credits. You need ${videoCost} credits. Please contact admin to top up.`);
@@ -2573,10 +2575,11 @@ export default function App() {
           videoConfig: soraVideoConfig,
           firstFrameBase64: soraFirstFrame.data,
           firstFrameMime: soraFirstFrame.mimeType,
-          productImageBase64,    // → @Element1 in Kling (product reference)
+          productImageBase64,
           productImageMime,
-          characterImageBase64,  // → @Element2 in Kling (character reference)
+          characterImageBase64,
           characterImageMime,
+          model: sora.videoModel,
         }),
       });
       const videoData = await videoRes.json();
@@ -2788,7 +2791,7 @@ export default function App() {
                 </svg>
                 <div>
                   <p className="text-sm font-semibold text-gray-800">
-                    {soraStep === "generating-video" ? (t.cvSubmitting || "Submitting to Kling AI…") : `Generating video…${soraQueuePos != null ? ` (#${soraQueuePos} in queue)` : ""}`}
+                    {soraStep === "generating-video" ? (sora.videoModel === "kling" ? "Submitting to Kling AI…" : "Submitting to Wan AI…") : `Generating video…${soraQueuePos != null ? ` (#${soraQueuePos} in queue)` : ""}`}
                   </p>
                   <p className="text-xs text-gray-400 mt-1">{t.cvSafeClose || "Takes 30–90 seconds. You can safely close — check History tab later."}</p>
                 </div>
@@ -2848,22 +2851,24 @@ export default function App() {
                 {/* Generate button */}
                 <div>
                   <div className="flex items-center justify-between mb-2 px-0.5">
-                    <p className="text-xs text-gray-400">⚡ Kling 2.6 Pro · Image-to-video · ~30–90s</p>
+                    <p className="text-xs text-gray-400">
+                    {sora.videoModel === "kling" ? "🏆 Kling 2.6 Pro · 1080p · ~30–90s" : "⚡ Wan 2.6 Flash · 720p · ~30–90s"}
+                  </p>
                     <div className="flex items-center gap-1 bg-amber-50 border border-amber-100 rounded-lg px-2 py-1">
-                      <span className="text-xs font-bold text-amber-700">{getVideoCreditCost(sora.videoLength)}</span>
+                      <span className="text-xs font-bold text-amber-700">{getVideoCreditCost(sora.videoLength, sora.videoModel)}</span>
                       <span className="text-xs text-amber-500">credits</span>
                     </div>
                   </div>
-                  {userCredits !== null && userCredits < getVideoCreditCost(sora.videoLength) && (
+                  {userCredits !== null && userCredits < getVideoCreditCost(sora.videoLength, sora.videoModel) && (
                     <div className="mb-2 bg-red-50 border border-red-200 rounded-lg px-3 py-2 text-xs text-red-600 text-center">
-                      ⚠️ You have <strong>{userCredits}</strong> credits but need <strong>{getVideoCreditCost(sora.videoLength)}</strong>. Contact admin to top up.
+                      ⚠️ You have <strong>{userCredits}</strong> credits but need <strong>{getVideoCreditCost(sora.videoLength, sora.videoModel)}</strong>. Contact admin to top up.
                     </div>
                   )}
                   <button onClick={handleGenerateVideo}
                     disabled={!soraAnimationPrompt}
                     className={`w-full py-4 rounded-xl font-bold text-sm transition-all flex items-center justify-center gap-2 ${!soraAnimationPrompt ? "bg-gray-200 text-gray-400 cursor-not-allowed" : "bg-indigo-500 text-white hover:bg-indigo-600 active:scale-95"}`}>
                     🎬 Generate Video
-                    <span className="bg-white bg-opacity-20 text-white text-xs font-bold px-2 py-0.5 rounded-full">{getVideoCreditCost(sora.videoLength)} credits</span>
+                    <span className="bg-white bg-opacity-20 text-white text-xs font-bold px-2 py-0.5 rounded-full">{getVideoCreditCost(sora.videoLength, sora.videoModel)} credits</span>
                   </button>
                   <button onClick={() => setSoraStep(sora.aiDecideStoryline ? "pick-storyline" : "idle")}
                     className="w-full mt-2 py-2 rounded-xl border border-gray-200 text-xs text-gray-500 hover:bg-gray-50 transition-all">
@@ -3002,6 +3007,25 @@ export default function App() {
 
                 {/* Video settings */}
                 <Section emoji="🎬" title={t.cvVideoSettings || "Video Settings"}>
+                  {/* ── Model selector ── */}
+                  <Field label="AI Model">
+                    <div className="flex gap-2">
+                      {[
+                        { v: "wan",   l: "Wan 2.6 Flash",  badge: "⚡ Cheaper",  sub: "720p · R2V · Audio", credits: "10 / 20 credits" },
+                        { v: "kling", l: "Kling 2.6 Pro",   badge: "🏆 Premium", sub: "1080p · Audio",       credits: "20 / 40 credits" },
+                      ].map(({ v, l, badge, sub, credits }) => (
+                        <button key={v} onClick={() => setSoraField("videoModel")(v)}
+                          className={`flex-1 border-2 rounded-xl px-3 py-2.5 text-left transition-all ${sora.videoModel === v ? "border-indigo-500 bg-indigo-50" : "border-gray-200 hover:border-gray-300"}`}>
+                          <div className="flex items-center justify-between mb-0.5">
+                            <span className="text-xs font-bold text-gray-800">{l}</span>
+                            <span className={`text-xs px-1.5 py-0.5 rounded-full font-medium ${v === "wan" ? "bg-green-100 text-green-700" : "bg-purple-100 text-purple-700"}`}>{badge}</span>
+                          </div>
+                          <p className="text-xs text-gray-400">{sub}</p>
+                          <p className="text-xs font-semibold text-amber-600 mt-1">{credits} (5s / 10s)</p>
+                        </button>
+                      ))}
+                    </div>
+                  </Field>
                   <Field label={t.cvSalesFunnel}>
                     <Chips value={sora.salesFunnel} onChange={setSoraField("salesFunnel")} single
                       options={[{value:"upper",label:"Awareness"},{value:"middle",label:"Consideration"},{value:"lower",label:"Conversion"}]} />
@@ -3081,7 +3105,7 @@ export default function App() {
                     </p>
                   )}
                   <p className="text-xs text-gray-400 text-center mt-2">
-                    {t.cvFrameFree} {getVideoCreditCost(sora.videoLength)} {t.cvCredits}
+                    {t.cvFrameFree} {getVideoCreditCost(sora.videoLength, sora.videoModel)} {t.cvCredits}
                   </p>
                 </div>
               </div>
