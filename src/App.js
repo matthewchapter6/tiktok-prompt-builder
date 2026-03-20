@@ -902,7 +902,7 @@ const OPTS = {
   },
   productCategory: {
     en: [
-      { value: "", label: t.cvSelectCategory || {t.cvSelectCategory} },
+      { value: "", label: "— Select category —" },
       { value: "tech_gadget", label: "Physical — tech gadget" },
       { value: "consumer_good", label: "Physical — consumer good" },
       { value: "skincare", label: "Physical — skincare / beauty" },
