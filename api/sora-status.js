@@ -3,6 +3,9 @@
 
 import { fal } from "@fal-ai/client";
 
+// ✅ Configure once at module level, not per-request
+fal.config({ credentials: process.env.FAL_API_KEY });
+
 export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET, OPTIONS');
@@ -20,27 +23,28 @@ export default async function handler(req, res) {
 
   console.log(`[sora-status] model=${modelPath} requestId=${requestId}`);
 
-  fal.config({ credentials: process.env.FAL_API_KEY });
-
   try {
-    // Use fal SDK for status — works correctly for ALL models
-    const status = await fal.queue.status(modelPath, {
-      requestId,
-      logs: false,
-    });
+    // ✅ Wrap with a 20s timeout so it never hangs silently
+    const statusPromise = fal.queue.status(modelPath, { requestId, logs: false });
+    const timeoutPromise = new Promise((_, reject) =>
+      setTimeout(() => reject(new Error('fal.ai status check timed out after 20s')), 20000)
+    );
+
+    const status = await Promise.race([statusPromise, timeoutPromise]);
 
     console.log(`[sora-status] status=${status.status} queuePos=${status.queue_position ?? 'n/a'}`);
 
     if (status.status === 'COMPLETED') {
-      // Fetch the actual result
-      const result = await fal.queue.result(modelPath, { requestId });
+      // ✅ Result is already embedded inside the status response — no second call needed
+      // Calling fal.queue.result() separately causes "Not Found" 500 error
+      const data = status.data || status;
 
       const videoUrl =
-        result?.data?.video?.url ||
-        result?.data?.video_url ||
-        result?.data?.videos?.[0]?.url ||
-        result?.video?.url ||
-        result?.video_url ||
+        data?.video?.url ||
+        data?.video_url ||
+        data?.videos?.[0]?.url ||
+        data?.output?.video?.url ||
+        data?.output?.video_url ||
         null;
 
       console.log(`[sora-status] COMPLETED. videoUrl=${videoUrl}`);
