@@ -2604,7 +2604,7 @@ export default function App() {
       if (deduct.success) setUserCredits(deduct.balance);
 
       // Save to Supabase
-      const modelPath = videoData.modelId || "fal-ai/kling-video/v2.6/pro/image-to-video";
+      const modelPath = videoData.modelId || "fal-ai/kling-video/v3/pro/image-to-video";
       const { data: dbRow } = await supabase.from("sora_generations").insert({
         user_id: user.id,
         request_id: videoData.requestId,
