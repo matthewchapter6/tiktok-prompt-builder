@@ -2790,7 +2790,7 @@ export default function App() {
                   <p className="text-sm font-semibold text-gray-800">
                     {soraStep === "generating-video" ? (t.cvSubmitting || "Submitting to Kling AI…") : `Generating video…${soraQueuePos != null ? ` (#${soraQueuePos} in queue)` : ""}`}
                   </p>
-                  <p className="text-xs text-gray-400 mt-1">{t.cvSafeClose || "{t.cvSafeClose || "Takes 30–90 seconds. You can safely close — check History tab later."}"}</p>
+                  <p className="text-xs text-gray-400 mt-1">{t.cvSafeClose || "Takes 30–90 seconds. You can safely close — check History tab later."}</p>
                 </div>
                 {soraFirstFrame && (
                   <div>
@@ -2943,7 +2943,7 @@ export default function App() {
                 </div>
 
                 {/* Upload photos */}
-                <Section emoji="📸" title=t.cvUploadPhotos || "Upload Photos" subtitle=t.cvUploadSubtitle || "Product photo required · Character optional">
+                <Section emoji="📸" title={t.cvUploadPhotos || "Upload Photos"} subtitle={t.cvUploadSubtitle || "Product photo required · Character optional"}>
                   <div className="grid grid-cols-2 gap-3">
                     {[
                       { file: soraProductFile, setFile: setSoraProductFile, label: t.cvProductPhoto || "Product photo *", emoji: "📦", required: true },
@@ -3001,7 +3001,7 @@ export default function App() {
                 </Section>
 
                 {/* Video settings */}
-                <Section emoji="🎬" title=t.cvVideoSettings || "Video Settings">
+                <Section emoji="🎬" title={t.cvVideoSettings || "Video Settings"}>
                   <Field label={t.cvSalesFunnel}>
                     <Chips value={sora.salesFunnel} onChange={setSoraField("salesFunnel")} single
                       options={[{value:"upper",label:"Awareness"},{value:"middle",label:"Consideration"},{value:"lower",label:"Conversion"}]} />
