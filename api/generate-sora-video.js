@@ -55,9 +55,10 @@ export default async function handler(req, res) {
       const cfgScale = videoConfig?.cfg_scale ?? 0.8;
 
       // Build elements array for product/character reference images
+      // v3 format: frontal_image_url + reference_image_urls
       const elements = [];
-      if (productUrl)   elements.push({ images: [{ url: productUrl }] });
-      if (characterUrl) elements.push({ images: [{ url: characterUrl }] });
+      if (productUrl)   elements.push({ frontal_image_url: productUrl, reference_image_urls: [productUrl] });
+      if (characterUrl) elements.push({ frontal_image_url: characterUrl, reference_image_urls: [characterUrl] });
 
       // Strip @Element refs from prompt if no reference images provided
       const cleanPrompt = elements.length > 0
