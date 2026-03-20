@@ -41,7 +41,6 @@ export default async function handler(req, res) {
       let videoUrl = extractVideoUrl(status.data);
       console.log(`[sora-status] videoUrl from status.data: ${videoUrl ?? "null"}`);
 
-      // Use the response_url from the status object directly — this is the correct endpoint
       if (!videoUrl && status.response_url) {
         console.log(`[sora-status] Fetching response_url: ${status.response_url}`);
         try {
@@ -49,7 +48,7 @@ export default async function handler(req, res) {
             headers: { "Authorization": `Key ${process.env.FAL_API_KEY}` }
           });
           const body = await r.text();
-          console.log(`[sora-status] response_url HTTP ${r.status} body: ${body.slice(0, 1000)}`);
+          console.log(`[sora-status] response_url HTTP ${r.status} body: ${body.slice(0, 500)}`);
           if (r.ok) {
             const data = JSON.parse(body);
             videoUrl = extractVideoUrl(data);
