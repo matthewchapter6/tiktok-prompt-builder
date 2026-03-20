@@ -1,6 +1,4 @@
-// sora-status.js
-// Polls fal.ai queue for video generation status
-// Supports any model — uses modelId param from generate-sora-video response
+// sora-status.js — polls fal.ai for video generation status
 
 export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
@@ -9,56 +7,68 @@ export default async function handler(req, res) {
   if (req.method === 'OPTIONS') return res.status(200).end();
   if (req.method !== 'GET') return res.status(405).json({ error: 'Method not allowed' });
 
+  const { requestId, modelId } = req.query;
+
+  if (!requestId) {
+    return res.status(400).json({ error: 'requestId is required' });
+  }
+
+  // Decode modelId — App.js sends encodeURIComponent(modelId)
+  const modelPath = modelId
+    ? decodeURIComponent(modelId)
+    : 'fal-ai/kling-video/v2.6/pro/image-to-video';
+
+  console.log(`[sora-status] modelPath=${modelPath} requestId=${requestId}`);
+
   try {
-    const { requestId, modelId } = req.query;
-    if (!requestId) return res.status(400).json({ error: 'requestId is required' });
+    const statusUrl = `https://queue.fal.run/${modelPath}/requests/${requestId}/status`;
+    console.log(`[sora-status] Polling: ${statusUrl}`);
 
-    // Decode modelId — App.js uses encodeURIComponent which encodes slashes
-    const modelPath = modelId
-      ? decodeURIComponent(modelId)
-      : 'fal-ai/kling-video/v2.6/pro/image-to-video';
-    console.log('Polling model:', modelPath, '| requestId:', requestId);
+    const statusRes = await fetch(statusUrl, {
+      headers: { 'Authorization': `Key ${process.env.FAL_API_KEY}` }
+    });
 
-    const statusRes = await fetch(
-      `https://queue.fal.run/${modelPath}/requests/${requestId}/status`,
-      { headers: { 'Authorization': `Key ${process.env.FAL_API_KEY}` } }
-    );
+    const rawText = await statusRes.text();
+    console.log(`[sora-status] fal response ${statusRes.status}: ${rawText.substring(0, 200)}`);
 
-    const data = await statusRes.json();
+    let data;
+    try { data = JSON.parse(rawText); }
+    catch (e) { return res.status(500).json({ error: 'Invalid JSON from fal.ai', raw: rawText.substring(0, 500) }); }
+
     if (!statusRes.ok) {
-      console.error('sora-status fal error:', JSON.stringify(data));
-      return res.status(statusRes.status).json({ error: 'Status check failed', details: data });
+      return res.status(statusRes.status).json({ error: 'fal.ai status check failed', details: data });
     }
 
     if (data.status === 'COMPLETED') {
-      const resultRes = await fetch(
-        `https://queue.fal.run/${modelPath}/requests/${requestId}`,
-        { headers: { 'Authorization': `Key ${process.env.FAL_API_KEY}` } }
-      );
+      const resultUrl = `https://queue.fal.run/${modelPath}/requests/${requestId}`;
+      const resultRes = await fetch(resultUrl, {
+        headers: { 'Authorization': `Key ${process.env.FAL_API_KEY}` }
+      });
       const result = await resultRes.json();
 
-      // Handle different response formats across models
       const videoUrl =
         result?.video?.url ||
         result?.video_url ||
         result?.videos?.[0]?.url ||
         null;
 
-      console.log('Video completed. URL:', videoUrl);
+      console.log(`[sora-status] COMPLETED. videoUrl=${videoUrl}`);
       return res.status(200).json({ status: 'COMPLETED', videoUrl, result });
     }
 
     if (data.status === 'FAILED') {
+      console.log(`[sora-status] FAILED:`, data.error);
       return res.status(200).json({ status: 'FAILED', error: data.error || 'Video generation failed' });
     }
 
-    res.status(200).json({
+    // IN_QUEUE or IN_PROGRESS
+    return res.status(200).json({
       status: data.status || 'IN_QUEUE',
       queuePosition: data.queue_position ?? null,
     });
 
   } catch (error) {
-    console.error('sora-status error:', error);
-    res.status(500).json({ error: 'Status check failed', details: error.message });
+    console.error('[sora-status] Exception:', error.message, error.stack);
+    return res.status(500).json({ error: 'Status check failed', details: error.message });
   }
 }
