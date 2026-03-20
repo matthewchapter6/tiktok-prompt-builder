@@ -910,8 +910,8 @@ const OPTS = {
       { value: "apparel", label: "Physical — apparel / fashion" },
       { value: "food_beverage", label: "Physical — food & beverage" },
       { value: "home_living", label: "Physical — home & living" },
-      { value: "software_app", label: {lang === "zh" ? "软件/应用" : lang === "bm" ? "Perisian / aplikasi" : "Software / app"} },
-      { value: "service", label: {lang === "zh" ? "服务" : lang === "bm" ? "Perkhidmatan" : "Service"} },
+      { value: "software_app", label: "Software / app" },
+      { value: "service", label: "Service" },
       { value: "event_campaign", label: "Event / campaign" },
       { value: "other", label: "Other — type below" },
     ],
@@ -2128,7 +2128,7 @@ const HistoryTab = ({
                   item.status === "processing" ? "bg-blue-100 text-blue-700" :
                   "bg-red-100 text-red-700"
                 }`}>
-                  {item.status === "completed" ? {t.histDone || "✅ Done"} :
+                  {item.status === "completed" ? (t.histDone || "✅ Done") :
                    item.status === "processing" ? ht("histProcessing","⏳ Processing") : ht("histFailed","❌ Failed")}
                 </span>
               </div>
@@ -2788,7 +2788,7 @@ export default function App() {
                 </svg>
                 <div>
                   <p className="text-sm font-semibold text-gray-800">
-                    {soraStep === "generating-video" ? {t.cvSubmitting} : `Generating video…${soraQueuePos != null ? ` (#${soraQueuePos} in queue)` : ""}`}
+                    {soraStep === "generating-video" ? (t.cvSubmitting || "Submitting to Kling AI…") : `Generating video…${soraQueuePos != null ? ` (#${soraQueuePos} in queue)` : ""}`}
                   </p>
                   <p className="text-xs text-gray-400 mt-1">{t.cvSafeClose || "{t.cvSafeClose || "Takes 30–90 seconds. You can safely close — check History tab later."}"}</p>
                 </div>
@@ -2931,7 +2931,7 @@ export default function App() {
 
                 {/* Progress steps */}
                 <div className="flex items-center gap-1 text-xs">
-                  {[t.cvStep1 || {t.cvStep1}, t.cvStep2 || {t.cvStep2}, t.cvStep3 || {t.cvStep3}, t.cvStep4 || {t.cvStep4}].map((label, i) => (
+                  {[t.cvStep1||"Upload & Info", t.cvStep2||"Storyline", t.cvStep3||"First Frame", t.cvStep4||"Generate Video"].map((label, i) => (
                     <React.Fragment key={i}>
                       <div className="flex items-center gap-1.5">
                         <span className="w-5 h-5 rounded-full bg-indigo-500 text-white text-xs font-bold flex items-center justify-center flex-shrink-0">{i+1}</span>
@@ -2946,8 +2946,8 @@ export default function App() {
                 <Section emoji="📸" title=t.cvUploadPhotos || "Upload Photos" subtitle=t.cvUploadSubtitle || "Product photo required · Character optional">
                   <div className="grid grid-cols-2 gap-3">
                     {[
-                      { file: soraProductFile, setFile: setSoraProductFile, label: t.cvProductPhoto || {t.cvProductPhoto}, emoji: "📦", required: true },
-                      { file: soraCharacterFile, setFile: setSoraCharacterFile, label: t.cvCharacterPhoto || {t.cvCharacterPhoto}, emoji: "🧑", required: false },
+                      { file: soraProductFile, setFile: setSoraProductFile, label: t.cvProductPhoto || "Product photo *", emoji: "📦", required: true },
+                      { file: soraCharacterFile, setFile: setSoraCharacterFile, label: t.cvCharacterPhoto || "Character (optional)", emoji: "🧑", required: false },
                     ].map(({ file, setFile, label, emoji, required }) => (
                       <Field key={label} label={label}>
                         <label className={`flex flex-col items-center justify-center w-full h-28 border-2 border-dashed rounded-xl cursor-pointer transition-all ${file ? "border-indigo-300 bg-indigo-50" : "border-gray-200 bg-gray-50 hover:border-indigo-300 hover:bg-indigo-50"}`}>
@@ -2960,7 +2960,7 @@ export default function App() {
                           ) : (
                             <div className="text-center">
                               <p className="text-2xl">{emoji}</p>
-                              <p className="text-xs text-gray-500 mt-1">{required ? t.cvRequired || {t.cvRequired} : "Optional"}</p>
+                              <p className="text-xs text-gray-500 mt-1">{required ? (t.cvRequired||"Required") : (t.cvOptional||"Optional")}</p>
                             </div>
                           )}
                           <input type="file" accept="image/*" className="hidden"
@@ -2973,7 +2973,7 @@ export default function App() {
 
                 {/* Product info */}
                 <Section emoji="📝" title={t.cvProductInfo || "Product Info"} subtitle={t.cvProductInfoSubtitle || "More detail = better video"}>
-                  <Field label=t.cvCategory || {t.cvCategory}>
+                  <Field label={t.cvCategory || "Category"}>
                     <select value={sora.productCategory} onChange={e => setSoraField("productCategory")(e.target.value)}
                       className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-blue-400 bg-white">
                       <option value="">{lang === "zh" ? "— 选择类别 —" : lang === "bm" ? "— Pilih kategori —" : "— Select category —"}</option>
@@ -2990,11 +2990,11 @@ export default function App() {
                       <option value="service">{lang === "zh" ? "服务" : lang === "bm" ? "Perkhidmatan" : "Service"}</option>
                     </select>
                   </Field>
-                  <Field label=t.cvProductDesc || {t.cvProductDesc}>
+                  <Field label={t.cvProductDesc || "Product description *"}>
                     <TextInput value={sora.productDescription} onChange={setSoraField("productDescription")}
                       placeholder="e.g. Felet Silver 5000 badminton shoes — ultra-lightweight with silver metallic finish" />
                   </Field>
-                  <Field label=t.cvUSP || {t.cvUSP}>
+                  <Field label={t.cvUSP || "USP *"}>
                     <TextInput value={sora.productUSP} onChange={setSoraField("productUSP")}
                       placeholder="e.g. Limited edition — only 2000 pairs in Malaysia" />
                   </Field>
@@ -3020,7 +3020,7 @@ export default function App() {
                 <Section emoji="✍️" title={t.cvStoryline}>
                   <Field label={t.cvStorylineQuestion}>
                     <div className="flex gap-2">
-                      {[{v:true,l:{t.cvAIDecides}},{v:false,l:{t.cvUserWrites}}].map(({v,l}) => (
+                      {[{v:true,l:t.cvAIDecides||"🤖 AI proposes 5 ideas"},{v:false,l:t.cvUserWrites||"✍️ I'll write my own"}].map(({v,l}) => (
                         <button key={String(v)} onClick={() => setSoraField("aiDecideStoryline")(v)}
                           className={`flex-1 py-2.5 rounded-xl text-xs font-medium border-2 transition-all ${sora.aiDecideStoryline === v ? "border-indigo-500 bg-indigo-50 text-indigo-700" : "border-gray-200 text-gray-500"}`}>
                           {l}
@@ -3073,11 +3073,11 @@ export default function App() {
                     }}
                     disabled={!sora.productDescription || !sora.productUSP || !soraProductFile}
                     className={`w-full py-4 rounded-xl font-bold text-sm transition-all flex items-center justify-center gap-2 ${!sora.productDescription || !sora.productUSP || !soraProductFile ? "bg-gray-200 text-gray-400 cursor-not-allowed" : "bg-indigo-500 text-white hover:bg-indigo-600 active:scale-95"}`}>
-                    {sora.aiDecideStoryline ? t.cvGenerate5 || {t.cvGenerate5} : t.cvGenerateFrame || {t.cvGenerateFrame}}
+                    {sora.aiDecideStoryline ? t.cvGenerate5 || "Generate 5 Storyline Ideas" : t.cvGenerateFrame || "Generate First Frame"}
                   </button>
                   {(!soraProductFile || !sora.productDescription || !sora.productUSP) && (
                     <p className="text-xs text-gray-400 text-center mt-2">
-                      {!soraProductFile ? {t.cvNeedProduct} : {t.cvNeedInfo}}
+                      {!soraProductFile ? (t.cvNeedProduct || "Upload a product photo to continue") : (t.cvNeedInfo || "Fill in product description and USP to continue")}
                     </p>
                   )}
                   <p className="text-xs text-gray-400 text-center mt-2">
