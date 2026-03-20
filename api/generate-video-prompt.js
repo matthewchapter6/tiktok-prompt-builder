@@ -28,6 +28,11 @@ export default async function handler(req, res) {
       bm: 'LANGUAGE: Write entirely in Bahasa Malaysia. Dialogue, voiceover, descriptions — all in Bahasa Malaysia.',
     }[lang] || 'LANGUAGE: Write in English.';
 
+    const langInstruction = {
+      zh: 'CRITICAL: Write ALL output in Simplified Chinese (简体中文). Dialogue and voiceover must be in Chinese.',
+      bm: 'CRITICAL: Write ALL output in Bahasa Malaysia. Dialogue and voiceover must be in Malay.',
+    }[lang] || '';
+
     // Reference tags per model
     const refTags = model === 'kling'
       ? {
