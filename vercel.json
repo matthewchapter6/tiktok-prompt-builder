@@ -1,0 +1,10 @@
+{
+  "functions": {
+    "api/generate-sora-video.js": { "maxDuration": 60 },
+    "api/sora-status.js":         { "maxDuration": 30 },
+    "api/generate-image.js":      { "maxDuration": 60 },
+    "api/generate-storylines.js": { "maxDuration": 30 },
+    "api/generate-video-prompt.js": { "maxDuration": 30 },
+    "api/storyline.js":           { "maxDuration": 30 }
+  }
+}
