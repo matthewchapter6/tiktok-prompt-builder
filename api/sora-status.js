@@ -1,4 +1,3 @@
-// sora-status.js — polls fal.ai for video generation status
 import { fal } from "@fal-ai/client";
 fal.config({ credentials: process.env.FAL_API_KEY });
 
@@ -28,65 +27,48 @@ export default async function handler(req, res) {
     : "fal-ai/kling-video/v2.6/pro/image-to-video";
 
   const isWan = modelPath.includes("wan");
-
   console.log(`[sora-status] model=${modelPath} requestId=${requestId} isWan=${isWan}`);
 
   try {
-    const statusPromise = fal.queue.status(modelPath, { requestId, logs: false });
-    const timeoutPromise = new Promise((_, reject) =>
-      setTimeout(() => reject(new Error("fal.ai status check timed out after 20s")), 20000)
-    );
-    const status = await Promise.race([statusPromise, timeoutPromise]);
+    const status = await Promise.race([
+      fal.queue.status(modelPath, { requestId, logs: false }),
+      new Promise((_, reject) => setTimeout(() => reject(new Error("timeout")), 20000))
+    ]);
 
-    console.log(`[sora-status] status=${status.status} queuePos=${status.queue_position ?? "n/a"}`);
+    // Log the FULL status object so we can see exactly what fal returns
+    console.log(`[sora-status] FULL status object: ${JSON.stringify(status)}`);
 
     if (status.status === "COMPLETED") {
-      // Try extracting from status.data first
       let videoUrl = extractVideoUrl(status.data);
       console.log(`[sora-status] videoUrl from status.data: ${videoUrl ?? "null"}`);
 
-      // Fallback: fetch the response_url directly
       if (!videoUrl) {
+        // Always use full model path — never trust status.response_url (it omits version)
+        const resultUrl = `https://queue.fal.run/${modelPath}/requests/${requestId}`;
+        console.log(`[sora-status] Fetching: ${resultUrl}`);
+
         try {
-          // Build the response_url from the requestId
-          // For Kling: https://queue.fal.run/fal-ai/kling-video/v2.6/pro/image-to-video/requests/{id}
-          // For WAN: https://queue.fal.run/fal-ai/wan/requests/{id}
-          const responseUrl = status.response_url ||
-            `https://queue.fal.run/${modelPath}/requests/${requestId}`;
-
-          console.log(`[sora-status] Fetching response_url: ${responseUrl}`);
-
-          const resultRes = await fetch(responseUrl, {
-            method: "GET",
-            headers: {
-              "Authorization": `Key ${process.env.FAL_API_KEY}`,
-              "Content-Type": "application/json",
-            },
+          const r = await fetch(resultUrl, {
+            headers: { "Authorization": `Key ${process.env.FAL_API_KEY}` }
           });
-
-          console.log(`[sora-status] response_url HTTP ${resultRes.status}`);
-
-          if (resultRes.ok) {
-            const resultData = await resultRes.json();
-            console.log(`[sora-status] response_url body keys: ${Object.keys(resultData).join(", ")}`);
-            videoUrl = extractVideoUrl(resultData);
-            console.log(`[sora-status] videoUrl from response_url: ${videoUrl ?? "null"}`);
-          } else {
-            const errText = await resultRes.text();
-            console.log(`[sora-status] response_url error: ${errText}`);
+          const body = await r.text();
+          console.log(`[sora-status] HTTP ${r.status} body: ${body.slice(0, 500)}`);
+          if (r.ok) {
+            const data = JSON.parse(body);
+            videoUrl = extractVideoUrl(data);
+            console.log(`[sora-status] videoUrl from direct fetch: ${videoUrl ?? "null"}`);
           }
         } catch (e) {
-          console.log(`[sora-status] response_url fetch failed: ${e.message}`);
+          console.log(`[sora-status] direct fetch failed: ${e.message}`);
         }
       }
 
-      console.log(`[sora-status] COMPLETED. Final videoUrl=${videoUrl ?? "null"}`);
+      console.log(`[sora-status] Final videoUrl=${videoUrl ?? "null"}`);
       return res.status(200).json({ status: "COMPLETED", videoUrl });
     }
 
     if (status.status === "FAILED") {
-      console.log("[sora-status] FAILED");
-      return res.status(200).json({ status: "FAILED", error: "Video generation failed on fal.ai" });
+      return res.status(200).json({ status: "FAILED", error: "Generation failed" });
     }
 
     return res.status(200).json({
@@ -95,7 +77,7 @@ export default async function handler(req, res) {
     });
 
   } catch (error) {
-    console.error("[sora-status] Exception:", error.message);
+    console.error(`[sora-status] Exception: ${error.message}`);
     return res.status(500).json({ error: "Status check failed", details: error.message });
   }
 }
