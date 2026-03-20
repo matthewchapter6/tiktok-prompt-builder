@@ -13,8 +13,11 @@ export default async function handler(req, res) {
     const { requestId, modelId } = req.query;
     if (!requestId) return res.status(400).json({ error: 'requestId is required' });
 
-    // Use modelId from the generation response — supports both Kling and Wan
-    const modelPath = modelId || 'fal-ai/kling-video/v2.6/pro/image-to-video';
+    // Decode modelId — App.js uses encodeURIComponent which encodes slashes
+    const modelPath = modelId
+      ? decodeURIComponent(modelId)
+      : 'fal-ai/kling-video/v2.6/pro/image-to-video';
+    console.log('Polling model:', modelPath, '| requestId:', requestId);
 
     const statusRes = await fetch(
       `https://queue.fal.run/${modelPath}/requests/${requestId}/status`,
