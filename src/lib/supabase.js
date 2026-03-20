@@ -88,7 +88,7 @@ export const deductCredits = async (userId, cost, description) => {
 
     const newBalance = currentBalance - cost;
 
-    // Deduct credits
+    // Deduct credits and update total_used in one call
     const { error: updateErr } = await supabase
       .from('user_credits')
       .update({
@@ -98,11 +98,6 @@ export const deductCredits = async (userId, cost, description) => {
       .eq('id', userId);
 
     if (updateErr) throw updateErr;
-
-    // Increment total_used (non-critical)
-    try {
-      await supabase.rpc('increment_total_used', { user_id: userId, amount: cost });
-    } catch (_) {}
 
     // Log transaction (non-critical)
     try {
