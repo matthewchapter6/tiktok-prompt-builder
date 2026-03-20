@@ -2387,7 +2387,7 @@ export default function App() {
     const modelPath = job.model_id || 'fal-ai/kling-video/v2.6/pro/text-to-video';
     soraPollingRef.current = setInterval(async () => {
       try {
-        const statusRes = await fetch(`/api/sora-status?requestId=${job.request_id}&modelId=${encodeURIComponent(modelPath)}`);
+        const statusRes = await fetch(`/api/sora-status?requestId=${job.request_id}&modelId=${encodeURIComponent(modelPath)}&t=${Date.now()}`);
         const statusData = await statusRes.json();
         if (statusData.queuePosition != null) setSoraQueuePos(statusData.queuePosition);
         if (statusData.status === 'COMPLETED') {
@@ -2619,7 +2619,7 @@ export default function App() {
       setSoraStep("polling");
       soraPollingRef.current = setInterval(async () => {
         try {
-          const statusRes = await fetch(`/api/sora-status?requestId=${videoData.requestId}&modelId=${encodeURIComponent(modelPath)}`);
+          const statusRes = await fetch(`/api/sora-status?requestId=${videoData.requestId}&modelId=${encodeURIComponent(modelPath)}&t=${Date.now()}`);
           const statusData = await statusRes.json();
           if (statusData.queuePosition != null) setSoraQueuePos(statusData.queuePosition);
           if (statusData.status === "COMPLETED") {
