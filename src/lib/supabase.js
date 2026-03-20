@@ -44,13 +44,6 @@ export const getVideoCreditCost = (videoLength, model = 'wan') => {
   return len === '5' ? CREDIT_COSTS.wan_5s : CREDIT_COSTS.wan_10s;
 };
 
-export const getVideoCreditCost = (videoLength) => {
-  if (videoLength === '5') return CREDIT_COSTS.video_5s;
-  return CREDIT_COSTS.video_10s;
-};
-
-// Helper: get video credit cost by length
-
 // ── Fetch user's current credit balance ──────────────────────────────────
 export const fetchCredits = async (userId) => {
   try {
