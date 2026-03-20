@@ -67,7 +67,7 @@ export default async function handler(req, res) {
       console.log("[generate-sora-video] === KLING 2.6 PRO ===");
       console.log("[generate-sora-video] elements count:", elements.length);
 
-      modelId = "fal-ai/kling-video/v2.6/pro/image-to-video";
+      modelId = "fal-ai/kling-video/v3/pro/image-to-video";
       input = {
         prompt: cleanPrompt,
         start_image_url: frameUrl,
