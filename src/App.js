@@ -2390,30 +2390,28 @@ export default function App() {
         const statusRes = await fetch(`/api/sora-status?requestId=${job.request_id}&modelId=${encodeURIComponent(modelPath)}`);
         const statusData = await statusRes.json();
         if (statusData.queuePosition != null) setSoraQueuePos(statusData.queuePosition);
-        // replace old code
         if (statusData.status === 'COMPLETED') {
-  let videoUrl = statusData.videoUrl;
-  if (!videoUrl) {
-    const dbId = soraDbIdRef.current;
-    if (dbId) {
-      const { data: dbRow } = await supabase
-        .from('sora_generations')
-        .select('video_url')
-        .eq('id', dbId)
-        .single();
-      videoUrl = dbRow?.video_url || null;
-    }
-  }
-  if (!videoUrl) return; // webhook not fired yet — keep polling
-  clearInterval(soraPollingRef.current);
-  setSoraVideoUrl(videoUrl);
-  setSoraStep('done');
-  await supabase.from('sora_generations').update({
-    status: 'completed', video_url: videoUrl, completed_at: new Date().toISOString()
-  }).eq('id', job.id);
-  loadSoraHistory();
-  loadCredits();
-}
+          let videoUrl = statusData.videoUrl;
+          if (!videoUrl) {
+            const dbId = soraDbIdRef.current;
+            if (dbId) {
+              const { data: dbRow } = await supabase
+                .from('sora_generations')
+                .select('video_url')
+                .eq('id', dbId)
+                .single();
+              videoUrl = dbRow?.video_url || null;
+            }
+          }
+          if (!videoUrl) return; // webhook not fired yet — keep polling
+          clearInterval(soraPollingRef.current);
+          setSoraVideoUrl(videoUrl);
+          setSoraStep('done');
+          await supabase.from('sora_generations').update({
+            status: 'completed', video_url: videoUrl, completed_at: new Date().toISOString()
+          }).eq('id', job.id);
+          loadSoraHistory();
+          loadCredits();
         } else if (statusData.status === 'FAILED') {
           clearInterval(soraPollingRef.current);
           setSoraError('Video generation failed.');
@@ -2624,30 +2622,28 @@ export default function App() {
           const statusRes = await fetch(`/api/sora-status?requestId=${videoData.requestId}&modelId=${encodeURIComponent(modelPath)}`);
           const statusData = await statusRes.json();
           if (statusData.queuePosition != null) setSoraQueuePos(statusData.queuePosition);
-          //replace old code
           if (statusData.status === "COMPLETED") {
-  let videoUrl = statusData.videoUrl;
-  if (!videoUrl) {
-    const dbId = soraDbIdRef.current;
-    if (dbId) {
-      const { data: dbRow } = await supabase
-        .from("sora_generations")
-        .select("video_url")
-        .eq("id", dbId)
-        .single();
-      videoUrl = dbRow?.video_url || null;
-    }
-  }
-  if (!videoUrl) return; // webhook not fired yet — keep polling
-  clearInterval(soraPollingRef.current);
-  setSoraVideoUrl(videoUrl);
-  setSoraStep("done");
-  logUsage(user.id, "kling_video_generated");
-  const dbId = soraDbIdRef.current;
-  if (dbId) await supabase.from("sora_generations").update({ status: "completed", video_url: videoUrl, completed_at: new Date().toISOString() }).eq("id", dbId);
-  loadSoraHistory();
-  loadCredits(); // refresh credit balance in header
-}
+            let videoUrl = statusData.videoUrl;
+            if (!videoUrl) {
+              const dbId = soraDbIdRef.current;
+              if (dbId) {
+                const { data: dbRow } = await supabase
+                  .from("sora_generations")
+                  .select("video_url")
+                  .eq("id", dbId)
+                  .single();
+                videoUrl = dbRow?.video_url || null;
+              }
+            }
+            if (!videoUrl) return; // webhook not fired yet — keep polling
+            clearInterval(soraPollingRef.current);
+            setSoraVideoUrl(videoUrl);
+            setSoraStep("done");
+            logUsage(user.id, "kling_video_generated");
+            const dbId = soraDbIdRef.current;
+            if (dbId) await supabase.from("sora_generations").update({ status: "completed", video_url: videoUrl, completed_at: new Date().toISOString() }).eq("id", dbId);
+            loadSoraHistory();
+            loadCredits(); // refresh credit balance in header
           } else if (statusData.status === "FAILED") {
             clearInterval(soraPollingRef.current);
             setSoraError(statusData.error || "Video generation failed.");
