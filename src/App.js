@@ -2583,7 +2583,8 @@ export default function App() {
         }),
       });
       const videoData = await videoRes.json();
-      if (!videoRes.ok) throw new Error(videoData.error || "Video submission failed");
+      if (!videoRes.ok) throw new Error(videoData.error || videoData.details || "Video submission failed");
+      if (!videoData.requestId) throw new Error("No requestId returned from video API — check Vercel logs");
 
       // Deduct credits
       const deduct = await deductCredits(user.id, videoCost, `Kling ${sora.videoLength}s video`);
