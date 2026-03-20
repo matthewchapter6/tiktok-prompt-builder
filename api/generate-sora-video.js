@@ -53,29 +53,30 @@ export default async function handler(req, res) {
     if (model === "kling") {
       // ── KLING 2.6 PRO ─────────────────────────────────────────────────
       const cfgScale = videoConfig?.cfg_scale ?? 0.8;
+
+      // Build elements array for product/character reference images
       const elements = [];
       if (productUrl)   elements.push({ images: [{ url: productUrl }] });
       if (characterUrl) elements.push({ images: [{ url: characterUrl }] });
 
-      // Strip @Element1/@Element2 refs from prompt if no element images uploaded
+      // Strip @Element refs from prompt if no reference images provided
       const cleanPrompt = elements.length > 0
         ? prompt
         : prompt.replace(/@Element\d+/g, "").replace(/\s+/g, " ").trim();
-      if (elements.length === 0 && cleanPrompt !== prompt) {
-        console.log("[generate-sora-video] Stripped @Element refs (no element images)");
-      }
+
+      console.log("[generate-sora-video] === KLING 2.6 PRO ===");
+      console.log("[generate-sora-video] elements count:", elements.length);
 
       modelId = "fal-ai/kling-video/v2.6/pro/image-to-video";
       input = {
         prompt: cleanPrompt,
-        image_url: frameUrl,
+        start_image_url: frameUrl,
         aspect_ratio: aspectRatio,
         duration,
         cfg_scale: cfgScale,
         generate_audio: true,
         ...(elements.length > 0 ? { elements } : {}),
       };
-      console.log("[generate-sora-video] === KLING 2.6 PRO ===");
 
     } else {
       // ── WAN 2.6 R2V FLASH ─────────────────────────────────────────────
@@ -101,8 +102,6 @@ export default async function handler(req, res) {
     console.log("[generate-sora-video] Prompt:", prompt.slice(0, 100));
     console.log("[generate-sora-video] Full input:", JSON.stringify(input));
 
-    // ✅ Webhook URL — fal.ai will POST the result here when done
-    // This bypasses the broken WAN queue result endpoint entirely
     const webhookUrl = `https://${req.headers.host}/api/fal-webhook`;
     console.log(`[generate-sora-video] webhookUrl=${webhookUrl}`);
 
