@@ -1,10 +1,9 @@
 // sora-status.js — polls fal.ai for video generation status
-// ✅ NO fal SDK import — SDK patches global fetch AND https module,
-//    which corrupts our direct API calls. We use pure Node https instead.
+// ✅ NO fal SDK — pure Node https to avoid SDK fetch interception
 
 import https from "https";
 
-// ── Pure Node.js HTTPS request — zero SDK interference ───────────────────
+// ── Pure Node.js HTTPS GET ────────────────────────────────────────────────
 const rawGet = (url, apiKey) => new Promise((resolve, reject) => {
   const parsed = new URL(url);
   const req = https.request(
@@ -31,11 +30,6 @@ const rawGet = (url, apiKey) => new Promise((resolve, reject) => {
   req.end();
 });
 
-// ── Extract base model from full model path ───────────────────────────────
-// "fal-ai/wan/v2.6/reference-to-video/flash" → "fal-ai/wan"
-// "fal-ai/kling-video/v2.6/pro/image-to-video" → "fal-ai/kling-video"
-const getBaseModel = (modelPath) => modelPath.split("/").slice(0, 2).join("/");
-
 export default async function handler(req, res) {
   res.setHeader("Access-Control-Allow-Origin", "*");
   res.setHeader("Access-Control-Allow-Methods", "GET, OPTIONS");
@@ -46,30 +40,30 @@ export default async function handler(req, res) {
   const { requestId, modelId } = req.query;
   if (!requestId) return res.status(400).json({ error: "requestId is required" });
 
+  // Full model path e.g. "fal-ai/wan/v2.6/reference-to-video/flash"
   const modelPath = modelId
     ? decodeURIComponent(modelId)
     : "fal-ai/kling-video/v2.6/pro/image-to-video";
 
-  const baseModel = getBaseModel(modelPath);
   const apiKey = process.env.FAL_API_KEY;
 
-  console.log(`[sora-status] model=${modelPath} baseModel=${baseModel} requestId=${requestId}`);
+  console.log(`[sora-status] model=${modelPath} requestId=${requestId}`);
 
   try {
-    // ── Check status ──────────────────────────────────────────────────────
-    const statusUrl = `https://queue.fal.run/${baseModel}/requests/${requestId}/status`;
-    console.log(`[sora-status] Checking status: ${statusUrl}`);
+    // ── Step 1: Check status using full model path ────────────────────────
+    const statusUrl = `https://queue.fal.run/${modelPath}/requests/${requestId}/status`;
+    console.log(`[sora-status] statusUrl=${statusUrl}`);
 
     const statusResp = await rawGet(statusUrl, apiKey);
-    console.log(`[sora-status] status response:`, JSON.stringify(statusResp.data));
-
     const statusData = statusResp.data;
     const currentStatus = statusData?.status || statusData?.state || "IN_QUEUE";
 
+    console.log(`[sora-status] currentStatus=${currentStatus}`);
+
     if (currentStatus === "COMPLETED" || currentStatus === "OK") {
-      // ── Fetch result ────────────────────────────────────────────────────
-      const resultUrl = `https://queue.fal.run/${baseModel}/requests/${requestId}`;
-      console.log(`[sora-status] Fetching result: ${resultUrl}`);
+      // ── Step 2: Fetch result using full model path ──────────────────────
+      const resultUrl = `https://queue.fal.run/${modelPath}/requests/${requestId}`;
+      console.log(`[sora-status] resultUrl=${resultUrl}`);
 
       const resultResp = await rawGet(resultUrl, apiKey);
       console.log(`[sora-status] result raw:`, JSON.stringify(resultResp.data, null, 2));
