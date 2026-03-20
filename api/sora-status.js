@@ -36,29 +36,41 @@ export default async function handler(req, res) {
 
     if (status.status === 'COMPLETED') {
 
-      let data = status.data || null;
+      let videoUrl = null;
 
-      // ✅ FIX: WAN model returns COMPLETED but does NOT embed data in status response.
-      // We must fetch the result separately from response_url.
-      if (!data && status.response_url) {
-        console.log(`[sora-status] data missing — fetching from response_url: ${status.response_url}`);
-        const resultRes = await fetch(status.response_url, {
-          headers: { 'Authorization': `Key ${process.env.FAL_API_KEY}` }
-        });
-        data = await resultRes.json();
-        console.log('[sora-status] response_url result:', JSON.stringify(data, null, 2));
+      // ── Strategy 1: result already embedded in status.data (Kling model) ──
+      if (status.data) {
+        const d = status.data;
+        videoUrl =
+          d?.video?.url ||
+          d?.video_url ||
+          d?.videos?.[0]?.url ||
+          d?.output?.video?.url ||
+          d?.url ||
+          null;
+        console.log(`[sora-status] Strategy 1 (status.data): videoUrl=${videoUrl}`);
       }
 
-      const videoUrl =
-        data?.video?.url ||
-        data?.video_url ||
-        data?.videos?.[0]?.url ||
-        data?.output?.video?.url ||
-        data?.output?.video_url ||
-        data?.url ||
-        null;
+      // ── Strategy 2: use fal.queue.result() SDK method (WAN model) ──
+      if (!videoUrl) {
+        console.log(`[sora-status] Strategy 2: calling fal.queue.result()`);
+        try {
+          const result = await fal.queue.result(modelPath, { requestId });
+          console.log('[sora-status] fal.queue.result raw:', JSON.stringify(result, null, 2));
+          const d = result?.data || result;
+          videoUrl =
+            d?.video?.url ||
+            d?.video_url ||
+            d?.videos?.[0]?.url ||
+            d?.output?.video?.url ||
+            d?.url ||
+            null;
+          console.log(`[sora-status] Strategy 2 result: videoUrl=${videoUrl}`);
+        } catch (resultErr) {
+          console.error('[sora-status] fal.queue.result failed:', resultErr.message);
+        }
+      }
 
-      console.log(`[sora-status] COMPLETED. videoUrl=${videoUrl}`);
       return res.status(200).json({ status: 'COMPLETED', videoUrl });
     }
 
