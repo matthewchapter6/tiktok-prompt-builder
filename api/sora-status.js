@@ -45,24 +45,42 @@ export default async function handler(req, res) {
       let videoUrl = extractVideoUrl(status.data);
       console.log(`[sora-status] videoUrl from status.data: ${videoUrl ?? "null"}`);
 
-      // For Kling: if status.data didn't have it, call fal.queue.result()
-      if (!videoUrl && !isWan) {
+      // Fallback: fetch the response_url directly
+      if (!videoUrl) {
         try {
-          console.log(`[sora-status] Trying fal.queue.result() for Kling...`);
-          const resultPromise = fal.queue.result(modelPath, { requestId });
-          const resultTimeout = new Promise((_, reject) =>
-            setTimeout(() => reject(new Error("result() timed out")), 15000)
-          );
-          const result = await Promise.race([resultPromise, resultTimeout]);
-          videoUrl = extractVideoUrl(result.data ?? result);
-          console.log(`[sora-status] videoUrl from result(): ${videoUrl ?? "null"}`);
+          // Build the response_url from the requestId
+          // For Kling: https://queue.fal.run/fal-ai/kling-video/v2.6/pro/image-to-video/requests/{id}
+          // For WAN: https://queue.fal.run/fal-ai/wan/requests/{id}
+          const responseUrl = status.response_url ||
+            `https://queue.fal.run/${modelPath}/requests/${requestId}`;
+
+          console.log(`[sora-status] Fetching response_url: ${responseUrl}`);
+
+          const resultRes = await fetch(responseUrl, {
+            method: "GET",
+            headers: {
+              "Authorization": `Key ${process.env.FAL_API_KEY}`,
+              "Content-Type": "application/json",
+            },
+          });
+
+          console.log(`[sora-status] response_url HTTP ${resultRes.status}`);
+
+          if (resultRes.ok) {
+            const resultData = await resultRes.json();
+            console.log(`[sora-status] response_url body keys: ${Object.keys(resultData).join(", ")}`);
+            videoUrl = extractVideoUrl(resultData);
+            console.log(`[sora-status] videoUrl from response_url: ${videoUrl ?? "null"}`);
+          } else {
+            const errText = await resultRes.text();
+            console.log(`[sora-status] response_url error: ${errText}`);
+          }
         } catch (e) {
-          console.log(`[sora-status] result() failed: ${e.message}`);
+          console.log(`[sora-status] response_url fetch failed: ${e.message}`);
         }
       }
 
-      // For WAN: videoUrl stays null — webhook already updated Supabase
-      console.log(`[sora-status] COMPLETED. Final videoUrl=${videoUrl ?? "null (webhook/Supabase fallback)"}`);
+      console.log(`[sora-status] COMPLETED. Final videoUrl=${videoUrl ?? "null"}`);
       return res.status(200).json({ status: "COMPLETED", videoUrl });
     }
 
