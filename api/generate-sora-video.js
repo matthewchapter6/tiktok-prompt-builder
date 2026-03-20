@@ -90,7 +90,7 @@ export default async function handler(req, res) {
         .replace(/@Video[0-9]+/g, "")
         .replace(/\s+/g, " ").trim();
 
-      modelId = "fal-ai/minimax/hailuo-02/pro/image-to-video/fast";
+      modelId = "fal-ai/minimax/hailuo-2.3-fast/pro/image-to-video";
       input = {
         prompt: cleanPromptHailuo,
         image_url: frameUrl,
