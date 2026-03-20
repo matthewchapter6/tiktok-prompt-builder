@@ -1,13 +1,6 @@
-// Polls fal.ai queue for video generation status
-// Call this every 3-5 seconds from the frontend until status === COMPLETED
-
-// fal.ai Queue REST API docs: https://docs.fal.ai/model-apis/model-endpoints/queue
-// Status:  GET  https://queue.fal.run/{modelPath}/requests/{requestId}/status
-// Result:  GET  https://queue.fal.run/{modelPath}/requests/{requestId}
-
 // sora-status.js
-// Uses @fal-ai/client SDK — add to package.json: "@fal-ai/client": "^1.0.0"
-import { fal } from "@fal-ai/client";
+// Polls fal.ai queue for video generation status
+// Supports any model — uses modelId param from generate-sora-video response
 
 export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
@@ -20,65 +13,49 @@ export default async function handler(req, res) {
     const { requestId, modelId } = req.query;
     if (!requestId) return res.status(400).json({ error: 'requestId is required' });
 
-    fal.config({ credentials: process.env.FAL_API_KEY });
+    // Use modelId from the generation response — supports both Kling and Wan
+    const modelPath = modelId || 'fal-ai/kling-video/v2.6/pro/image-to-video';
 
-    const model = modelId
-      ? decodeURIComponent(modelId)
-      : 'fal-ai/kling-video/v1.6/standard/image-to-video';
+    const statusRes = await fetch(
+      `https://queue.fal.run/${modelPath}/requests/${requestId}/status`,
+      { headers: { 'Authorization': `Key ${process.env.FAL_API_KEY}` } }
+    );
 
-    console.log('Checking status for requestId:', requestId, 'model:', model);
-
-    const statusData = await fal.queue.status(model, {
-      requestId,
-      logs: false,
-    });
-
-    console.log('Status:', statusData.status);
-
-    if (statusData.status === 'IN_QUEUE' || statusData.status === 'IN_PROGRESS') {
-      return res.status(200).json({
-        status: statusData.status,
-        queuePosition: statusData.queue_position ?? null,
-      });
+    const data = await statusRes.json();
+    if (!statusRes.ok) {
+      console.error('sora-status fal error:', JSON.stringify(data));
+      return res.status(statusRes.status).json({ error: 'Status check failed', details: data });
     }
 
-    if (statusData.status === 'FAILED') {
-      return res.status(200).json({
-        status: 'FAILED',
-        error: statusData.error || 'Generation failed',
-      });
-    }
+    if (data.status === 'COMPLETED') {
+      const resultRes = await fetch(
+        `https://queue.fal.run/${modelPath}/requests/${requestId}`,
+        { headers: { 'Authorization': `Key ${process.env.FAL_API_KEY}` } }
+      );
+      const result = await resultRes.json();
 
-    if (statusData.status === 'COMPLETED') {
-      console.log('Completed! Fetching result...');
-
-      const result = await fal.queue.result(model, { requestId });
-      console.log('Result keys:', Object.keys(result?.data || result || {}));
-
-      const data = result?.data || result;
+      // Handle different response formats across models
       const videoUrl =
-        data?.video?.url ||
-        data?.video_url ||
-        data?.videos?.[0]?.url ||
+        result?.video?.url ||
+        result?.video_url ||
+        result?.videos?.[0]?.url ||
         null;
 
-      if (!videoUrl) {
-        console.error('No video URL found. Result:', JSON.stringify(data));
-        return res.status(200).json({
-          status: 'COMPLETED',
-          videoUrl: null,
-          error: 'Video completed but URL not found',
-          rawResult: data,
-        });
-      }
-
-      return res.status(200).json({ status: 'COMPLETED', videoUrl });
+      console.log('Video completed. URL:', videoUrl);
+      return res.status(200).json({ status: 'COMPLETED', videoUrl, result });
     }
 
-    return res.status(200).json({ status: statusData.status || 'UNKNOWN' });
+    if (data.status === 'FAILED') {
+      return res.status(200).json({ status: 'FAILED', error: data.error || 'Video generation failed' });
+    }
+
+    res.status(200).json({
+      status: data.status || 'IN_QUEUE',
+      queuePosition: data.queue_position ?? null,
+    });
 
   } catch (error) {
-    console.error('sora-status error:', error.message, error.body || '');
-    res.status(500).json({ error: error.message });
+    console.error('sora-status error:', error);
+    res.status(500).json({ error: 'Status check failed', details: error.message });
   }
 }
