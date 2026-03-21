@@ -2226,8 +2226,8 @@ const LoginScreen = () => {
     <div className="min-h-screen bg-gray-50 flex flex-col items-center justify-center px-4">
       <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-8 w-full max-w-sm text-center">
         <p className="text-4xl mb-3">🎬</p>
-        <h1 className="text-xl font-bold text-gray-900 mb-1">TikTok UGC Prompt Builder</h1>
-        <p className="text-sm text-gray-500 mb-8">Sign in to start building video prompts</p>
+        <h1 className="text-xl font-bold text-gray-900 mb-1">HookGen</h1>
+        <p className="text-sm text-gray-500 mb-8">Powered by Content Creator AI Agent</p>
         <button
           onClick={handleGoogleLogin}
           disabled={loading}
