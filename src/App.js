@@ -5,8 +5,8 @@ import { supabase, logUsage, fetchCredits, deductCredits, hasEnoughCredits, CRED
 const TRANSLATIONS = {
   en: {
     // Header
-    appTitle: "🎬 TikTok UGC Prompt Builder",
-    appSubtitle: "Powered for Grok — any product, any brand",
+    appTitle: "🎬 HookGen",
+    appSubtitle: "Powered by Content Creator AI Agent",
     tabSora: "🎬 Create Video",
     tabBuilder: "📝 Builder",
     tabOutput: "📋 Output",
@@ -193,8 +193,8 @@ const TRANSLATIONS = {
   },
 
   zh: {
-    appTitle: "🎬 TikTok UGC 提示词生成器",
-    appSubtitle: "由 Grok 驱动 — 适用于任何产品和品牌",
+    appTitle: "🎬 HookGen",
+    appSubtitle: "由 Content Creator AI Agent 驱动",
     tabSora: "🎬 创建视频",
     tabBuilder: "📝 构建器",
     tabOutput: "📋 输出",
@@ -464,8 +464,8 @@ const TRANSLATIONS = {
   },
 
   bm: {
-    appTitle: "🎬 Pembina Prompt UGC TikTok",
-    appSubtitle: "Dikuasakan oleh Grok — mana-mana produk, mana-mana jenama",
+    appTitle: "🎬 HookGen",
+    appSubtitle: "Dikuasakan oleh Content Creator AI Agent",
     tabSora: "🎬 Cipta Video",
     tabBuilder: "📝 Pembina",
     tabOutput: "📋 Output",
