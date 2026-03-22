@@ -1985,7 +1985,7 @@ const buildClipPrompts = (f, storyline, hasFirstFrame, lang, agentClips = []) =>
       `PROBLEM: ${f.problemStatement}`,
       `BENEFIT: ${f.keyBenefit}`,
       f.keyColors ? `COLORS: ${f.keyColors}` : "",
-      f.talent && f.talent !== "no_talent" ? `TALENT: ${talentOpt?.label || f.talent}${f.talentDetail ? ", " + f.talentDetail : ""}` : "No talent — product only",
+      f.talent === "no_talent" ? "TALENT: Product only — no human talent" : f.talent ? `TALENT: ${talentOpt?.label || f.talent}${f.talentDetail ? ", " + f.talentDetail : ""}` : "",
       settingLabel(f,lang) && f.settingPreset ? `SETTING: ${settingLabel(f,lang)}${f.settingDetail ? " — " + f.settingDetail : ""}` : "",
       lightingLabel(f,lang) && f.lightingPreset ? `LIGHTING: ${lightingLabel(f,lang)}` : "",
       resolvedShot ? `SHOT: ${resolvedShot}` : "",
@@ -2309,7 +2309,7 @@ export default function App() {
   const [aiError, setAiError] = useState("");
   const [copiedIdx, setCopiedIdx] = useState(null);
   const [advancedOpen, setAdvancedOpen] = useState(false);
-  const [aiDirectorOn, setAiDirectorOn] = useState(false);
+  const [aiDirectorOn, setAiDirectorOn] = useState(true);
   const [aiDirectorLoading, setAiDirectorLoading] = useState(false);
   const outputRef = useRef(null);
 
