@@ -2009,9 +2009,10 @@ const fetchStoryline = async (f, lang, setLoading, setStoryline, setError) => {
         max_tokens: 1200,
         system: `You are a Creative Director specialising in short-form TikTok/social video content.
 You write punchy, visual, scroll-stopping video storylines structured around Hook → Content → CTA.
-STRICT FORMAT: Return ONLY a numbered list. Each line MUST start with role in brackets: [HOOK], [CONTENT], [CTA], or combined.
+STRICT FORMAT: Return ONLY a numbered list. No preamble. No explanation. No intro sentence. Start IMMEDIATELY with "1.".
+Each line MUST start with role in brackets: [HOOK], [CONTENT], [CTA], or combined.
 Format: "1. [ROLE] <visual scene description>"
-Each description: camera angle + what happens visually + emotional beat. Be specific.${t.storylineLangInstruction}`,
+Each description: camera angle + what happens visually + emotional beat. Be specific and cinematic.${t.storylineLangInstruction}`,
         messages: [{ role: "user", content: `Generate a ${numClips}-beat storyline with Hook → Content → CTA.
 CLIP ROLES:\n${clipRoleMap}
 Product: ${f.productName} | Category: ${catLabel}
@@ -2028,7 +2029,14 @@ Return exactly ${numClips} lines. Start each with role tag.` }]
       })
     });
     const data = await res.json();
-    setStoryline((data.content?.find(b => b.type === "text")?.text || "").trim());
+    const rawStoryline = (data.content?.find(b => b.type === "text")?.text || "").trim();
+    // Strip any preamble lines — keep only lines that start with a number (e.g. "1.", "2.")
+    const cleanedStoryline = rawStoryline
+      .split("\n")
+      .filter(line => /^\d+[.)\s]/.test(line.trim()))
+      .join("\n")
+      .trim();
+    setStoryline(cleanedStoryline || rawStoryline); // fallback to raw if filter removes everything
     setLoading(false);
   } catch (e) {
     setError("Could not reach AI. Please try again.");
