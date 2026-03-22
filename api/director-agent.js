@@ -23,6 +23,8 @@ export default async function handler(req, res) {
       platform,
       numClips,
       clipDuration,
+      talent,
+      talentDetail,
     } = req.body;
 
     if (!storyline || !productName) {
@@ -44,6 +46,7 @@ BENEFIT: ${benefit}
 FUNNEL: ${funnel || 'middle'} funnel
 TONE: ${tone || 'calm & warm'}
 PLATFORM: ${platform || 'TikTok 9:16'}
+TALENT: ${talent === 'no_talent' || !talent ? 'NO TALENT — product only, no human faces or bodies' : (talent + (talentDetail ? ', ' + talentDetail : ''))}
 
 STORYLINE:
 ${storyline}
