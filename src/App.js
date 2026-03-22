@@ -2768,6 +2768,8 @@ export default function App() {
             platform: optLabel(OPTS.platform, f.platform),
             numClips,
             clipDuration: cs,
+            talent: f.talent,
+            talentDetail: f.talentDetail,
           }),
         });
         const agentData = await agentRes.json();
