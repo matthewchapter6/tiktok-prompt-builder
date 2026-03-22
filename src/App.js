@@ -1844,7 +1844,7 @@ ${f.funnel === "lower" ? "- MOOD: Aspirational and confident — show the positi
 };
 
 // ── Prompt generator ───────────────────────────────────────────────────────
-const buildClipPrompts = (f, storyline, hasFirstFrame, lang) => {
+const buildClipPrompts = (f, storyline, hasFirstFrame, lang, agentClips = []) => {
   const t = TRANSLATIONS[lang] || TRANSLATIONS.en;
   const cs = clipSec(f.grokPlan);
   const total = parseInt(f.totalDuration) || cs;
@@ -1968,6 +1968,16 @@ const buildClipPrompts = (f, storyline, hasFirstFrame, lang) => {
     }
     if (clipNum < numClips) directives.push(`End on a clean frame — will stitch with Clip ${clipNum + 1}.`);
 
+    // Merge agent suggestions — user-filled settings take priority
+    const agent = agentClips[i] || {};
+    const resolvedShot = chipsLabel(o("shotType",lang), f.shotType) || agent.shot_type || "";
+    const resolvedCamera = optLabel(o("cameraMove",lang), f.cameraMove) || agent.camera_movement || "";
+    const resolvedLighting = (f.lightingPreset ? lightingLabel(f,lang) : "") || agent.lighting || "";
+    const resolvedAudio = (f.audioType ? optLabel(o("audioType",lang), f.audioType) : "") || agent.audio_type || "";
+    const resolvedMusic = (f.bgMusic ? optLabel(o("bgMusic",lang), f.bgMusic) : "") || agent.music_mood || "";
+    const resolvedVoTone = f.voTone || agent.voiceover_tone || "";
+    const resolvedTransition = agent.transition_out || "";
+
     // Compact context — only essentials, no repetition
     const compactContext = [
       `PRODUCT: ${f.productName}${catLabel ? " — " + catLabel : ""}`,
@@ -1978,11 +1988,14 @@ const buildClipPrompts = (f, storyline, hasFirstFrame, lang) => {
       f.talent && f.talent !== "no_talent" ? `TALENT: ${talentOpt?.label || f.talent}${f.talentDetail ? ", " + f.talentDetail : ""}` : "No talent — product only",
       settingLabel(f,lang) && f.settingPreset ? `SETTING: ${settingLabel(f,lang)}${f.settingDetail ? " — " + f.settingDetail : ""}` : "",
       lightingLabel(f,lang) && f.lightingPreset ? `LIGHTING: ${lightingLabel(f,lang)}` : "",
-      f.shotType?.length ? `SHOT: ${chipsLabel(o("shotType",lang), f.shotType)}` : "",
-      f.cameraMove ? `CAMERA: ${optLabel(o("cameraMove",lang), f.cameraMove)}` : "",
+      resolvedShot ? `SHOT: ${resolvedShot}` : "",
+      resolvedCamera ? `CAMERA: ${resolvedCamera}` : "",
+      resolvedLighting ? `LIGHTING: ${resolvedLighting}` : "",
       `TONE: ${toneLabel}`,
-      f.audioType ? `AUDIO: ${optLabel(o("audioType",lang), f.audioType)}${f.bgMusic ? " — " + optLabel(o("bgMusic",lang), f.bgMusic) : ""}` : "",
-      f.audioType && f.voLang && f.voLang !== "none" ? `VOICEOVER: ${optLabel(o("voLang",lang), f.voLang)}${f.voTone ? ", " + f.voTone : ""}${f.customVO ? "\nSCRIPT: " + f.customVO : ""}` : "",
+      resolvedAudio ? `AUDIO: ${resolvedAudio}${resolvedMusic ? " — " + resolvedMusic : ""}` : "",
+      resolvedVoTone ? `VOICEOVER TONE: ${resolvedVoTone}` : "",
+      f.audioType && f.voLang && f.voLang !== "none" ? `VOICEOVER LANG: ${optLabel(o("voLang",lang), f.voLang)}${f.customVO ? "\nSCRIPT: " + f.customVO : ""}` : "",
+      resolvedTransition ? `TRANSITION OUT: ${resolvedTransition}` : "",
       restrictions ? `RESTRICTIONS: ${restrictions}` : "",
       antiHalluc ? `ANTI-HALLUCINATION: ${antiHalluc}` : "",
       f.extraNotes ? `NOTES: ${f.extraNotes}` : "",
@@ -2296,6 +2309,8 @@ export default function App() {
   const [aiError, setAiError] = useState("");
   const [copiedIdx, setCopiedIdx] = useState(null);
   const [advancedOpen, setAdvancedOpen] = useState(false);
+  const [aiDirectorOn, setAiDirectorOn] = useState(false);
+  const [aiDirectorLoading, setAiDirectorLoading] = useState(false);
   const outputRef = useRef(null);
 
   const [productFile, setProductFile] = useState(null);
@@ -2730,8 +2745,40 @@ export default function App() {
     { value: "lower", emoji: "🔻", label: t.funnelLowerLabel, tag: t.funnelLowerTag, description: t.funnelLowerDesc, objective: t.funnelLowerObj, examples: t.funnelLowerEx, color: "green" },
   ];
 
-  const generate = (withFrame) => {
-    const result = buildClipPrompts(f, storyline, withFrame && hasFirstFrame, lang);
+  const generate = async (withFrame) => {
+    let agentClips = [];
+    if (aiDirectorOn && storyline) {
+      setAiDirectorLoading(true);
+      try {
+        const numClips = calcClips(f.grokPlan, f.totalDuration);
+        const cs = clipSec(f.grokPlan);
+        const agentRes = await fetch("/api/director-agent", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            storyline,
+            productName: f.productName,
+            productCategory: productCatLabel(f, lang),
+            keyFeatures: f.keyFeaturesCustom,
+            usp: f.usp,
+            problem: f.problemStatement,
+            benefit: f.keyBenefit,
+            funnel: f.funnel,
+            tone: chipsLabel(o("tone", lang), f.tone),
+            platform: optLabel(OPTS.platform, f.platform),
+            numClips,
+            clipDuration: cs,
+          }),
+        });
+        const agentData = await agentRes.json();
+        agentClips = agentData.clips || [];
+        console.log("[director-agent] Applied", agentClips.length, "clip suggestions");
+      } catch (e) {
+        console.error("[director-agent] Failed, continuing without:", e.message);
+      }
+      setAiDirectorLoading(false);
+    }
+    const result = buildClipPrompts(f, storyline, withFrame && hasFirstFrame, lang, agentClips);
     setClips(result);
     setTab("output");
     logUsage(user.id, withFrame ? "prompt_image_video" : "prompt_text_only");
@@ -3591,24 +3638,40 @@ export default function App() {
               </div>
             </div>
 
+            {/* AI Director Toggle */}
+            <button
+              onClick={() => setAiDirectorOn(x => !x)}
+              className={`w-full mb-3 flex items-center justify-between px-4 py-2.5 rounded-xl border-2 transition-all ${aiDirectorOn ? "border-purple-500 bg-purple-50" : "border-gray-200 bg-white hover:border-purple-300"}`}>
+              <div className="flex items-center gap-2">
+                <span className="text-base">🎬</span>
+                <div className="text-left">
+                  <p className={`text-xs font-bold ${aiDirectorOn ? "text-purple-700" : "text-gray-600"}`}>AI Director Agent</p>
+                  <p className="text-xs text-gray-400">Auto-suggests shot type, camera, lighting & audio based on your storyline</p>
+                </div>
+              </div>
+              <div className={`flex-shrink-0 w-10 h-5 rounded-full transition-all relative ${aiDirectorOn ? "bg-purple-500" : "bg-gray-200"}`}>
+                <div className={`absolute top-0.5 w-4 h-4 rounded-full bg-white shadow transition-all ${aiDirectorOn ? "left-5" : "left-0.5"}`} />
+              </div>
+            </button>
+
             <div className="flex gap-3">
               <button
                 onClick={() => generate(false)}
-                disabled={missingRequired}
-                className={`flex-1 py-3 rounded-xl font-bold text-sm transition-all ${missingRequired ? "bg-gray-200 text-gray-400 cursor-not-allowed" : "bg-blue-500 text-white hover:bg-blue-600 active:scale-95"}`}>
-                {t.btnTextOnly}
+                disabled={missingRequired || aiDirectorLoading}
+                className={`flex-1 py-3 rounded-xl font-bold text-sm transition-all ${missingRequired || aiDirectorLoading ? "bg-gray-200 text-gray-400 cursor-not-allowed" : "bg-blue-500 text-white hover:bg-blue-600 active:scale-95"}`}>
+                {aiDirectorLoading ? "🎬 Directing..." : t.btnTextOnly}
               </button>
 
               <button
                 onClick={() => generate(true)}
-                disabled={missingRequired || !hasFirstFrame}
+                disabled={missingRequired || !hasFirstFrame || aiDirectorLoading}
                 title={!hasFirstFrame ? t.hintImageVideoUnlocks : ""}
                 className={`flex-1 py-3 rounded-xl font-bold text-sm transition-all border-2 ${
-                  missingRequired || !hasFirstFrame
+                  missingRequired || !hasFirstFrame || aiDirectorLoading
                     ? "bg-gray-100 text-gray-400 border-gray-200 cursor-not-allowed"
                     : "bg-indigo-500 text-white border-indigo-500 hover:bg-indigo-600 active:scale-95"
                 }`}>
-                {hasFirstFrame ? `${t.btnImageVideo} ✅` : t.btnImageVideo}
+                {aiDirectorLoading ? "🎬 Directing..." : hasFirstFrame ? `${t.btnImageVideo} ✅` : t.btnImageVideo}
               </button>
             </div>
 
