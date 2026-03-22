@@ -1944,18 +1944,51 @@ const buildClipPrompts = (f, storyline, hasFirstFrame, lang) => {
     const actualDur = endSec - startSec;
     const clipRole = getClipRole(clipNum, numClips, lang);
     const rawBeat = storyLines[i] || "";
-    const cleanBeat = rawBeat.replace(/^\d+\.\s*\[?(HOOK|CONTENT|CTA|钩子|内容|KANDUNGAN)[^\]]*\]?\s*/i, "").trim();
+    // Strip leading number + role tag (e.g. "1. [HOOK] " or "1. [HOOK+CONTENT] ")
+    const cleanBeat = rawBeat.replace(/^\d+[.)\s]+\[?[^\]]*\]?\s*/i, "").trim();
     const sceneBeat = cleanBeat ||
-      (clipRole.role.includes("HOOK") || clipRole.role.includes("钩子") || clipRole.role.includes("HOOK") ? `Hook — ${f.problemStatement || "show relatable problem or pattern interrupt"}` :
-       (clipRole.role === "CTA" || clipRole.role === "CTA") ? `CTA close — ${ctaLabel || "hero shot of product, drive action"}` :
-       `Content — demonstrate: ${f.keyBenefit || f.keyFeaturesCustom}`);
+      (clipRole.role.includes("HOOK") || clipRole.role.includes("钩子")
+        ? `Open on: ${f.problemStatement || "relatable problem — no product yet"}`
+        : clipRole.role.includes("CTA")
+        ? `Hero product shot + ${ctaLabel || "drive action"}`
+        : `Show: ${f.keyBenefit || f.keyFeaturesCustom}`);
 
-    const hookDir = (clipRole.role.includes("HOOK") || clipRole.role.includes("钩子") || clipRole.role.includes("HOOK"))
-      ? `\n🎣 HOOK DIRECTION\n• Hook strategy: ${chipsLabel(o("hooks",lang), f.hook) || "pattern interrupt"}\n• First 1–2 seconds must STOP THE SCROLL — no slow intros\n• ${fd.hook}${hasFirstFrame ? "\n• Animate naturally from your first frame reference image" : ""}` : "";
-    const contentDir = (clipRole.role.includes("CONTENT") || clipRole.role.includes("内容") || clipRole.role.includes("KANDUNGAN"))
-      ? `\n📖 CONTENT DIRECTION\n• Key benefit to show: ${f.keyBenefit || f.keyFeaturesCustom}\n• ${fd.content}\n• Emotional beat: viewer should feel ${f.funnel === "upper" ? "curious and intrigued" : f.funnel === "middle" ? "understood and convinced" : "excited and ready to buy"}` : "";
-    const ctaDir = (clipRole.role === "CTA" || clipRole.role.includes("CTA"))
-      ? `\n📢 CTA DIRECTION\n• Action: ${ctaLabel}${heroOpt?.label ? "\n• End on clean hero shot: " + heroOpt.label + " — product centered" : ""}\n• ${fd.cta}\n• Last 1–2 seconds must feel conclusive — not abrupt` : "";
+    // Build concise funnel directive for this clip's role
+    const directives = [];
+    if (clipRole.role.includes("HOOK") || clipRole.role.includes("钩子")) {
+      directives.push(`HOOK: ${fd.hook}`);
+      if (hasFirstFrame) directives.push("Animate naturally from the first frame reference image.");
+    }
+    if (clipRole.role.includes("CONTENT") || clipRole.role.includes("内容") || clipRole.role.includes("KANDUNGAN")) {
+      directives.push(`CONTENT: ${fd.content}`);
+    }
+    if (clipRole.role.includes("CTA")) {
+      directives.push(`CTA: ${fd.cta}`);
+      if (heroOpt?.label) directives.push(`End frame: ${heroOpt.label} — product centered.`);
+    }
+    if (clipNum < numClips) directives.push(`End on a clean frame — will stitch with Clip ${clipNum + 1}.`);
+
+    // Compact context — only essentials, no repetition
+    const compactContext = [
+      `PRODUCT: ${f.productName}${catLabel ? " — " + catLabel : ""}`,
+      `USP: ${f.usp}`,
+      `PROBLEM: ${f.problemStatement}`,
+      `BENEFIT: ${f.keyBenefit}`,
+      f.keyColors ? `COLORS: ${f.keyColors}` : "",
+      f.talent && f.talent !== "no_talent" ? `TALENT: ${talentOpt?.label || f.talent}${f.talentDetail ? ", " + f.talentDetail : ""}` : "No talent — product only",
+      settingLabel(f,lang) && f.settingPreset ? `SETTING: ${settingLabel(f,lang)}${f.settingDetail ? " — " + f.settingDetail : ""}` : "",
+      lightingLabel(f,lang) && f.lightingPreset ? `LIGHTING: ${lightingLabel(f,lang)}` : "",
+      f.shotType?.length ? `SHOT: ${chipsLabel(o("shotType",lang), f.shotType)}` : "",
+      f.cameraMove ? `CAMERA: ${optLabel(o("cameraMove",lang), f.cameraMove)}` : "",
+      `TONE: ${toneLabel}`,
+      f.audioType ? `AUDIO: ${optLabel(o("audioType",lang), f.audioType)}${f.bgMusic ? " — " + optLabel(o("bgMusic",lang), f.bgMusic) : ""}` : "",
+      f.audioType && f.voLang && f.voLang !== "none" ? `VOICEOVER: ${optLabel(o("voLang",lang), f.voLang)}${f.voTone ? ", " + f.voTone : ""}${f.customVO ? "\nSCRIPT: " + f.customVO : ""}` : "",
+      restrictions ? `RESTRICTIONS: ${restrictions}` : "",
+      antiHalluc ? `ANTI-HALLUCINATION: ${antiHalluc}` : "",
+      f.extraNotes ? `NOTES: ${f.extraNotes}` : "",
+      hasFirstFrame ? "FIRST FRAME: ✅ PROVIDED — start from reference image, match product/talent/setting exactly." : "",
+      t.promptLangInstruction,
+    ].filter(Boolean).join("\n");
 
     clips.push({
       label: `CLIP ${clipNum} of ${numClips}`,
@@ -1963,22 +1996,18 @@ const buildClipPrompts = (f, storyline, hasFirstFrame, lang) => {
       timing: `${startSec}s – ${endSec}s (${actualDur}s)`,
       prompt: `═══════════════════════════════════
 🎬 GROK VIDEO PROMPT — CLIP ${clipNum}/${numClips}
-${f.grokPlan === "pro" ? "⭐ Grok Pro" : "🆓 Grok Free"} | ${actualDur}s | Timeline: ${startSec}s–${endSec}s
-${clipRole.tag} ROLE: ${clipRole.role}
-${clipRole.desc}
-${hasFirstFrame ? "🖼 IMAGE-TO-VIDEO MODE — upload first frame image to Grok" : "📝 TEXT-ONLY MODE"}
+${f.grokPlan === "pro" ? "⭐ Grok Pro" : "🆓 Grok Free"} | ${actualDur}s | ${startSec}s–${endSec}s
+${clipRole.tag} ${clipRole.role}
+${hasFirstFrame ? "🖼 IMAGE-TO-VIDEO MODE" : "📝 TEXT-ONLY MODE"}
 ═══════════════════════════════════
 
-${baseContextLines}
+${compactContext}
 
-━━━ SCENE BEAT ━━━
-${sceneBeat}
-${hookDir}${contentDir}${ctaDir}
+━━━ DIRECTOR'S BRIEF ━━━
+SCENE: ${sceneBeat}
+${directives.length ? directives.map(d => `• ${d}`).join("\n") : ""}
 
-${f.audioType && f.voLang && f.voLang !== "none" ? `VOICEOVER SCRIPT GUIDE:${f.customVO ? "\n" + f.customVO : " (none provided)"}` : ""}
-${clipNum < numClips ? `\n⚡ CONTINUITY: Stitch with Clip ${clipNum + 1}. End on a clean frame — avoid abrupt cuts.` : ""}
-
-❗ OVERALL: Authentic, natural, purposeful. Not staged. Not an ad — even if it is one.
+❗ Authentic, natural, purposeful. Not staged.
 ═══════════════════════════════════`
     });
   }
@@ -2260,7 +2289,7 @@ const LoginScreen = () => {
 export default function App() {
   const [lang, setLang] = useState("en");
   const [f, setF] = useState(init);
-  const [tab, setTab] = useState("builder");
+  const [tab, setTab] = useState("sora");
   const [clips, setClips] = useState([]);
   const [storyline, setStoryline] = useState("");
   const [aiLoading, setAiLoading] = useState(false);
