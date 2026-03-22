@@ -46,7 +46,7 @@ BENEFIT: ${benefit}
 FUNNEL: ${funnel || 'middle'} funnel
 TONE: ${tone || 'calm & warm'}
 PLATFORM: ${platform || 'TikTok 9:16'}
-TALENT: ${talent === 'no_talent' || !talent ? 'NO TALENT — product only, no human faces or bodies' : (talent + (talentDetail ? ', ' + talentDetail : ''))}
+TALENT: ${talent === 'no_talent' ? 'NO TALENT — product only, no human faces or bodies' : talent ? (talent + (talentDetail ? ', ' + talentDetail : '')) : 'OPEN — use your creative judgement, suggest talent or product-only based on what makes the best video'}
 
 STORYLINE:
 ${storyline}
