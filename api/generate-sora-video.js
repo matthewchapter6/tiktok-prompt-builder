@@ -55,13 +55,10 @@ export default async function handler(req, res) {
       // ── KLING 2.6 PRO ─────────────────────────────────────────────────
       const cfgScale = videoConfig?.cfg_scale ?? 0.8;
 
-      // Build elements array for product/character reference images
-      // v3 format: frontal_image_url + reference_image_urls
       const elements = [];
       if (productUrl)   elements.push({ frontal_image_url: productUrl, reference_image_urls: [productUrl] });
       if (characterUrl) elements.push({ frontal_image_url: characterUrl, reference_image_urls: [characterUrl] });
 
-      // Strip @Element refs from prompt if no reference images provided
       const cleanPrompt = elements.length > 0
         ? prompt
         : prompt.replace(/@Element\d+/g, "").replace(/\s+/g, " ").trim();
@@ -90,14 +87,19 @@ export default async function handler(req, res) {
         .replace(/@Video[0-9]+/g, "")
         .replace(/\s+/g, " ").trim();
 
+      // Hailuo 2.3 Fast Pro resolution constraint:
+      // - 1080p only supports up to 6s max → use for 5s videos
+      // - 768p supports 5s and 10s → use for 10s videos
+      const hailuoResolution = String(duration) === "10" ? "768p" : "1080p";
+
       modelId = "fal-ai/minimax/hailuo-2.3-fast/pro/image-to-video";
       input = {
         prompt: cleanPromptHailuo,
         image_url: frameUrl,
         duration: String(duration),
-        resolution: "1080p",
+        resolution: hailuoResolution,
       };
-      console.log("[generate-sora-video] === HAILUO 2.3 FAST PRO ===");
+      console.log(`[generate-sora-video] === HAILUO 2.3 FAST PRO === resolution=${hailuoResolution}`);
 
     } else {
       // ── WAN 2.6 IMAGE-TO-VIDEO FLASH ─────────────────────────────────
