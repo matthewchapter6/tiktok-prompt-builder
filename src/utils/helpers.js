@@ -127,4 +127,21 @@ Sales Funnel Stage: ${FUNNEL_OPTIONS.find(o => o.value === f.funnel)?.label || "
 Funnel Objective: ${FUNNEL_OPTIONS.find(o => o.value === f.funnel)?.objective || "not specified"}
 Funnel Content Approach: ${FUNNEL_OPTIONS.find(o => o.value === f.funnel)?.examples?.join(", ") || "not specified"}
 
-IMPORTANT: The storyline MUST align with the ${FUNNEL_OPTIONS.find(o =>
+IMPORTANT: The storyline MUST align with the ${FUNNEL_OPTIONS.find(o => o.value === f.funnel)?.label || ""} stage.
+${f.funnel === "upper" ? "Focus on AWARENESS — hook with relatable content, do NOT hard sell. Make viewer curious." : ""}
+${f.funnel === "middle" ? "Focus on CONSIDERATION — show the product solving a real problem, build trust and credibility." : ""}
+${f.funnel === "lower" ? "Focus on CONVERSION — create urgency, give a clear reason to buy NOW, strong CTA." : ""}
+
+Return exactly ${numClips} lines. One line per clip. Each line = what happens visually in that ${cs}-second clip.`
+        }]
+      })
+    });
+    const data = await res.json();
+    const text = data.content?.find(b => b.type === "text")?.text || "";
+    setStoryline(text.trim());
+    setLoading(false);
+  } catch (e) {
+    setError("Could not reach AI. Please try again.");
+    setLoading(false);
+  }
+};
