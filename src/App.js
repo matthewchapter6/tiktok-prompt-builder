@@ -1801,6 +1801,33 @@ const productCatLabel = (f, lang) => {
   return optLabel(productCatOpts(lang), f.productCategory);
 };
 
+// ── the compressImage code ──────────────────────────────────────────────────────────
+const compressImage = (file, maxSizeKB = 800) => new Promise(resolve => {
+  const canvas = document.createElement("canvas");
+  const img = new Image();
+  const url = URL.createObjectURL(file);
+  img.onload = () => {
+    let { width, height } = img;
+    const maxDim = 1024;
+    if (width > maxDim || height > maxDim) {
+      const ratio = Math.min(maxDim / width, maxDim / height);
+      width = Math.round(width * ratio);
+      height = Math.round(height * ratio);
+    }
+    canvas.width = width; canvas.height = height;
+    canvas.getContext("2d").drawImage(img, 0, 0, width, height);
+    URL.revokeObjectURL(url);
+    const tryQuality = (q) => {
+      const dataUrl = canvas.toDataURL("image/jpeg", q);
+      const sizeKB = (dataUrl.length * 3) / 4 / 1024;
+      if (sizeKB > maxSizeKB && q > 0.3) return tryQuality(q - 0.1);
+      resolve({ data: dataUrl.split(",")[1], mimeType: "image/jpeg" });
+    };
+    tryQuality(0.85);
+  };
+  img.src = url;
+});
+
 // ── File → base64 ──────────────────────────────────────────────────────────
 const fileToBase64 = file => new Promise((resolve, reject) => {
   const r = new FileReader();
@@ -2094,13 +2121,14 @@ const generateFirstFrame = async (f, lang, productFile, talentFile, setLoading, 
     const body = { prompt: buildImagePrompt(f, lang), aspectRatio: aspectInfo.gemini };
     if (productFile) body.productImage = await fileToBase64(productFile);
     if (talentFile) body.talentImage = await fileToBase64(talentFile);
-    const res = await fetch("/api/generate-image", {
+        const res = await fetch("/api/generate-image", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(body)
     });
-    const data = await res.json();
-    if (!res.ok) throw new Error(data.error?.error?.message || data.error || "Generation failed");
+    let data;
+    try { data = await res.json(); } catch { data = {}; }
+    if (!res.ok) throw new Error(data.error?.error?.message || data.error || `Server error ${res.status} — image may be too large`);
     setImage({ data: data.imageData, mimeType: data.mimeType });
     setLoading(false);
   } catch (e) {
@@ -2572,16 +2600,17 @@ export default function App() {
         prompt: promptData.imagePrompt,
         aspectRatio: sora.videoRatio === "9_16" ? "9:16" : "16:9",
       };
-      if (soraProductFile) imageBody.productImage = await fileToBase64(soraProductFile);
-      if (soraCharacterFile) imageBody.talentImage = await fileToBase64(soraCharacterFile);
+            if (soraProductFile) imageBody.productImage = await compressImage(soraProductFile);
+      if (soraCharacterFile) imageBody.talentImage = await compressImage(soraCharacterFile);
 
       const imageRes = await fetch("/api/generate-image", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(imageBody),
       });
-      const imageData = await imageRes.json();
-      if (!imageRes.ok) throw new Error(imageData.error?.error?.message || imageData.error || "Image generation failed");
+      let imageData;
+      try { imageData = await imageRes.json(); } catch { imageData = {}; }
+      if (!imageRes.ok) throw new Error(imageData.error?.error?.message || imageData.error || `Server error ${imageRes.status} — image may be too large`);
 
       setSoraFirstFrame({ data: imageData.imageData, mimeType: imageData.mimeType });
       setSoraStep("review-frame");
