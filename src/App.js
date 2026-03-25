@@ -9,6 +9,7 @@ import HistoryTab from "./components/HistoryTab";
 import {
   getClipRole, clipSec, calcClips,
   settingLabel, lightingLabel, optLabel, chipsLabel,
+  productCatOpts, productCatLabel,
   compressImage, fileToBase64,
   buildImagePrompt, buildClipPrompts, fetchStoryline,
 } from "./utils/helpers";
