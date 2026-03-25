@@ -1,0 +1,877 @@
+const TRANSLATIONS = {
+  en: {
+    // Header
+    appTitle: "🎬 HookGen",
+    appSubtitle: "Powered by Content Creator AI Agent",
+    tabSora: "🎬 Create Video",
+    tabBuilder: "📝 Builder",
+    tabOutput: "📋 Output",
+
+    // Section badges
+    basicSettings: "✅ Basic Settings",
+    basicSettingsHint: "Required to generate prompts",
+    advancedSettings: "⚙️ Advanced Settings",
+    advancedSettingsHint: "Optional — fine-tune your output",
+
+    // Section titles & subtitles
+    sProject: "Project", sProjectSub: "Optional — helps you organise multiple campaigns.",
+    sGrok: "Grok Settings", sGrokSub: "Select your plan — determines how many clips are generated.",
+    sFunnel: "Sales Funnel Stage", sFunnelSub: "Select your video objective — shapes the entire storyline and strategy.",
+    sProduct: "Product", sProductSub: "Lock down your product — stays consistent across every clip.",
+    sStory: "Story & Structure",
+    sAdvProduct: "Product Details", sAdvProductSub: "Additional product context.",
+    sAdvStory: "Story Details",
+    sStyle: "Style & Tone",
+    sSetting: "Setting & Environment",
+    sTalent: "Talent & Character",
+    sCamera: "Camera & Framing",
+    sAction: "Action & Motion",
+    sAudio: "Audio & Voiceover",
+    sTech: "Technical Settings",
+    sRef: "References",
+    sRestrict: "Restrictions & Guardrails",
+    sCreative: "Creative Director", sCreativeSub: "AI generates a structured Hook → Content → CTA storyline based on all your settings above. Edit freely before generating.",
+
+    // Fields
+    fCampaign: "Campaign / Project Name",
+    fCampaignPh: "e.g. Raya 2025 — Vflow Monitor Launch",
+    fGrokPlan: "Grok Plan",
+    fDuration: "Total Video Duration (seconds)",
+    fPlatform: "Platform",
+    fProductName: "Product Name",
+    fProductNamePh: "e.g. Vflow Portable Monitor",
+    fProductCat: "Product Category",
+    fCustomCat: "Custom Category",
+    fCustomCatPh: "Describe your product type",
+    fFeatures: "Key Features to Highlight",
+    fFeaturesPh: "e.g. Ultra-slim 15.6 inch, USB-C plug-and-play, 1080p display, foldable stand",
+    fFeaturesHint: "Describe what the video must show",
+    fUSP: "USP — Unique Selling Point",
+    fUSPPh: "e.g. Thinnest portable monitor that fits in a laptop bag",
+    fHook: "Hook Strategy",
+    fHookHint: "How does the video open? Pick 1–2",
+    fProblem: "Problem Being Solved",
+    fProblemPh: "e.g. Laptop screen too small for multi-tasking",
+    fBenefit: "Core Benefit to Show",
+    fBenefitPh: "e.g. Instant dual-screen setup anywhere in seconds",
+    fCTA: "CTA",
+    fCTAHint: "Pick 1–2",
+    fColors: "Key Colors",
+    fColorsHint: "Exact colors — must not change across clips",
+    fColorsPh: "e.g. Matte black body, silver stand",
+    fAudience: "Target Audience",
+    fProductRules: "Product Rules",
+    fProductRulesHint: "Visual dos and don'ts",
+    fProductRulesPh: "e.g. Always show product screen on\nDo not show product disassembled",
+    fEmotionalArc: "Emotional Arc",
+    fEndingFrame: "Ending Frame / Last Shot",
+    fVideoStyle: "Video Style",
+    fTone: "Tone",
+    fRealism: "Realism Level",
+    fColorGrading: "Color Grading / Mood",
+    fAuthenticity: "Authenticity Feel",
+    fLocation: "Location",
+    fLighting: "Lighting",
+    fCustomLocation: "Custom Location",
+    fCustomLocationPh: "e.g. Rooftop terrace",
+    fCustomLighting: "Custom Lighting",
+    fCustomLightingPh: "e.g. Neon-lit night scene",
+    fEnvDetail: "Environment Details & Props",
+    fEnvDetailPh: "e.g. Desk + laptop + coffee",
+    fBgActivity: "Background Activity Level",
+    fTalentType: "Talent Type",
+    fOutfit: "Outfit Style",
+    fAppearance: "Appearance Details",
+    fAppearancePh: "e.g. White shirt, dark jeans, hair tied back",
+    fEmotion: "Emotion / Facial Expression",
+    fShotType: "Shot Type",
+    fCamAngle: "Camera Angle",
+    fCamMove: "Camera Movement",
+    fHeroAngle: "Hero / Product Shot Angle",
+    fHeroAngleHint: "Final closing shot",
+    fProductFraming: "Product Framing Rules",
+    fSubjectMotion: "Subject Motion",
+    fProductInteraction: "Product Interaction",
+    fAudioType: "Audio Type",
+    fBgMusic: "Background Music",
+    fVoLang: "Voiceover Language",
+    fVoTone: "VO Tone",
+    fVoTonePh: "e.g. Friendly, calm",
+    fSpeechType: "Speech Type",
+    fScript: "Script Guide / Key Lines",
+    fScriptPh: "Opening: Hook line\nMiddle: Key benefit\nClose: CTA",
+    fFrameRate: "Frame Rate",
+    fResolution: "Resolution",
+    fDOF: "Focus & Depth of Field",
+    fRefUrl: "Reference Image URL / Product Link",
+    fRefUrlHint: "Dramatically improves accuracy",
+    fRefUrlPh: "e.g. https://yoursite.com/product-image.jpg",
+    fBrandStyle: "Brand Style Reference",
+    fAntiHalluc: "Anti-Hallucination Rules",
+    fRestrictions: "Additional Restrictions",
+    fNotes: "Additional Notes",
+    fNotesPh: "e.g. Raya season — festive but not loud.",
+
+    // Buttons & actions
+    btnGenerateStoryline: "✨ Generate Storyline Idea",
+    btnRegenerateStoryline: "🔄 Regenerate Storyline",
+    btnThinking: "✨ Thinking...",
+    btnGenerateFrame: "🎨 Generate First Frame Image",
+    btnRegenerateFrame: "🔄 Regenerate First Frame",
+    btnGenerating: "🎨 Generating...",
+    btnDownload: "⬇️ Download First Frame Image",
+    btnTextOnly: "📝 Text-Only Prompts",
+    btnImageVideo: "🖼 Image-to-Video Prompts",
+    btnReset: "Reset All",
+    btnCopyAll: "📋 Copy All Prompts",
+    btnCopied: "✅ All Copied!",
+    btnCopy: "📋 Copy",
+    btnCopiedOne: "✅ Copied!",
+    btnEdit: "← Edit",
+    btnBackToBuilder: "← Back to Builder",
+    btnCollapseAdvanced: "Collapse Advanced Settings",
+    btnShowAdvanced: "Show Advanced Settings",
+    btnHideAdvanced: "Hide Advanced Settings",
+
+    // Hints & info
+    hintFillProduct: "Fill in Product Name and Key Features first.",
+    hintFillProductName: "Fill in Product Name first.",
+    hintStorylineField: "Edit freely — one line per clip beat",
+    hintUploadProduct: "Upload a photo of your product",
+    hintUploadTalent: "Upload a photo of the talent",
+    hintClickChange: "Click to change",
+    hintUploadProductLabel: "Upload product photo",
+    hintUploadTalentLabel: "Upload talent photo",
+    hintImageReady: (ratio, platform) => `✅ First frame ready (${ratio}) — Step 2 prompts will be optimised for image-to-video`,
+    hintImagePlatform: (ratio, platform) => `📐 Will generate a ${ratio} reference image for ${platform}`,
+    hintImageVideoUnlocks: "🖼 Image-to-Video unlocks after Step 1 is complete",
+    hintUploadToGrok: "Upload this image to Grok along with the Step 2 prompts below",
+    hintAdvancedSub: (n) => `${n} optional sections — Style, Camera, Audio, Technical & more`,
+    hintAdvancedCollapse: "Collapse optional settings",
+    hintClipsGenerated: (n, cs) => `Each clip = ${cs}s max. Your duration splits into ${n} clip${n > 1 ? "s" : ""}.`,
+    hintMultiplePrompts: (n, cs) => `📋 Generates ${n} separate prompts (${cs}s each). Generate each in Grok then stitch or use Extend.`,
+    hintOutputInfo: (n, plan, cs, dur) => `${n} clip${n > 1 ? "s" : ""} generated — ${plan} · ${cs}s per clip · ${dur}s total`,
+    hintImg2Video: "🖼 Image-to-video mode — upload your first frame image to Grok with each prompt.",
+    hintStitchClips: "Paste each prompt into Grok separately. Stitch clips or use Grok's Extend feature.",
+    hintEmptyOutput: "Complete the builder and click Generate Prompts.",
+
+    // Step labels
+    step1Title: "Generate First Frame",
+    step1Optional: "Optional",
+    step1Sub: "Use Gemini to create a reference image — then review before generating prompts",
+    step2Title: "Generate Prompts",
+    step2SubReady: "First frame ready — choose text-only or image-to-video mode",
+    step2SubNotReady: "Generate text-only prompts, or complete Step 1 first for image-to-video",
+
+    // Funnel
+    funnelUpperLabel: "Upper Funnel", funnelUpperTag: "Awareness", funnelUpperDesc: "Pull traffic & build awareness",
+    funnelUpperObj: "Reach out to new customers who don't know your product yet",
+    funnelUpperEx: ["Relatable problem", "Storytelling", "Point of view (POV)", "Trending hook"],
+    funnelMiddleLabel: "Middle Funnel", funnelMiddleTag: "Consideration", funnelMiddleDesc: "Educate & build trust",
+    funnelMiddleObj: "Gain video views, community interaction and warm up leads",
+    funnelMiddleEx: ["Review / UGC", "Before & after", "Feature highlight", "Product demo"],
+    funnelLowerLabel: "Lower Funnel", funnelLowerTag: "Conversion", funnelLowerDesc: "Drive purchase & close sales",
+    funnelLowerObj: "Promotion, lead generation and direct purchase intent",
+    funnelLowerEx: ["Limited offer", "CTA to buy", "Testimonial + price", "Urgency / scarcity"],
+    funnelUpperConfirm: "✅ Hook→Content→CTA will focus on AWARENESS — no hard selling.",
+    funnelMiddleConfirm: "✅ Hook→Content→CTA will focus on CONSIDERATION — educate and build trust.",
+    funnelLowerConfirm: "✅ Hook→Content→CTA will focus on CONVERSION — urgency and purchase intent.",
+
+    // Warnings
+    warnRequired: "⚠️ Required: Funnel Stage, Product Name, Category, Key Features, USP, Problem, Core Benefit, Hook Strategy, and CTA.",
+
+    // Storyline label
+    storylineLabel: (n, cs) => `Storyline (${n} clips × ${cs}s) — Hook → Content → CTA`,
+
+    // Prompt language instruction (injected into AI prompt)
+    promptLangInstruction: "",
+    storylineLangInstruction: "",
+  },
+
+  zh: {
+    appTitle: "🎬 HookGen",
+    appSubtitle: "由 Content Creator AI Agent 驱动",
+    tabSora: "🎬 创建视频",
+    tabBuilder: "📝 构建器",
+    tabOutput: "📋 输出",
+    tabHistory: "🎞️ 历史",
+    // Create Video tab
+    cvUploadPhotos: "上传照片",
+    cvUploadSubtitle: "产品照片必填 · 人物照片可选",
+    cvProductPhoto: "产品照片 *",
+    cvCharacterPhoto: "人物照片（可选）",
+    cvRequired: "必填",
+    cvOptional: "可选",
+    cvTapChange: "点击更换",
+    cvProductInfo: "产品信息",
+    cvProductInfoSubtitle: "详细信息 = 更好的视频",
+    cvCategory: "类别",
+    cvSelectCategory: "— 选择类别 —",
+    cvProductDesc: "产品描述 *",
+    cvUSP: "产品卖点 *",
+    cvVideoSettings: "视频设置",
+    cvSalesFunnel: "营销阶段",
+    cvRatio: "视频比例",
+    cvDuration: "视频时长",
+    cvStoryline: "故事线",
+    cvStorylineQuestion: "谁来决定故事线？",
+    cvAIDecides: "🤖 AI 提出 5 个创意",
+    cvUserWrites: "✍️ 我自己撰写",
+    cvAIStoryline: "AI 决定最佳故事",
+    cvYourStoryline: "你的故事线",
+    cvStorylinePh: "描述你的视频创意… 例如：选手因鞋子不好输了比赛，发现飞利特银5000，赢得下一场比赛。",
+    cvAdvanced: "⚙️ 高级设置（可选）",
+    cvTone: "风格基调",
+    cvTonePh: "例如：高端、活泼、感人",
+    cvCamera: "镜头运动",
+    cvCameraPh: "例如：慢速推进、手持跟拍",
+    cvLighting: "灯光效果",
+    cvLightingPh: "例如：黄金时刻、摄影棚轮廓光",
+    cvBackground: "背景环境",
+    cvBackgroundPh: "例如：极简摄影棚、户外球场",
+    cvEmotion: "情绪弧线",
+    cvEmotionPh: "例如：渴望、向往、紧迫感",
+    cvRestrictions: "限制条件",
+    cvRestrictionsPh: "例如：不要文字叠加、不要正脸特写",
+    cvGenerate5: "🤖 生成 5 个故事创意（免费）",
+    cvGenerateFrame: "✨ 生成首帧（免费）",
+    cvNeedProduct: "📦 请上传产品照片后继续",
+    cvNeedInfo: "请填写产品描述和卖点后继续",
+    cvFrameFree: "首帧生成免费 · 视频生成需",
+    cvCredits: "积分",
+    // Step labels
+    cvStep1: "上传和填写",
+    cvStep2: "故事线",
+    cvStep3: "首帧画面",
+    cvStep4: "生成视频",
+    // Storyline pick screen
+    cvPickTitle: "第二步 — 选择你的故事线",
+    cvPickSubtitle: "选择最符合你想法的概念，AI 将基于你的选择生成首帧画面。",
+    cvRegenerateIdeas: "🔄 重新生成创意（免费）",
+    cvGenerating5: "正在生成 5 个故事创意…",
+    // Frame review screen  
+    cvReviewTitle: "第三步 — 审查首帧画面",
+    cvReviewSubtitle: "检查开场画面。如需要可编辑动画提示词，然后生成视频。",
+    cvFirstFrame: "🖼️ 首帧画面（Kling 将从此帧开始动画）",
+    cvRegenFrame: "🔄 重新生成",
+    cvAnimPrompt: "🎬 动画提示词",
+    cvAnimPromptHint: "这告诉 Kling 如何为画面添加动画。你可以编辑。",
+    cvGenerateVideo: "🎬 生成视频",
+    cvBack: "← 返回",
+    cvGenerating: "生成中…",
+    cvGeneratingFrame: "正在生成首帧…",
+    cvGeneratingFrameSubtitle: "正在使用 Gemini AI 创建你的开场画面",
+    cvAnimatingFrom: "正在制作动画：",
+    cvVideoSuccess: "✅ 视频生成成功！",
+    cvDownload: "⬇️ 下载",
+    cvCreateAnother: "🔄 再创建一个",
+    cvQueuePos: "队列位置",
+    cvSafeClose: "生成需要 30-90 秒。你可以安全关闭 — 稍后在历史记录中查看。",
+    cvSubmitting: "正在提交至 Kling AI…",
+    cvGeneratingVideo: "正在生成视频…",
+    // History tab
+    histTitle: "已生成的视频",
+    histSubtitle: "你过去的 Kling AI 视频",
+    histRefresh: "🔄 刷新",
+    histEmpty: "暂无视频",
+    histEmptySubtitle: "你生成的视频将显示在这里",
+    histFirstVideo: "生成你的第一个视频 →",
+    histProcessing: "⏳ 处理中",
+    histDone: "✅ 完成",
+    histFailed: "❌ 失败",
+    histStillGenerating: "视频仍在生成中…",
+    histStarted: "开始于",
+    histMinAgo: "分钟前",
+    histResume: "恢复",
+    histFailed2: "❌ 生成失败。",
+    histTryAgain: "🔄 使用相同提示词重试",
+    histNewVideo: "🔄 新视频",
+    histDownload: "⬇️ 下载",
+    histViewPrompt: "查看使用的提示词",
+
+    basicSettings: "✅ 基本设置",
+    basicSettingsHint: "生成提示词所需的必填项",
+    advancedSettings: "⚙️ 高级设置",
+    advancedSettingsHint: "可选 — 进一步优化您的输出",
+
+    sProject: "项目", sProjectSub: "可选 — 帮助您管理多个营销活动。",
+    sGrok: "Grok 设置", sGrokSub: "选择您的套餐 — 决定生成的片段数量。",
+    sFunnel: "销售漏斗阶段", sFunnelSub: "选择视频目标 — 影响整体故事线和策略。",
+    sProduct: "产品", sProductSub: "锁定您的产品 — 在每个片段中保持一致。",
+    sStory: "故事结构",
+    sAdvProduct: "产品详情", sAdvProductSub: "额外的产品背景信息。",
+    sAdvStory: "故事细节",
+    sStyle: "风格与基调",
+    sSetting: "场景与环境",
+    sTalent: "演员与角色",
+    sCamera: "镜头与构图",
+    sAction: "动作与运动",
+    sAudio: "音频与配音",
+    sTech: "技术设置",
+    sRef: "参考资料",
+    sRestrict: "限制与规范",
+    sCreative: "创意总监", sCreativeSub: "AI 根据您上方的所有设置，生成结构化的钩子→内容→CTA 故事线。可自由编辑后再生成。",
+
+    fCampaign: "活动 / 项目名称",
+    fCampaignPh: "例如：斋戒月 2025 — Vflow 显示器发布",
+    fGrokPlan: "Grok 套餐",
+    fDuration: "视频总时长（秒）",
+    fPlatform: "平台",
+    fProductName: "产品名称",
+    fProductNamePh: "例如：Vflow 便携显示器",
+    fProductCat: "产品类别",
+    fCustomCat: "自定义类别",
+    fCustomCatPh: "描述您的产品类型",
+    fFeatures: "需要突出的主要功能",
+    fFeaturesPh: "例如：超薄15.6英寸，USB-C即插即用，1080P显示屏，折叠支架",
+    fFeaturesHint: "描述视频必须展示的内容",
+    fUSP: "USP — 独特卖点",
+    fUSPPh: "例如：能放入笔记本包的最薄便携显示器",
+    fHook: "钩子策略",
+    fHookHint: "视频如何开场？选择1–2个",
+    fProblem: "解决的问题",
+    fProblemPh: "例如：笔记本屏幕太小，无法多任务处理",
+    fBenefit: "核心展示利益",
+    fBenefitPh: "例如：几秒内随时随地实现双屏设置",
+    fCTA: "行动号召",
+    fCTAHint: "选择1–2个",
+    fColors: "主要颜色",
+    fColorsHint: "精确颜色 — 各片段之间不得改变",
+    fColorsPh: "例如：哑光黑色机身，银色支架",
+    fAudience: "目标受众",
+    fProductRules: "产品规则",
+    fProductRulesHint: "视觉上的注意事项",
+    fProductRulesPh: "例如：始终显示产品屏幕\n不要展示产品拆解状态",
+    fEmotionalArc: "情感弧线",
+    fEndingFrame: "结束帧 / 最后镜头",
+    fVideoStyle: "视频风格",
+    fTone: "基调",
+    fRealism: "真实感级别",
+    fColorGrading: "色调 / 氛围",
+    fAuthenticity: "真实感",
+    fLocation: "拍摄地点",
+    fLighting: "灯光",
+    fCustomLocation: "自定义地点",
+    fCustomLocationPh: "例如：屋顶露台",
+    fCustomLighting: "自定义灯光",
+    fCustomLightingPh: "例如：霓虹夜景",
+    fEnvDetail: "环境细节与道具",
+    fEnvDetailPh: "例如：桌子 + 笔记本 + 咖啡",
+    fBgActivity: "背景活动程度",
+    fTalentType: "演员类型",
+    fOutfit: "服装风格",
+    fAppearance: "外观细节",
+    fAppearancePh: "例如：白衬衫，深色牛仔裤，头发扎起",
+    fEmotion: "情绪 / 面部表情",
+    fShotType: "镜头类型",
+    fCamAngle: "摄像机角度",
+    fCamMove: "摄像机运动",
+    fHeroAngle: "主角 / 产品镜头角度",
+    fHeroAngleHint: "最终收尾镜头",
+    fProductFraming: "产品构图规则",
+    fSubjectMotion: "主体动作",
+    fProductInteraction: "产品互动",
+    fAudioType: "音频类型",
+    fBgMusic: "背景音乐",
+    fVoLang: "配音语言",
+    fVoTone: "配音语气",
+    fVoTonePh: "例如：友好，平静",
+    fSpeechType: "说话类型",
+    fScript: "脚本指南 / 关键台词",
+    fScriptPh: "开场：钩子台词\n中段：核心利益\n结尾：行动号召",
+    fFrameRate: "帧率",
+    fResolution: "分辨率",
+    fDOF: "焦点与景深",
+    fRefUrl: "参考图片链接 / 产品链接",
+    fRefUrlHint: "显著提高准确性",
+    fRefUrlPh: "例如：https://yoursite.com/product-image.jpg",
+    fBrandStyle: "品牌风格参考",
+    fAntiHalluc: "防止AI幻觉规则",
+    fRestrictions: "附加限制",
+    fNotes: "附加说明",
+    fNotesPh: "例如：斋戒月季节 — 节日气氛但不要过于喧嚣。",
+
+    btnGenerateStoryline: "✨ 生成故事线",
+    btnRegenerateStoryline: "🔄 重新生成故事线",
+    btnThinking: "✨ 思考中...",
+    btnGenerateFrame: "🎨 生成首帧图像",
+    btnRegenerateFrame: "🔄 重新生成首帧",
+    btnGenerating: "🎨 生成中...",
+    btnDownload: "⬇️ 下载首帧图像",
+    btnTextOnly: "📝 纯文字提示词",
+    btnImageVideo: "🖼 图像转视频提示词",
+    btnReset: "重置全部",
+    btnCopyAll: "📋 复制全部提示词",
+    btnCopied: "✅ 已全部复制！",
+    btnCopy: "📋 复制",
+    btnCopiedOne: "✅ 已复制！",
+    btnEdit: "← 编辑",
+    btnBackToBuilder: "← 返回构建器",
+    btnCollapseAdvanced: "收起高级设置",
+    btnShowAdvanced: "显示高级设置",
+    btnHideAdvanced: "隐藏高级设置",
+
+    hintFillProduct: "请先填写产品名称和主要功能。",
+    hintFillProductName: "请先填写产品名称。",
+    hintStorylineField: "可自由编辑 — 每行对应一个片段节拍",
+    hintUploadProduct: "上传产品照片",
+    hintUploadTalent: "上传演员照片",
+    hintClickChange: "点击更换",
+    hintUploadProductLabel: "上传产品照片",
+    hintUploadTalentLabel: "上传演员照片",
+    hintImageReady: (ratio) => `✅ 首帧已就绪（${ratio}）— 第2步提示词将针对图像转视频进行优化`,
+    hintImagePlatform: (ratio, platform) => `📐 将为 ${platform} 生成 ${ratio} 参考图像`,
+    hintImageVideoUnlocks: "🖼 完成第1步后可解锁图像转视频功能",
+    hintUploadToGrok: "请将此图像连同第2步提示词一起上传到 Grok",
+    hintAdvancedSub: (n) => `${n} 个可选部分 — 风格、镜头、音频、技术等`,
+    hintAdvancedCollapse: "收起可选设置",
+    hintClipsGenerated: (n, cs) => `每个片段最长 ${cs} 秒。您的时长将分为 ${n} 个片段。`,
+    hintMultiplePrompts: (n, cs) => `📋 生成 ${n} 个独立提示词（每个 ${cs} 秒）。在 Grok 中逐一生成后拼接或使用 Extend 功能。`,
+    hintOutputInfo: (n, plan, cs, dur) => `已生成 ${n} 个片段 — ${plan} · 每段 ${cs} 秒 · 总时长 ${dur} 秒`,
+    hintImg2Video: "🖼 图像转视频模式 — 请将首帧图像与提示词一起上传至 Grok。",
+    hintStitchClips: "请将每个提示词分别粘贴到 Grok 中。使用拼接或 Extend 功能合并片段。",
+    hintEmptyOutput: "请完成构建器并点击生成提示词。",
+
+    step1Title: "生成首帧",
+    step1Optional: "可选",
+    step1Sub: "使用 Gemini 创建参考图像 — 审核后再生成提示词",
+    step2Title: "生成提示词",
+    step2SubReady: "首帧已就绪 — 选择纯文字或图像转视频模式",
+    step2SubNotReady: "生成纯文字提示词，或先完成第1步以使用图像转视频",
+
+    funnelUpperLabel: "上漏斗", funnelUpperTag: "认知", funnelUpperDesc: "引流并建立品牌认知",
+    funnelUpperObj: "触达尚不了解您产品的新客户",
+    funnelUpperEx: ["相关痛点", "故事叙述", "第一视角(POV)", "热门钩子"],
+    funnelMiddleLabel: "中漏斗", funnelMiddleTag: "考虑", funnelMiddleDesc: "教育用户并建立信任",
+    funnelMiddleObj: "获得视频观看、社区互动并培育潜在客户",
+    funnelMiddleEx: ["评测 / UGC", "前后对比", "功能亮点", "产品演示"],
+    funnelLowerLabel: "下漏斗", funnelLowerTag: "转化", funnelLowerDesc: "促进购买并完成销售",
+    funnelLowerObj: "促销、潜在客户生成和直接购买意图",
+    funnelLowerEx: ["限时优惠", "购买CTA", "证言+价格", "紧迫感/稀缺性"],
+    funnelUpperConfirm: "✅ 钩子→内容→CTA 将聚焦于品牌认知 — 无强硬推销。",
+    funnelMiddleConfirm: "✅ 钩子→内容→CTA 将聚焦于考虑阶段 — 教育并建立信任。",
+    funnelLowerConfirm: "✅ 钩子→内容→CTA 将聚焦于转化 — 紧迫感与购买意图。",
+
+    warnRequired: "⚠️ 必填项：漏斗阶段、产品名称、类别、主要功能、独特卖点、痛点、核心利益、钩子策略和行动号召。",
+    storylineLabel: (n, cs) => `故事线（${n} 个片段 × ${cs} 秒）— 钩子 → 内容 → CTA`,
+
+    promptLangInstruction: "\n\nIMPORTANT: Generate ALL text content in this prompt in Simplified Chinese (简体中文). All labels, descriptions, scene beats, directions, and voiceover guidance must be written in Simplified Chinese.",
+    storylineLangInstruction: " 请用简体中文回复。所有场景描述必须用简体中文写成。",
+  },
+
+  bm: {
+    appTitle: "🎬 HookGen",
+    appSubtitle: "Dikuasakan oleh Content Creator AI Agent",
+    tabSora: "🎬 Cipta Video",
+    tabBuilder: "📝 Pembina",
+    tabOutput: "📋 Output",
+    tabHistory: "🎞️ Sejarah",
+
+    basicSettings: "✅ Tetapan Asas",
+    basicSettingsHint: "Diperlukan untuk menjana prompt",
+    advancedSettings: "⚙️ Tetapan Lanjutan",
+    advancedSettingsHint: "Pilihan — laraskan output anda",
+
+    sProject: "Projek", sProjectSub: "Pilihan — membantu anda mengurus pelbagai kempen.",
+    sGrok: "Tetapan Grok", sGrokSub: "Pilih pelan anda — menentukan bilangan klip yang dijana.",
+    sFunnel: "Peringkat Corong Jualan", sFunnelSub: "Pilih objektif video — membentuk keseluruhan jalan cerita dan strategi.",
+    sProduct: "Produk", sProductSub: "Tetapkan produk anda — kekal konsisten dalam setiap klip.",
+    sStory: "Cerita & Struktur",
+    sAdvProduct: "Butiran Produk", sAdvProductSub: "Maklumat konteks produk tambahan.",
+    sAdvStory: "Butiran Cerita",
+    sStyle: "Gaya & Nada",
+    sSetting: "Latar & Persekitaran",
+    sTalent: "Pelakon & Watak",
+    sCamera: "Kamera & Framing",
+    sAction: "Aksi & Pergerakan",
+    sAudio: "Audio & Suara Latar",
+    sTech: "Tetapan Teknikal",
+    sRef: "Rujukan",
+    sRestrict: "Sekatan & Garis Panduan",
+    sCreative: "Pengarah Kreatif", sCreativeSub: "AI menjana jalan cerita Hook → Kandungan → CTA berstruktur berdasarkan semua tetapan di atas. Edit dengan bebas sebelum menjana.",
+
+    fCampaign: "Nama Kempen / Projek",
+    fCampaignPh: "cth. Raya 2025 — Pelancaran Monitor Vflow",
+    fGrokPlan: "Pelan Grok",
+    fDuration: "Jumlah Tempoh Video (saat)",
+    fPlatform: "Platform",
+    fProductName: "Nama Produk",
+    fProductNamePh: "cth. Monitor Mudah Alih Vflow",
+    fProductCat: "Kategori Produk",
+    fCustomCat: "Kategori Tersuai",
+    fCustomCatPh: "Huraikan jenis produk anda",
+    fFeatures: "Ciri Utama untuk Ditonjolkan",
+    fFeaturesPh: "cth. Ultra-nipis 15.6 inci, USB-C plag-dan-guna, paparan 1080p, penyangga boleh dilipat",
+    fFeaturesHint: "Huraikan apa yang mesti ditunjukkan dalam video",
+    fUSP: "USP — Titik Jualan Unik",
+    fUSPPh: "cth. Monitor mudah alih paling nipis yang muat dalam beg laptop",
+    fHook: "Strategi Pembuka",
+    fHookHint: "Bagaimana video dibuka? Pilih 1–2",
+    fProblem: "Masalah yang Diselesaikan",
+    fProblemPh: "cth. Skrin laptop terlalu kecil untuk pelbagai tugas",
+    fBenefit: "Manfaat Utama untuk Ditunjukkan",
+    fBenefitPh: "cth. Persediaan dwi-skrin segera di mana-mana dalam beberapa saat",
+    fCTA: "Seruan Tindakan",
+    fCTAHint: "Pilih 1–2",
+    fColors: "Warna Utama",
+    fColorsHint: "Warna tepat — tidak boleh berubah antara klip",
+    fColorsPh: "cth. Badan hitam matte, penyangga perak",
+    fAudience: "Sasaran Penonton",
+    fProductRules: "Peraturan Produk",
+    fProductRulesHint: "Panduan visual yang perlu dan tidak perlu",
+    fProductRulesPh: "cth. Sentiasa tunjukkan skrin produk menyala\nJangan tunjukkan produk dalam keadaan dibuka",
+    fEmotionalArc: "Lengkok Emosi",
+    fEndingFrame: "Bingkai Akhir / Tembakan Terakhir",
+    fVideoStyle: "Gaya Video",
+    fTone: "Nada",
+    fRealism: "Tahap Realisme",
+    fColorGrading: "Gradasi Warna / Suasana",
+    fAuthenticity: "Perasaan Keaslian",
+    fLocation: "Lokasi",
+    fLighting: "Pencahayaan",
+    fCustomLocation: "Lokasi Tersuai",
+    fCustomLocationPh: "cth. Teres bumbung",
+    fCustomLighting: "Pencahayaan Tersuai",
+    fCustomLightingPh: "cth. Pemandangan malam neon",
+    fEnvDetail: "Butiran Persekitaran & Prop",
+    fEnvDetailPh: "cth. Meja + laptop + kopi",
+    fBgActivity: "Tahap Aktiviti Latar Belakang",
+    fTalentType: "Jenis Pelakon",
+    fOutfit: "Gaya Pakaian",
+    fAppearance: "Butiran Penampilan",
+    fAppearancePh: "cth. Baju putih, seluar jeans gelap, rambut diikat",
+    fEmotion: "Emosi / Ekspresi Muka",
+    fShotType: "Jenis Tembakan",
+    fCamAngle: "Sudut Kamera",
+    fCamMove: "Pergerakan Kamera",
+    fHeroAngle: "Sudut Tembakan Hero / Produk",
+    fHeroAngleHint: "Tembakan penutup terakhir",
+    fProductFraming: "Peraturan Framing Produk",
+    fSubjectMotion: "Pergerakan Subjek",
+    fProductInteraction: "Interaksi Produk",
+    fAudioType: "Jenis Audio",
+    fBgMusic: "Muzik Latar",
+    fVoLang: "Bahasa Suara Latar",
+    fVoTone: "Nada Suara Latar",
+    fVoTonePh: "cth. Mesra, tenang",
+    fSpeechType: "Jenis Pertuturan",
+    fScript: "Panduan Skrip / Baris Utama",
+    fScriptPh: "Pembuka: Baris pembuka\nTengah: Manfaat utama\nPenutup: Seruan tindakan",
+    fFrameRate: "Kadar Bingkai",
+    fResolution: "Resolusi",
+    fDOF: "Fokus & Kedalaman Medan",
+    fRefUrl: "URL Gambar Rujukan / Pautan Produk",
+    fRefUrlHint: "Meningkatkan ketepatan dengan ketara",
+    fRefUrlPh: "cth. https://yoursite.com/product-image.jpg",
+    fBrandStyle: "Rujukan Gaya Jenama",
+    fAntiHalluc: "Peraturan Anti-Halusinasi",
+    fRestrictions: "Sekatan Tambahan",
+    fNotes: "Nota Tambahan",
+    fNotesPh: "cth. Musim Raya — suasana perayaan tapi tidak terlalu meriah.",
+
+    btnGenerateStoryline: "✨ Jana Idea Jalan Cerita",
+    btnRegenerateStoryline: "🔄 Jana Semula Jalan Cerita",
+    btnThinking: "✨ Sedang berfikir...",
+    btnGenerateFrame: "🎨 Jana Imej Bingkai Pertama",
+    btnRegenerateFrame: "🔄 Jana Semula Bingkai Pertama",
+    btnGenerating: "🎨 Sedang menjana...",
+    btnDownload: "⬇️ Muat Turun Imej Bingkai Pertama",
+    btnTextOnly: "📝 Prompt Teks Sahaja",
+    btnImageVideo: "🖼 Prompt Imej-ke-Video",
+    btnReset: "Set Semula Semua",
+    btnCopyAll: "📋 Salin Semua Prompt",
+    btnCopied: "✅ Semua Disalin!",
+    btnCopy: "📋 Salin",
+    btnCopiedOne: "✅ Disalin!",
+    btnEdit: "← Edit",
+    btnBackToBuilder: "← Kembali ke Pembina",
+    btnCollapseAdvanced: "Runtuhkan Tetapan Lanjutan",
+    btnShowAdvanced: "Tunjukkan Tetapan Lanjutan",
+    btnHideAdvanced: "Sembunyikan Tetapan Lanjutan",
+
+    hintFillProduct: "Sila isi Nama Produk dan Ciri Utama dahulu.",
+    hintFillProductName: "Sila isi Nama Produk dahulu.",
+    hintStorylineField: "Edit dengan bebas — satu baris untuk setiap klip",
+    hintUploadProduct: "Muat naik foto produk",
+    hintUploadTalent: "Muat naik foto pelakon",
+    hintClickChange: "Klik untuk tukar",
+    hintUploadProductLabel: "Muat naik foto produk",
+    hintUploadTalentLabel: "Muat naik foto pelakon",
+    hintImageReady: (ratio) => `✅ Bingkai pertama sedia (${ratio}) — Prompt Langkah 2 akan dioptimumkan untuk imej-ke-video`,
+    hintImagePlatform: (ratio, platform) => `📐 Akan menjana imej rujukan ${ratio} untuk ${platform}`,
+    hintImageVideoUnlocks: "🖼 Imej-ke-Video boleh digunakan selepas Langkah 1 selesai",
+    hintUploadToGrok: "Muat naik imej ini bersama prompt Langkah 2 ke Grok",
+    hintAdvancedSub: (n) => `${n} bahagian pilihan — Gaya, Kamera, Audio, Teknikal & lain-lain`,
+    hintAdvancedCollapse: "Runtuhkan tetapan pilihan",
+    hintClipsGenerated: (n, cs) => `Setiap klip = maks ${cs} saat. Tempoh anda dibahagikan kepada ${n} klip.`,
+    hintMultiplePrompts: (n, cs) => `📋 Menjana ${n} prompt berasingan (${cs} saat setiap satu). Jana setiap satu dalam Grok kemudian gabungkan atau gunakan Extend.`,
+    hintOutputInfo: (n, plan, cs, dur) => `${n} klip dijana — ${plan} · ${cs} saat setiap klip · ${dur} saat jumlah`,
+    hintImg2Video: "🖼 Mod imej-ke-video — muat naik imej bingkai pertama anda ke Grok bersama setiap prompt.",
+    hintStitchClips: "Tampal setiap prompt ke dalam Grok secara berasingan. Gabungkan klip atau gunakan ciri Extend Grok.",
+    hintEmptyOutput: "Lengkapkan pembina dan klik Jana Prompt.",
+
+    step1Title: "Jana Bingkai Pertama",
+    step1Optional: "Pilihan",
+    step1Sub: "Gunakan Gemini untuk mencipta imej rujukan — semak sebelum menjana prompt",
+    step2Title: "Jana Prompt",
+    step2SubReady: "Bingkai pertama sedia — pilih mod teks sahaja atau imej-ke-video",
+    step2SubNotReady: "Jana prompt teks sahaja, atau selesaikan Langkah 1 dahulu untuk imej-ke-video",
+
+    funnelUpperLabel: "Corong Atas", funnelUpperTag: "Kesedaran", funnelUpperDesc: "Tarik trafik & bina kesedaran",
+    funnelUpperObj: "Hubungi pelanggan baru yang belum mengenali produk anda",
+    funnelUpperEx: ["Masalah berkaitan", "Penceritaan", "Sudut pandang (POV)", "Pembuka trending"],
+    funnelMiddleLabel: "Corong Tengah", funnelMiddleTag: "Pertimbangan", funnelMiddleDesc: "Didik & bina kepercayaan",
+    funnelMiddleObj: "Dapatkan tontonan video, interaksi komuniti dan hangatkan prospek",
+    funnelMiddleEx: ["Ulasan / UGC", "Sebelum & selepas", "Sorotan ciri", "Demo produk"],
+    funnelLowerLabel: "Corong Bawah", funnelLowerTag: "Penukaran", funnelLowerDesc: "Dorong pembelian & tutup jualan",
+    funnelLowerObj: "Promosi, jana prospek dan niat pembelian terus",
+    funnelLowerEx: ["Tawaran terhad", "CTA beli", "Testimoni + harga", "Urgensi / kelangkaan"],
+    funnelUpperConfirm: "✅ Hook→Kandungan→CTA akan fokus pada KESEDARAN — tiada jualan keras.",
+    funnelMiddleConfirm: "✅ Hook→Kandungan→CTA akan fokus pada PERTIMBANGAN — didik dan bina kepercayaan.",
+    funnelLowerConfirm: "✅ Hook→Kandungan→CTA akan fokus pada PENUKARAN — urgensi dan niat pembelian.",
+
+    warnRequired: "⚠️ Diperlukan: Peringkat Corong, Nama Produk, Kategori, Ciri Utama, USP, Masalah, Manfaat Utama, Strategi Hook, dan CTA.",
+    storylineLabel: (n, cs) => `Jalan Cerita (${n} klip × ${cs} saat) — Hook → Kandungan → CTA`,
+
+
+    // Create Video tab (BM)
+    cvUploadPhotos: "Muat Naik Foto",
+    cvUploadSubtitle: "Foto produk wajib · Foto watak pilihan",
+    cvProductPhoto: "Foto produk *",
+    cvCharacterPhoto: "Foto watak (pilihan)",
+    cvRequired: "Wajib",
+    cvOptional: "Pilihan",
+    cvTapChange: "Ketik untuk tukar",
+    cvProductInfo: "Maklumat Produk",
+    cvProductInfoSubtitle: "Lebih terperinci = video lebih baik",
+    cvCategory: "Kategori",
+    cvSelectCategory: "— Pilih kategori —",
+    cvProductDesc: "Penerangan produk *",
+    cvUSP: "Kelebihan unik produk *",
+    cvVideoSettings: "Tetapan Video",
+    cvSalesFunnel: "Peringkat jualan",
+    cvRatio: "Nisbah video",
+    cvDuration: "Tempoh video",
+    cvStoryline: "Jalan cerita",
+    cvStorylineQuestion: "Siapa yang tentukan jalan cerita?",
+    cvAIDecides: "🤖 AI cadangkan 5 idea",
+    cvUserWrites: "✍️ Saya tulis sendiri",
+    cvAIStoryline: "AI tentukan cerita terbaik",
+    cvYourStoryline: "Jalan cerita anda",
+    cvStorylinePh: "Terangkan idea video anda…",
+    cvAdvanced: "⚙️ Tetapan lanjutan (pilihan)",
+    cvTone: "Nada gaya",
+    cvTonePh: "cth: premium, ceria, emosional",
+    cvCamera: "Pergerakan kamera",
+    cvCameraPh: "cth: dolly perlahan, tracking handheld",
+    cvLighting: "Pencahayaan",
+    cvLightingPh: "cth: cahaya emas, lampu studio",
+    cvBackground: "Latar belakang",
+    cvBackgroundPh: "cth: studio minima, gelanggang luar",
+    cvEmotion: "Lengkung emosi",
+    cvEmotionPh: "cth: keinginan, aspirasi, kesegeraan",
+    cvRestrictions: "Sekatan",
+    cvRestrictionsPh: "cth: tiada teks bertindih, tiada close-up muka",
+    cvGenerate5: "🤖 Jana 5 Idea Cerita (Percuma)",
+    cvGenerateFrame: "✨ Jana Bingkai Pertama (Percuma)",
+    cvNeedProduct: "📦 Muat naik foto produk untuk teruskan",
+    cvNeedInfo: "Isi penerangan produk dan kelebihan unik untuk teruskan",
+    cvFrameFree: "Jana bingkai pertama percuma · Video memerlukan",
+    cvCredits: "kredit",
+    cvStep1: "Muat Naik & Isi",
+    cvStep2: "Jalan Cerita",
+    cvStep3: "Bingkai Pertama",
+    cvStep4: "Jana Video",
+    cvPickTitle: "Langkah 2 — Pilih Jalan Cerita Anda",
+    cvPickSubtitle: "Pilih konsep yang paling sesuai. AI akan jana bingkai pertama berdasarkan pilihan anda.",
+    cvRegenerateIdeas: "🔄 Jana semula idea (percuma)",
+    cvGenerating5: "Menjana 5 idea cerita…",
+    cvReviewTitle: "Langkah 3 — Semak Bingkai Pertama",
+    cvReviewSubtitle: "Semak imej pembukaan. Edit arahan animasi jika perlu, kemudian jana video anda.",
+    cvFirstFrame: "🖼️ Bingkai pertama (Kling akan animasi dari ini)",
+    cvRegenFrame: "🔄 Jana semula",
+    cvAnimPrompt: "🎬 Arahan animasi",
+    cvAnimPromptHint: "Ini memberitahu Kling cara menganimasikan bingkai. Anda boleh edit.",
+    cvGenerateVideo: "🎬 Jana Video",
+    cvBack: "← Kembali",
+    cvGenerating: "Menjana…",
+    cvGeneratingFrame: "Menjana bingkai pertama…",
+    cvGeneratingFrameSubtitle: "Mencipta adegan pembuka anda dengan Gemini AI",
+    cvAnimatingFrom: "Menganimasikan dari:",
+    cvVideoSuccess: "✅ Video berjaya dijana!",
+    cvDownload: "⬇️ Muat Turun",
+    cvCreateAnother: "🔄 Cipta Lagi",
+    cvQueuePos: "Kedudukan giliran",
+    cvSafeClose: "Mengambil masa 30-90 saat. Anda boleh tutup dengan selamat — semak tab Sejarah kemudian.",
+    cvSubmitting: "Menghantar ke Kling AI…",
+    cvGeneratingVideo: "Menjana video…",
+    // History tab (BM)
+    histTitle: "Video Dijana",
+    histSubtitle: "Video Kling AI anda yang lalu",
+    histRefresh: "🔄 Muat Semula",
+    histEmpty: "Tiada video lagi",
+    histEmptySubtitle: "Video yang anda jana akan muncul di sini",
+    histFirstVideo: "Jana video pertama anda →",
+    histProcessing: "⏳ Memproses",
+    histDone: "✅ Selesai",
+    histFailed: "❌ Gagal",
+    histStillGenerating: "Video masih dijana…",
+    histStarted: "Dimulakan",
+    histMinAgo: "minit lalu",
+    histResume: "Sambung",
+    histFailed2: "❌ Jana gagal.",
+    histTryAgain: "🔄 Cuba semula dengan arahan yang sama",
+    histNewVideo: "🔄 Video Baru",
+    histDownload: "⬇️ Muat Turun",
+    histViewPrompt: "Lihat arahan yang digunakan",
+        promptLangInstruction: "\n\nIMPORTANT: Generate ALL text content in this prompt in Bahasa Malaysia. All labels, descriptions, scene beats, directions, and voiceover guidance must be written in Bahasa Malaysia.",
+    storylineLangInstruction: " Sila balas dalam Bahasa Malaysia. Semua penerangan adegan mesti ditulis dalam Bahasa Malaysia.",
+  },
+};
+
+// ── Clip role assignment ───────────────────────────────────────────────────
+const getClipRole = (clipNum, numClips, lang) => {
+  const roles = {
+    en: {
+      single: { role: "HOOK + CONTENT + CTA", tag: "🎣📖📢", desc: "Single clip — open with hook, show product benefit, end with CTA" },
+      hookContent: { role: "HOOK + CONTENT", tag: "🎣📖", desc: "Open with hook, introduce problem and product" },
+      contentCta: { role: "CONTENT + CTA", tag: "📖📢", desc: "Demonstrate key benefit, end with strong CTA" },
+      hook: { role: "HOOK", tag: "🎣", desc: "Stop the scroll — grab attention in first 1–2 seconds. Do NOT show product prominently yet." },
+      cta: { role: "CTA", tag: "📢", desc: "Drive action — hero product shot, clear reason to act now." },
+      content: { role: "CONTENT", tag: "📖", desc: "Demonstrate the product — show the problem being solved or benefit delivered." },
+    },
+    zh: {
+      single: { role: "钩子 + 内容 + CTA", tag: "🎣📖📢", desc: "单一片段 — 开场用钩子，展示产品利益，以CTA结尾" },
+      hookContent: { role: "钩子 + 内容", tag: "🎣📖", desc: "用钩子开场，介绍问题和产品" },
+      contentCta: { role: "内容 + CTA", tag: "📖📢", desc: "展示核心利益，以强力CTA结尾" },
+      hook: { role: "钩子", tag: "🎣", desc: "停住滑动 — 在最初1–2秒内抓住注意力。暂时不要突出展示产品。" },
+      cta: { role: "CTA", tag: "📢", desc: "驱动行动 — 产品主镜头，给出立即行动的明确理由。" },
+      content: { role: "内容", tag: "📖", desc: "展示产品 — 呈现正在解决的问题或带来的利益。" },
+    },
+    bm: {
+      single: { role: "HOOK + KANDUNGAN + CTA", tag: "🎣📖📢", desc: "Klip tunggal — buka dengan hook, tunjukkan manfaat produk, akhiri dengan CTA" },
+      hookContent: { role: "HOOK + KANDUNGAN", tag: "🎣📖", desc: "Buka dengan hook, perkenalkan masalah dan produk" },
+      contentCta: { role: "KANDUNGAN + CTA", tag: "📖📢", desc: "Tunjukkan manfaat utama, akhiri dengan CTA yang kuat" },
+      hook: { role: "HOOK", tag: "🎣", desc: "Hentikan skrol — tarik perhatian dalam 1–2 saat pertama. JANGAN tunjukkan produk secara menonjol lagi." },
+      cta: { role: "CTA", tag: "📢", desc: "Dorong tindakan — tembakan hero produk, alasan yang jelas untuk bertindak sekarang." },
+      content: { role: "KANDUNGAN", tag: "📖", desc: "Tunjukkan produk — paparkan masalah yang diselesaikan atau manfaat yang disampaikan." },
+    },
+  };
+  const r = roles[lang] || roles.en;
+  if (numClips === 1) return r.single;
+  if (numClips === 2) return clipNum === 1 ? r.hookContent : r.contentCta;
+  if (clipNum === 1) return r.hook;
+  if (clipNum === numClips) return r.cta;
+  return r.content;
+};
+
+// ── UI primitives ──────────────────────────────────────────────────────────
+const Section = ({ title, emoji, subtitle, children }) => (
+  <div className="mb-5 border border-gray-200 rounded-xl overflow-hidden">
+    <div className="bg-gray-50 px-4 py-3 border-b border-gray-200">
+      <h2 className="font-bold text-gray-800 text-sm">{emoji} {title}</h2>
+      {subtitle && <p className="text-xs text-gray-400 mt-0.5">{subtitle}</p>}
+    </div>
+    <div className="p-4 space-y-3">{children}</div>
+  </div>
+);
+
+const Field = ({ label, required, hint, children }) => (
+  <div>
+    <label className="block text-xs font-semibold text-gray-600 mb-1">
+      {label} {required && <span className="text-red-400">*</span>}
+    </label>
+    {hint && <p className="text-xs text-gray-400 mb-1">{hint}</p>}
+    {children}
+  </div>
+);
+
+const TextInput = ({ value, onChange, placeholder }) => (
+  <input className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-blue-400"
+    value={value} onChange={e => onChange(e.target.value)} placeholder={placeholder} />
+);
+
+const TextArea = ({ value, onChange, placeholder, rows = 3 }) => (
+  <textarea
+    className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-blue-400 resize-none overflow-hidden"
+    value={value}
+    onChange={e => { onChange(e.target.value); e.target.style.height = "auto"; e.target.style.height = e.target.scrollHeight + "px"; }}
+    onInput={e => { e.target.style.height = "auto"; e.target.style.height = e.target.scrollHeight + "px"; }}
+    placeholder={placeholder} rows={rows} />
+);
+
+const Select = ({ value, onChange, options }) => (
+  <select className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-blue-400 bg-white"
+    value={value} onChange={e => onChange(e.target.value)}>
+    {options.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
+  </select>
+);
+
+const Chips = ({ value, onChange, options, single }) => {
+  const toggle = v => {
+    if (single) { onChange(value === v ? "" : v); return; }
+    const arr = Array.isArray(value) ? value : [];
+    onChange(arr.includes(v) ? arr.filter(x => x !== v) : [...arr, v]);
+  };
+  const isSelected = v => single ? value === v : Array.isArray(value) && value.includes(v);
+  return (
+    <div className="flex flex-wrap gap-2">
+      {options.map(o => (
+        <button key={o.value} onClick={() => toggle(o.value)}
+          className={`px-3 py-1 rounded-full text-xs border transition-all ${isSelected(o.value) ? "bg-blue-500 text-white border-blue-500" : "bg-white text-gray-600 border-gray-200 hover:border-blue-300"}`}>
+          {o.label}
+        </button>
+      ))}
+    </div>
+  );
+};
+
+const AdvancedToggle = ({ isOpen, onToggle, t, sectionCount }) => (
+  <button onClick={onToggle}
+    className="w-full flex items-center justify-between px-4 py-3 rounded-xl border-2 border-dashed border-gray-300 bg-white hover:border-blue-400 hover:bg-blue-50 transition-all group mb-5">
+    <div className="flex items-center gap-2">
+      <span className="text-base">{isOpen ? "🔼" : "🔽"}</span>
+      <div className="text-left">
+        <p className="text-sm font-bold text-gray-700 group-hover:text-blue-600 transition-colors">
+          {isOpen ? t.btnHideAdvanced : t.btnShowAdvanced}
+        </p>
+        <p className="text-xs text-gray-400">
+          {isOpen ? t.hintAdvancedCollapse : t.hintAdvancedSub(sectionCount)}
+        </p>
+      </div>
+    </div>
+    <span className={`text-xs font-semibold px-2 py-1 rounded-full transition-all ${isOpen ? "bg-blue-100 text-blue-600" : "bg-gray-100 text-gray-500 group-hover:bg-blue-100 group-hover:text-blue-600"}`}>
+      {isOpen ? "Hide" : "Optional"}
+    </span>
+  </button>
+);
+
+// ── Language selector component ────────────────────────────────────────────
+const LangSelector = ({ lang, setLang }) => (
+  <div className="flex gap-1">
+    {[["en", "EN"], ["zh", "中文"], ["bm", "BM"]].map(([code, label]) => (
+      <button key={code} onClick={() => setLang(code)}
+        className={`px-2 py-1 rounded-lg text-xs font-semibold border transition-all ${lang === code ? "bg-blue-500 text-white border-blue-500" : "bg-white text-gray-500 border-gray-200 hover:border-blue-300"}`}>
+        {label}
+      </button>
+    ))}
+  </div>
+);
+
+// ── Platform → aspect ratio ────────────────────────────────────────────────
+const PLATFORM_ASPECT = {
+  tiktok: { ratio: "9:16", label: "9:16 vertical", gemini: "9:16" },
+  reels: { ratio: "9:16", label: "9:16 vertical", gemini: "9:16" },
+  youtube_shorts: { ratio: "9:16", label: "9:16 vertical", gemini: "9:16" },
+  youtube_main: { ratio: "16:9", label: "16:9 landscape", gemini: "16:9" },
+  feed_square: { ratio: "1:1", label: "1:1 square", gemini: "1:1" },
+};
+
+const o = (key, lang) => {
+  const v = OPTS[key];
+  if (!v) return [];
+  if (Array.isArray(v)) return v;
+  return v[lang] || v.en || [];
+};
+
+export default TRANSLATIONS;
