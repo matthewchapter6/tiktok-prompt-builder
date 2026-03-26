@@ -35,7 +35,7 @@ export default async function handler(req, res) {
     const modeInstructions = {
       text: 'TEXT-TO-VIDEO: Generate entirely from text. Describe every visual element precisely — Grok has no reference images.',
       image: 'IMAGE-TO-VIDEO: The first frame image is fixed. Describe only HOW to animate FROM that scene — camera movement, subject action, product interaction.',
-      reference: `REFERENCE-TO-VIDEO: ${referenceCount} reference image(s) provided. Use @reference1${referenceCount > 1 ? ', @reference2' : ''}${referenceCount > 2 ? `, @reference3` : ''} to refer to each. Grok will maintain visual consistency of these elements throughout.`,
+      reference: `REFERENCE-TO-VIDEO: ${referenceCount} reference image(s) provided. Use @Image1${referenceCount > 1 ? ', @Image2' : ''}${referenceCount > 2 ? ', @Image3' : ''} to refer to each in the prompt. Grok will maintain visual consistency of these elements throughout.`,
     }[mode];
 
     const systemInstruction = `You are an expert Grok AI video prompt engineer with deep knowledge of xAI's Aurora engine capabilities.
@@ -75,7 +75,7 @@ PROMPT REQUIREMENTS:
 6. Audio — music mood, ambient sounds, any dialogue or voiceover naturally woven in
 7. CTA moment — closing shot composition and any on-screen action
 8. Negative constraints — end with: "No text overlays, no artificial transitions, no warped hands or faces, product maintains exact size and proportions throughout, no competitor products visible."
-${mode === 'reference' ? `9. Reference usage — naturally weave ${Array.from({length: referenceCount}, (_, i) => `@reference${i+1}`).join(', ')} into the prompt so Grok knows which reference applies to which visual element.` : ''}
+${mode === 'reference' ? `9. Reference usage — naturally weave ${Array.from({length: referenceCount}, (_, i) => `@Image${i+1}`).join(', ')} into the prompt so Grok knows which reference applies to which visual element.` : ''}
 
 Write as one flowing cinematic paragraph. Be specific, vivid, and actionable. Do not use bullet points.`;
 

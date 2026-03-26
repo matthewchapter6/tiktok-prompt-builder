@@ -61,23 +61,16 @@ export default async function handler(req, res) {
           return fal.storage.upload(blob);
         })
       );
-      console.log(`[grok-generate-video] Uploaded ${uploadedUrls.length} reference images`);
+      console.log(`[grok-generate-video] Uploaded reference URLs:`, uploadedUrls);
 
-      // Build components array for Grok reference-to-video
-      const components = uploadedUrls.map((url, idx) => ({
-        type: "image",
-        url,
-        tag: `@reference${idx + 1}`,
-      }));
-
-      modelId = "xai/grok-imagine-video/image-to-video";
+      // Correct model and input schema for reference-to-video
+      modelId = "xai/grok-imagine-video/reference-to-video";
       input = {
-        prompt,
-        image_url: uploadedUrls[0], // first reference as primary frame
+        prompt,                          // should contain @Image1, @Image2 etc
+        reference_image_urls: uploadedUrls, // array of uploaded URLs
         aspect_ratio: aspectRatio,
         duration: 10,
         resolution: "720p",
-        components,
       };
 
     } else {

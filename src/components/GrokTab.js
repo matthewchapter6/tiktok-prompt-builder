@@ -539,7 +539,7 @@ const GrokTab = ({ user, userCredits, setUserCredits }) => {
         <div className="mb-5 border border-gray-200 rounded-xl overflow-hidden">
           <div className="bg-gray-50 px-4 py-3 border-b border-gray-200">
             <h2 className="font-bold text-gray-800 text-sm">🎯 Reference Images</h2>
-            <p className="text-xs text-gray-400 mt-0.5">Upload up to 7 images — each becomes @reference1, @reference2, etc.</p>
+            <p className="text-xs text-gray-400 mt-0.5">Upload up to 7 images — each becomes @Image1, @Image2, etc.</p>
           </div>
           <div className="p-4 space-y-3">
             {referenceFiles.map((f, idx) => (
@@ -547,7 +547,7 @@ const GrokTab = ({ user, userCredits, setUserCredits }) => {
                 <img src={URL.createObjectURL(f)} alt={`ref${idx+1}`}
                   className="w-14 h-14 object-cover rounded-lg flex-shrink-0" />
                 <div className="flex-1 min-w-0">
-                  <p className="text-xs font-bold text-indigo-600">@reference{idx + 1}</p>
+                  <p className="text-xs font-bold text-indigo-600">@Image{idx + 1}</p>
                   <p className="text-xs text-gray-400 truncate">{f.name}</p>
                 </div>
                 <button onClick={() => removeReferenceFile(idx)}
@@ -559,7 +559,7 @@ const GrokTab = ({ user, userCredits, setUserCredits }) => {
                 <span className="text-2xl">➕</span>
                 <div>
                   <p className="text-xs font-semibold text-gray-700">Add reference image</p>
-                  <p className="text-xs text-gray-400">@reference{referenceFiles.length + 1} · {7 - referenceFiles.length} slots remaining</p>
+                  <p className="text-xs text-gray-400">@Image{referenceFiles.length + 1} · {7 - referenceFiles.length} slots remaining</p>
                 </div>
                 <input type="file" accept="image/*" className="hidden"
                   onChange={e => e.target.files[0] && addReferenceFile(e.target.files[0])} />
