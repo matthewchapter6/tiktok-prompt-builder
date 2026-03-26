@@ -1,29 +1,10 @@
 const fs = require('fs');
+let g = fs.readFileSync('src/components/GrokTab.js', 'utf8');
 
-let helpers = fs.readFileSync('src/utils/helpers.js', 'utf8');
-
-// Fix 1: Remove productCatOpts from the import line since it's defined in the file itself
-helpers = helpers.replace(
-  'import { OPTS, FUNNEL_OPTIONS, PLATFORM_ASPECT, o, productCatOpts } from "../constants/options";',
-  'import { OPTS, FUNNEL_OPTIONS, PLATFORM_ASPECT, o } from "../constants/options";'
+g = g.replace(
+  'const generateVideo = async () => {',
+  'const generateVideo = async () => {\n    console.log("[GrokTab] generateVideo called, prompt length:", prompt.length, "generating:", generating);'
 );
 
-// Fix 2: Remove productCatOpts from the export list since it's defined locally
-helpers = helpers.replace(
-  '  clipSec, calcClips,\n' +
-  '  settingLabel, lightingLabel,\n' +
-  '  optLabel, chipsLabel, productCatOpts,\n' +
-  '  compressImage, fileToBase64,',
-  '  clipSec, calcClips,\n' +
-  '  settingLabel, lightingLabel,\n' +
-  '  optLabel, chipsLabel, productCatOpts, productCatLabel,\n' +
-  '  compressImage, fileToBase64,'
-);
-
-fs.writeFileSync('src/utils/helpers.js', helpers, 'utf8');
-console.log('✅ Fixed helpers.js');
-
-// Verify
-const h = fs.readFileSync('src/utils/helpers.js', 'utf8');
-console.log('Import line:', h.split('\n')[0]);
-console.log('Has productCatOpts in export:', h.includes('productCatOpts, productCatLabel'));
+fs.writeFileSync('src/components/GrokTab.js', g, 'utf8');
+console.log('Debug added:', g.includes('[GrokTab] generateVideo called'));

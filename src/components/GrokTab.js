@@ -378,6 +378,7 @@ const GrokTab = ({ user, userCredits, setUserCredits }) => {
 
   // ── Generate video ─────────────────────────────────────────────────────
   const generateVideo = async () => {
+    console.log("[GrokTab] generateVideo called, prompt length:", prompt.length, "generating:", generating);
     if (!prompt) { setGenError("Please generate or write a prompt first."); return; }
 
     // Credit check
