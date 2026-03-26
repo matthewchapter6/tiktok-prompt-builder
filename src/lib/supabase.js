@@ -30,6 +30,8 @@ export const CREDIT_COSTS = {
   image_gemini:       0,
   prompt_grok:        0,
   storyline:          0,
+  grok_storyline:     0,  // free
+  grok_prompt:        0,  // free
   // Legacy aliases
   video_5s:          10,
   video_10s:         20,
@@ -116,3 +118,4 @@ export const deductCredits = async (userId, cost, description) => {
     return { success: false, balance: null, error: e.message };
   }
 };
+export const getGrokCreditCost = () => CREDIT_COSTS.grok_10s;
