@@ -383,7 +383,9 @@ const GrokTab = ({ user, userCredits, setUserCredits }) => {
 
     // Credit check
     const cost = getGrokCreditCost();
+    console.log("[GrokTab] credit cost:", cost, "user:", user && user.id);
     const enough = await hasEnoughCredits(user.id, cost);
+    console.log("[GrokTab] hasEnoughCredits:", enough);
     if (!enough) {
       setGenError(`Insufficient credits. You need ${cost} credits for a 10s Grok video.`);
       return;
