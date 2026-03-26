@@ -5,12 +5,10 @@
     "api/generate-image.js":            { "maxDuration": 60 },
     "api/generate-storylines.js":       { "maxDuration": 30 },
     "api/generate-video-prompt.js":     { "maxDuration": 30 },
-    "api/storyline.js":                 { "maxDuration": 30 },
-    "api/director-agent.js":            { "maxDuration": 30 },
+    "api/fal-webhook.js":               { "maxDuration": 30 },
     "api/grok-generate-storylines.js":  { "maxDuration": 30 },
     "api/grok-generate-prompt.js":      { "maxDuration": 30 },
     "api/grok-generate-video.js":       { "maxDuration": 60 },
-    "api/grok-status.js":               { "maxDuration": 30 },
     "api/grok-webhook.js":              { "maxDuration": 30 }
   }
 }
