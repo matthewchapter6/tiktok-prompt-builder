@@ -966,6 +966,7 @@ export default function App() {
             resumeInProgressJobs={resumeInProgressJobs}
             t={t}
             lang={lang}
+            user={user}
           />
         )}
 

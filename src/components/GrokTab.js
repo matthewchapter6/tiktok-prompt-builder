@@ -378,14 +378,11 @@ const GrokTab = ({ user, userCredits, setUserCredits }) => {
 
   // ── Generate video ─────────────────────────────────────────────────────
   const generateVideo = async () => {
-    console.log("[GrokTab] generateVideo called, prompt length:", prompt.length, "generating:", generating);
     if (!prompt) { setGenError("Please generate or write a prompt first."); return; }
 
     // Credit check
-    const cost = 14;
-    console.log("[GrokTab] credit cost:", cost, "user:", user && user.id);
-    const enough = await hasEnoughCredits(user.id, cost);
-    console.log("[GrokTab] hasEnoughCredits:", enough);
+    const cost = 14;
+    const enough = await hasEnoughCredits(user.id, cost);
     if (!enough) {
       setGenError(`Insufficient credits. You need ${cost} credits for a 10s Grok video.`);
       return;
