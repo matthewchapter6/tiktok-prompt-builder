@@ -498,7 +498,7 @@ const GrokTab = ({ user, userCredits, setUserCredits }) => {
     setStorylinesError(""); setPromptError("");
   };
 
-  const creditCost = getGrokCreditCost();
+  const creditCost = 14;
 
   return (
     <div className="pb-12">
