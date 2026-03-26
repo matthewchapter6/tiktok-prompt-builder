@@ -1,17 +1,24 @@
 const fs = require('fs');
 let g = fs.readFileSync('src/components/GrokTab.js', 'utf8');
 
-const oldText = '    // Credit check\r\n    const cost = getGrokCreditCost();\r\n    const enough = await hasEnoughCredits(user.id, cost);';
-const newText = '    // Credit check\r\n    const cost = getGrokCreditCost();\r\n    console.log("[GrokTab] credit cost:", cost, "user:", user && user.id);\r\n    const enough = await hasEnoughCredits(user.id, cost);\r\n    console.log("[GrokTab] hasEnoughCredits:", enough);';
+// Fix 1: Remove getGrokCreditCost from import
+g = g.replace(
+  'import { CREDIT_COSTS, deductCredits, hasEnoughCredits, getGrokCreditCost } from "../lib/supabase";',
+  'import { CREDIT_COSTS, deductCredits, hasEnoughCredits } from "../lib/supabase";'
+);
 
-let result = g.replace(oldText, newText);
+// Fix 2: Replace getGrokCreditCost() call with hardcoded 14
+g = g.replace('const cost = getGrokCreditCost();', 'const cost = 14;');
 
-if (!result.includes('[GrokTab] credit cost')) {
-  // Try with LF only
-  const oldText2 = '    // Credit check\n    const cost = getGrokCreditCost();\n    const enough = await hasEnoughCredits(user.id, cost);';
-  const newText2 = '    // Credit check\n    const cost = getGrokCreditCost();\n    console.log("[GrokTab] credit cost:", cost, "user:", user && user.id);\n    const enough = await hasEnoughCredits(user.id, cost);\n    console.log("[GrokTab] hasEnoughCredits:", enough);';
-  result = g.replace(oldText2, newText2);
-}
+// Fix 3: Replace creditCost variable
+g = g.replace('const creditCost = getGrokCreditCost();', 'const creditCost = 14;');
 
-fs.writeFileSync('src/components/GrokTab.js', result, 'utf8');
-console.log('Done:', result.includes('[GrokTab] credit cost'));
+// Fix 4: Remove getGrokCreditCost import at top
+g = g.replace(
+  'import { CREDIT_COSTS, deductCredits, hasEnoughCredits } from "../lib/supabase";',
+  'import { deductCredits, hasEnoughCredits } from "../lib/supabase";'
+);
+
+fs.writeFileSync('src/components/GrokTab.js', g, 'utf8');
+console.log('Fixed cost hardcoded:', g.includes('const cost = 14'));
+console.log('Fixed creditCost:', g.includes('const creditCost = 14'));

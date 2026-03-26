@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect } from "react";
 import { supabase } from "../lib/supabase";
 import { compressImage } from "../utils/helpers";
-import { CREDIT_COSTS, deductCredits, hasEnoughCredits, getGrokCreditCost } from "../lib/supabase";
+import { deductCredits, hasEnoughCredits } from "../lib/supabase";
 
 // ── Mode selector ──────────────────────────────────────────────────────────
 const MODES = [
@@ -382,7 +382,7 @@ const GrokTab = ({ user, userCredits, setUserCredits }) => {
     if (!prompt) { setGenError("Please generate or write a prompt first."); return; }
 
     // Credit check
-    const cost = getGrokCreditCost();
+    const cost = 14;
     console.log("[GrokTab] credit cost:", cost, "user:", user && user.id);
     const enough = await hasEnoughCredits(user.id, cost);
     console.log("[GrokTab] hasEnoughCredits:", enough);
