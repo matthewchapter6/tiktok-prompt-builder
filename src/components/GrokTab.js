@@ -2,18 +2,16 @@ import React, { useState, useRef, useEffect } from "react";
 import { supabase } from "../lib/supabase";
 import { compressImage } from "../utils/helpers";
 import { deductCredits, hasEnoughCredits } from "../lib/supabase";
+import TRANSLATIONS from "../constants/translations";
 
 // ── Mode selector ──────────────────────────────────────────────────────────
-const MODES = [
-  { value: "text",      emoji: "📝", label: "Text to Video",      desc: "Generate from text prompt only" },
-  { value: "image",     emoji: "🖼️", label: "Image to Video",     desc: "Animate from a first frame image" },
-  { value: "reference", emoji: "🎯", label: "Reference to Video", desc: "Use reference images for consistency" },
-];
+const MODE_VALUES = ["text", "image", "reference"];
+const MODE_EMOJIS = { text: "📝", image: "🖼️", reference: "🎯" };
 
 const FUNNELS = [
-  { value: "upper",  emoji: "🔺", label: "Upper Funnel",  tag: "Awareness",     color: "blue" },
-  { value: "middle", emoji: "🔶", label: "Middle Funnel", tag: "Consideration", color: "yellow" },
-  { value: "lower",  emoji: "🔻", label: "Lower Funnel",  tag: "Conversion",    color: "green" },
+  { value: "upper",  emoji: "🔺", color: "blue" },
+  { value: "middle", emoji: "🔶", color: "yellow" },
+  { value: "lower",  emoji: "🔻", color: "green" },
 ];
 
 const RATIOS = [
@@ -23,7 +21,7 @@ const RATIOS = [
 ];
 
 // ── Image upload box ───────────────────────────────────────────────────────
-const ImageUploadBox = ({ label, hint, file, onFile, required }) => {
+const ImageUploadBox = ({ label, hint, file, onFile, required, clickToUpload }) => {
   const ref = useRef();
   const preview = file ? URL.createObjectURL(file) : null;
   return (
@@ -39,7 +37,7 @@ const ImageUploadBox = ({ label, hint, file, onFile, required }) => {
         ) : (
           <div className="flex flex-col items-center justify-center py-8 text-gray-400">
             <p className="text-2xl mb-1">📷</p>
-            <p className="text-xs">Click to upload</p>
+            <p className="text-xs">{clickToUpload || "Click to upload"}</p>
           </div>
         )}
       </div>
@@ -50,7 +48,7 @@ const ImageUploadBox = ({ label, hint, file, onFile, required }) => {
 };
 
 // ── Storyline card ─────────────────────────────────────────────────────────
-const StorylineCard = ({ story, selected, onSelect, onSave, saving }) => (
+const StorylineCard = ({ story, selected, onSelect, onSave, saving, t }) => (
   <div
     onClick={() => onSelect(story)}
     className={`border-2 rounded-xl p-4 cursor-pointer transition-all ${selected ? "border-indigo-500 bg-indigo-50" : "border-gray-200 bg-white hover:border-indigo-300"}`}>
@@ -61,7 +59,7 @@ const StorylineCard = ({ story, selected, onSelect, onSave, saving }) => (
         <button
           onClick={e => { e.stopPropagation(); onSave(story); }}
           className="text-xs px-2 py-0.5 rounded-full border border-gray-200 text-gray-500 hover:bg-indigo-50 hover:border-indigo-300 hover:text-indigo-600 transition-all">
-          {saving === story.id ? "✅" : "💾 Save"}
+          {saving === story.id ? "✅" : (t.grokCardSave || "💾 Save")}
         </button>
       </div>
     </div>
@@ -72,13 +70,13 @@ const StorylineCard = ({ story, selected, onSelect, onSave, saving }) => (
     </div>
     <div className="flex items-center gap-2 mt-2">
       <span className="text-xs text-gray-400">🎭 {story.emotion}</span>
-      {selected && <span className="text-xs text-indigo-600 font-medium ml-auto">✓ Selected</span>}
+      {selected && <span className="text-xs text-indigo-600 font-medium ml-auto">{t.grokCardSelected || "✓ Selected"}</span>}
     </div>
   </div>
 );
 
 // ── Library modal ──────────────────────────────────────────────────────────
-const LibraryModal = ({ type, userId, onSelect, onClose }) => {
+const LibraryModal = ({ type, userId, onSelect, onClose, t }) => {
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
   const [editingId, setEditingId] = useState(null);
@@ -117,16 +115,18 @@ const LibraryModal = ({ type, userId, onSelect, onClose }) => {
       <div className="bg-white rounded-2xl w-full max-w-lg max-h-[80vh] flex flex-col overflow-hidden shadow-xl">
         <div className="px-5 py-4 border-b border-gray-100 flex items-center justify-between">
           <h3 className="font-bold text-gray-800">
-            {type === "storyline" ? "📚 Storyline Library" : "📋 Prompt Library"}
+            {type === "storyline" ? (t.grokLibStorylineTitle || "📚 Storyline Library") : (t.grokLibPromptTitle || "📋 Prompt Library")}
           </h3>
           <button onClick={onClose} className="text-gray-400 hover:text-gray-600 text-lg">✕</button>
         </div>
         <div className="overflow-y-auto flex-1 p-4 space-y-3">
-          {loading && <p className="text-center text-gray-400 text-sm py-8">Loading...</p>}
+          {loading && <p className="text-center text-gray-400 text-sm py-8">{t.grokLibLoading || "Loading..."}</p>}
           {!loading && items.length === 0 && (
             <div className="text-center py-12">
               <p className="text-3xl mb-2">📭</p>
-              <p className="text-sm text-gray-500">No saved {type === "storyline" ? "storylines" : "prompts"} yet</p>
+              <p className="text-sm text-gray-500">
+                {type === "storyline" ? (t.grokLibEmptyStoryline || "No saved storylines yet") : (t.grokLibEmptyPrompt || "No saved prompts yet")}
+              </p>
             </div>
           )}
           {items.map(item => (
@@ -149,9 +149,9 @@ const LibraryModal = ({ type, userId, onSelect, onClose }) => {
                     rows={4} />
                   <div className="flex gap-2 mt-1">
                     <button onClick={() => saveEdit(item.id)}
-                      className="text-xs px-2 py-1 bg-indigo-500 text-white rounded-lg">Save</button>
+                      className="text-xs px-2 py-1 bg-indigo-500 text-white rounded-lg">{t.grokLibSave || "Save"}</button>
                     <button onClick={() => setEditingId(null)}
-                      className="text-xs px-2 py-1 border border-gray-200 rounded-lg text-gray-500">Cancel</button>
+                      className="text-xs px-2 py-1 border border-gray-200 rounded-lg text-gray-500">{t.grokLibCancel || "Cancel"}</button>
                   </div>
                 </div>
               ) : (
@@ -165,7 +165,7 @@ const LibraryModal = ({ type, userId, onSelect, onClose }) => {
                 <button
                   onClick={() => { onSelect(item); onClose(); }}
                   className="text-xs px-3 py-1 bg-indigo-50 text-indigo-600 rounded-lg hover:bg-indigo-100 transition-all">
-                  Use this
+                  {t.grokLibUse || "Use this"}
                 </button>
               </div>
             </div>
@@ -177,7 +177,8 @@ const LibraryModal = ({ type, userId, onSelect, onClose }) => {
 };
 
 // ── Main GrokTab component ─────────────────────────────────────────────────
-const GrokTab = ({ user, userCredits, setUserCredits }) => {
+const GrokTab = ({ user, userCredits, setUserCredits, lang }) => {
+  const t = TRANSLATIONS[lang] || TRANSLATIONS.en;
   // ── Mode & basic settings ──
   const [mode, setMode] = useState("text");
   const [videoRatio, setVideoRatio] = useState("9:16");
@@ -248,15 +249,15 @@ const GrokTab = ({ user, userCredits, setUserCredits }) => {
   // ── Generate 5 storylines ──────────────────────────────────────────────
   const generateStorylines = async () => {
     if (!productDescription) {
-      setStorylinesError("Please fill in the Product Description first.");
+      setStorylinesError(t.grokErrNeedProduct || "Please fill in the Product Description first.");
       return;
     }
     if (mode === "image" && !firstFrameFile) {
-      setStorylinesError("Please upload a first frame image first.");
+      setStorylinesError(t.grokErrNeedFirstFrame || "Please upload a first frame image first.");
       return;
     }
     if (mode === "reference" && referenceFiles.length === 0) {
-      setStorylinesError("Please upload at least one reference image.");
+      setStorylinesError(t.grokErrNeedRef || "Please upload at least one reference image.");
       return;
     }
 
@@ -283,7 +284,7 @@ const GrokTab = ({ user, userCredits, setUserCredits }) => {
       const res = await fetch("/api/grok-generate-storylines", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ mode, productDescription, productUSP, funnel, images }),
+        body: JSON.stringify({ mode, productDescription, productUSP, funnel, images, lang }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Failed to generate storylines");
@@ -320,7 +321,7 @@ const GrokTab = ({ user, userCredits, setUserCredits }) => {
   // ── Generate prompt ───────────────────────────────────────────────────
   const generatePrompt = async () => {
     if (!selectedStoryline && !confirmedStoryline) {
-      setPromptError("Please select or write a storyline first.");
+      setPromptError(t.grokErrNeedStoryline || "Please select or write a storyline first.");
       return;
     }
     setPromptLoading(true);
@@ -349,6 +350,7 @@ const GrokTab = ({ user, userCredits, setUserCredits }) => {
           funnel,
           videoRatio,
           referenceCount: referenceFiles.length,
+          lang,
         }),
       });
       const data = await res.json();
@@ -378,13 +380,13 @@ const GrokTab = ({ user, userCredits, setUserCredits }) => {
 
   // ── Generate video ─────────────────────────────────────────────────────
   const generateVideo = async () => {
-    if (!prompt) { setGenError("Please generate or write a prompt first."); return; }
+    if (!prompt) { setGenError(t.grokErrNeedPrompt || "Please generate or write a prompt first."); return; }
 
     // Credit check
     const cost = 14;
     const enough = await hasEnoughCredits(user.id, cost);
     if (!enough) {
-      setGenError(`Insufficient credits. You need ${cost} credits for a 10s Grok video.`);
+      setGenError(t.grokErrCredits ? t.grokErrCredits(cost) : `Insufficient credits. You need ${cost} credits for a 10s Grok video.`);
       return;
     }
 
@@ -505,14 +507,14 @@ const GrokTab = ({ user, userCredits, setUserCredits }) => {
 
       {/* ── Mode selector ── */}
       <div className="mb-5">
-        <p className="text-xs font-bold text-gray-500 uppercase tracking-widest mb-3">Generation Mode</p>
+        <p className="text-xs font-bold text-gray-500 uppercase tracking-widest mb-3">{t.grokModeTitle || "Generation Mode"}</p>
         <div className="grid grid-cols-3 gap-2">
-          {MODES.map(m => (
-            <button key={m.value} onClick={() => handleModeChange(m.value)}
-              className={`p-3 rounded-xl border-2 text-left transition-all ${mode === m.value ? "border-indigo-500 bg-indigo-50" : "border-gray-200 bg-white hover:border-indigo-300"}`}>
-              <p className="text-lg mb-1">{m.emoji}</p>
-              <p className="text-xs font-bold text-gray-800">{m.label}</p>
-              <p className="text-xs text-gray-400 mt-0.5 leading-tight">{m.desc}</p>
+          {MODE_VALUES.map(v => (
+            <button key={v} onClick={() => handleModeChange(v)}
+              className={`p-3 rounded-xl border-2 text-left transition-all ${mode === v ? "border-indigo-500 bg-indigo-50" : "border-gray-200 bg-white hover:border-indigo-300"}`}>
+              <p className="text-lg mb-1">{MODE_EMOJIS[v]}</p>
+              <p className="text-xs font-bold text-gray-800">{t[`grokMode_${v}_label`] || v}</p>
+              <p className="text-xs text-gray-400 mt-0.5 leading-tight">{t[`grokMode_${v}_desc`] || ""}</p>
             </button>
           ))}
         </div>
@@ -522,15 +524,16 @@ const GrokTab = ({ user, userCredits, setUserCredits }) => {
       {mode === "image" && (
         <div className="mb-5 border border-gray-200 rounded-xl overflow-hidden">
           <div className="bg-gray-50 px-4 py-3 border-b border-gray-200">
-            <h2 className="font-bold text-gray-800 text-sm">🖼️ First Frame Image</h2>
-            <p className="text-xs text-gray-400 mt-0.5">Upload the image Grok will animate from</p>
+            <h2 className="font-bold text-gray-800 text-sm">{t.grokFirstFrameTitle || "🖼️ First Frame Image"}</h2>
+            <p className="text-xs text-gray-400 mt-0.5">{t.grokFirstFrameSub || "Upload the image Grok will animate from"}</p>
           </div>
           <div className="p-4">
             <ImageUploadBox
-              label="First Frame" required
-              hint="This exact image will be the opening frame of your video"
+              label={t.grokFirstFrameLabel || "First Frame"} required
+              hint={t.grokFirstFrameHint || "This exact image will be the opening frame of your video"}
               file={firstFrameFile}
-              onFile={setFirstFrameFile} />
+              onFile={setFirstFrameFile}
+              clickToUpload={t.grokClickUpload} />
           </div>
         </div>
       )}
@@ -538,8 +541,8 @@ const GrokTab = ({ user, userCredits, setUserCredits }) => {
       {mode === "reference" && (
         <div className="mb-5 border border-gray-200 rounded-xl overflow-hidden">
           <div className="bg-gray-50 px-4 py-3 border-b border-gray-200">
-            <h2 className="font-bold text-gray-800 text-sm">🎯 Reference Images</h2>
-            <p className="text-xs text-gray-400 mt-0.5">Upload up to 7 images — each becomes @Image1, @Image2, etc.</p>
+            <h2 className="font-bold text-gray-800 text-sm">{t.grokRefTitle || "🎯 Reference Images"}</h2>
+            <p className="text-xs text-gray-400 mt-0.5">{t.grokRefSub || "Upload up to 7 images — each becomes @Image1, @Image2, etc."}</p>
           </div>
           <div className="p-4 space-y-3">
             {referenceFiles.map((f, idx) => (
@@ -551,15 +554,15 @@ const GrokTab = ({ user, userCredits, setUserCredits }) => {
                   <p className="text-xs text-gray-400 truncate">{f.name}</p>
                 </div>
                 <button onClick={() => removeReferenceFile(idx)}
-                  className="text-xs text-red-400 hover:text-red-600 flex-shrink-0">Remove</button>
+                  className="text-xs text-red-400 hover:text-red-600 flex-shrink-0">{t.grokRemove || "Remove"}</button>
               </div>
             ))}
             {referenceFiles.length < 7 && (
               <label className="flex items-center gap-3 border-2 border-dashed border-gray-200 rounded-xl p-4 cursor-pointer hover:border-indigo-400 transition-all">
                 <span className="text-2xl">➕</span>
                 <div>
-                  <p className="text-xs font-semibold text-gray-700">Add reference image</p>
-                  <p className="text-xs text-gray-400">@Image{referenceFiles.length + 1} · {7 - referenceFiles.length} slots remaining</p>
+                  <p className="text-xs font-semibold text-gray-700">{t.grokAddRef || "Add reference image"}</p>
+                  <p className="text-xs text-gray-400">@Image{referenceFiles.length + 1} · {t.grokSlotsLeft ? t.grokSlotsLeft(7 - referenceFiles.length) : `${7 - referenceFiles.length} slots remaining`}</p>
                 </div>
                 <input type="file" accept="image/*" className="hidden"
                   onChange={e => e.target.files[0] && addReferenceFile(e.target.files[0])} />
@@ -572,11 +575,11 @@ const GrokTab = ({ user, userCredits, setUserCredits }) => {
       {/* ── Video settings ── */}
       <div className="mb-5 border border-gray-200 rounded-xl overflow-hidden">
         <div className="bg-gray-50 px-4 py-3 border-b border-gray-200">
-          <h2 className="font-bold text-gray-800 text-sm">⚙️ Video Settings</h2>
+          <h2 className="font-bold text-gray-800 text-sm">{t.grokVideoSettingsTitle || "⚙️ Video Settings"}</h2>
         </div>
         <div className="p-4 space-y-4">
           <div>
-            <p className="text-xs font-semibold text-gray-600 mb-2">Video Ratio</p>
+            <p className="text-xs font-semibold text-gray-600 mb-2">{t.grokRatioLabel || "Video Ratio"}</p>
             <div className="flex gap-2">
               {RATIOS.map(r => (
                 <button key={r.value} onClick={() => setVideoRatio(r.value)}
@@ -588,22 +591,22 @@ const GrokTab = ({ user, userCredits, setUserCredits }) => {
           </div>
           <div>
             <p className="text-xs font-semibold text-gray-600 mb-1">
-              Product Description <span className="text-red-400">*</span>
+              {t.grokProdDescLabel || "Product Description"} <span className="text-red-400">*</span>
             </p>
-            <p className="text-xs text-gray-400 mb-1">Include shape, size, color and material for best results</p>
+            <p className="text-xs text-gray-400 mb-1">{t.grokProdDescHint || "Include shape, size, color and material for best results"}</p>
             <textarea
               value={productDescription}
               onChange={e => setProductDescription(e.target.value)}
-              placeholder="e.g. Matte black cylindrical portable blender, 500ml, 18cm tall, USB-C rechargeable, stainless steel blades visible through transparent lower section"
+              placeholder={t.grokProdDescPh || "e.g. Matte black cylindrical portable blender, 500ml, 18cm tall, USB-C rechargeable"}
               rows={3}
               className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-indigo-400 resize-none" />
           </div>
           <div>
-            <p className="text-xs font-semibold text-gray-600 mb-1">Unique Selling Point (optional)</p>
+            <p className="text-xs font-semibold text-gray-600 mb-1">{t.grokUSPLabel || "Unique Selling Point (optional)"}</p>
             <input
               value={productUSP}
               onChange={e => setProductUSP(e.target.value)}
-              placeholder="e.g. Blends a smoothie in 30 seconds anywhere — no power outlet needed"
+              placeholder={t.grokUSPPh || "e.g. Blends a smoothie in 30 seconds anywhere — no power outlet needed"}
               className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-indigo-400" />
           </div>
         </div>
@@ -612,8 +615,8 @@ const GrokTab = ({ user, userCredits, setUserCredits }) => {
       {/* ── Funnel selection ── */}
       <div className="mb-5 border border-gray-200 rounded-xl overflow-hidden">
         <div className="bg-gray-50 px-4 py-3 border-b border-gray-200">
-          <h2 className="font-bold text-gray-800 text-sm">🎯 Sales Funnel Stage</h2>
-          <p className="text-xs text-gray-400 mt-0.5">Shapes the storyline strategy and CTA</p>
+          <h2 className="font-bold text-gray-800 text-sm">{t.grokFunnelTitle || "🎯 Sales Funnel Stage"}</h2>
+          <p className="text-xs text-gray-400 mt-0.5">{t.grokFunnelSub || "Shapes the storyline strategy and CTA"}</p>
         </div>
         <div className="p-4 space-y-2">
           {FUNNELS.map(f => (
@@ -624,11 +627,11 @@ const GrokTab = ({ user, userCredits, setUserCredits }) => {
                 : "border-green-500 bg-green-50"
                 : "border-gray-200 bg-white hover:border-gray-300"}`}>
               <div className="flex items-center justify-between">
-                <span className="text-sm font-bold text-gray-800">{f.emoji} {f.label}</span>
+                <span className="text-sm font-bold text-gray-800">{f.emoji} {t[`grokFunnel_${f.value}`] || f.value}</span>
                 <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${
                   f.color === "blue" ? "bg-blue-100 text-blue-700"
                   : f.color === "yellow" ? "bg-yellow-100 text-yellow-700"
-                  : "bg-green-100 text-green-700"}`}>{f.tag}</span>
+                  : "bg-green-100 text-green-700"}`}>{t[`grokFunnel_${f.value}_tag`] || f.value}</span>
               </div>
             </button>
           ))}
@@ -638,8 +641,8 @@ const GrokTab = ({ user, userCredits, setUserCredits }) => {
       {/* ── Storyline section ── */}
       <div className="mb-5 border border-gray-200 rounded-xl overflow-hidden">
         <div className="bg-gray-50 px-4 py-3 border-b border-gray-200">
-          <h2 className="font-bold text-gray-800 text-sm">📖 Storyline</h2>
-          <p className="text-xs text-gray-400 mt-0.5">AI generates 5 ideas — pick one or load from your library</p>
+          <h2 className="font-bold text-gray-800 text-sm">{t.grokStorylineTitle || "📖 Storyline"}</h2>
+          <p className="text-xs text-gray-400 mt-0.5">{t.grokStorylineSub || "AI generates 5 ideas — pick one or load from your library"}</p>
         </div>
         <div className="p-4 space-y-3">
 
@@ -651,12 +654,12 @@ const GrokTab = ({ user, userCredits, setUserCredits }) => {
               className={`flex-1 py-2.5 rounded-xl text-sm font-medium transition-all ${storylinesLoading || !productDescription
                 ? "bg-gray-100 text-gray-400 cursor-not-allowed"
                 : "bg-indigo-500 text-white hover:bg-indigo-600 active:scale-95"}`}>
-              {storylinesLoading ? "✨ Generating ideas…" : storylines.length > 0 ? "🔄 Regenerate 5 Ideas" : "✨ Generate 5 Ideas"}
+              {storylinesLoading ? (t.grokGenerating5 || "✨ Generating ideas…") : storylines.length > 0 ? (t.grokRegenerate5 || "🔄 Regenerate 5 Ideas") : (t.grokGenerate5 || "✨ Generate 5 Ideas")}
             </button>
             <button
               onClick={() => setShowStorylineLibrary(true)}
               className="px-4 py-2.5 rounded-xl border border-gray-200 text-sm text-gray-600 hover:bg-gray-50 transition-all">
-              📚 Library
+              {t.grokLibraryBtn || "📚 Library"}
             </button>
           </div>
 
@@ -674,7 +677,8 @@ const GrokTab = ({ user, userCredits, setUserCredits }) => {
                   selected={selectedStoryline?.id === story.id}
                   onSelect={selectStoryline}
                   onSave={saveStorylineToLibrary}
-                  saving={savingStoryline} />
+                  saving={savingStoryline}
+                  t={t} />
               ))}
             </div>
           )}
@@ -683,7 +687,7 @@ const GrokTab = ({ user, userCredits, setUserCredits }) => {
           {(selectedStoryline || confirmedStoryline) && (
             <div>
               <p className="text-xs font-semibold text-gray-600 mb-1">
-                ✏️ Your Storyline — edit freely before generating prompt
+                {t.grokStorylineEditLabel || "✏️ Your Storyline — edit freely before generating prompt"}
               </p>
               <textarea
                 value={confirmedStoryline}
@@ -698,8 +702,8 @@ const GrokTab = ({ user, userCredits, setUserCredits }) => {
       {/* ── Prompt section ── */}
       <div className="mb-5 border border-gray-200 rounded-xl overflow-hidden">
         <div className="bg-gray-50 px-4 py-3 border-b border-gray-200">
-          <h2 className="font-bold text-gray-800 text-sm">🎬 Grok Prompt</h2>
-          <p className="text-xs text-gray-400 mt-0.5">Expert-crafted prompt for Grok AI — review and edit before generating</p>
+          <h2 className="font-bold text-gray-800 text-sm">{t.grokPromptTitle || "🎬 Grok Prompt"}</h2>
+          <p className="text-xs text-gray-400 mt-0.5">{t.grokPromptSub || "Expert-crafted prompt for Grok AI — review and edit before generating"}</p>
         </div>
         <div className="p-4 space-y-3">
           <div className="flex gap-2">
@@ -709,12 +713,12 @@ const GrokTab = ({ user, userCredits, setUserCredits }) => {
               className={`flex-1 py-2.5 rounded-xl text-sm font-medium transition-all ${promptLoading || (!selectedStoryline && !confirmedStoryline)
                 ? "bg-gray-100 text-gray-400 cursor-not-allowed"
                 : "bg-purple-500 text-white hover:bg-purple-600 active:scale-95"}`}>
-              {promptLoading ? "✨ Writing prompt…" : prompt ? "🔄 Regenerate Prompt" : "✨ Generate Prompt"}
+              {promptLoading ? (t.grokWritingPrompt || "✨ Writing prompt…") : prompt ? (t.grokRegeneratePrompt || "🔄 Regenerate Prompt") : (t.grokGeneratePrompt || "✨ Generate Prompt")}
             </button>
             <button
               onClick={() => setShowPromptLibrary(true)}
               className="px-4 py-2.5 rounded-xl border border-gray-200 text-sm text-gray-600 hover:bg-gray-50 transition-all">
-              📋 Library
+              {t.grokPromptLibraryBtn || "📋 Library"}
             </button>
           </div>
 
@@ -733,7 +737,7 @@ const GrokTab = ({ user, userCredits, setUserCredits }) => {
                 onClick={savePromptToLibrary}
                 disabled={savingPrompt}
                 className="mt-2 text-xs px-3 py-1.5 border border-gray-200 rounded-lg text-gray-600 hover:bg-gray-50 transition-all">
-                {promptSaved ? "✅ Saved!" : savingPrompt ? "Saving…" : "💾 Save to Library"}
+                {promptSaved ? (t.grokSavedLib || "✅ Saved!") : savingPrompt ? (t.grokSavingLib || "Saving…") : (t.grokSaveToLib || "💾 Save to Library")}
               </button>
             </div>
           )}
@@ -753,10 +757,10 @@ const GrokTab = ({ user, userCredits, setUserCredits }) => {
             </svg>
           )}
           <span>
-            {genStep === "uploading"  && "📤 Uploading images…"}
-            {genStep === "submitting" && "🎬 Submitting to Grok AI…"}
-            {genStep === "polling"    && `⏳ Generating your video…${queuePos != null ? ` (Queue: ${queuePos})` : ""}`}
-            {genStep === "done"       && "✅ Your Grok video is ready!"}
+            {genStep === "uploading"  && (t.grokGenUploading || "📤 Uploading images…")}
+            {genStep === "submitting" && (t.grokGenSubmitting || "🎬 Submitting to Grok AI…")}
+            {genStep === "polling"    && t.grokGenPolling ? t.grokGenPolling(queuePos) : `⏳ Generating your video…${queuePos != null ? ` (Queue: ${queuePos})` : ""}`}
+            {genStep === "done"       && (t.grokGenDone || "✅ Your Grok video is ready!")}
           </span>
         </div>
       )}
@@ -772,20 +776,20 @@ const GrokTab = ({ user, userCredits, setUserCredits }) => {
       {genStep === "done" && videoUrl && (
         <div className="mb-5 border border-green-200 rounded-xl overflow-hidden">
           <div className="bg-green-50 px-4 py-3 border-b border-green-100">
-            <p className="text-sm font-bold text-green-700">✅ Grok Video Generated!</p>
-            <p className="text-xs text-green-500 mt-0.5">10s · 720p · {videoRatio} · with audio</p>
+            <p className="text-sm font-bold text-green-700">{t.grokVideoTitle || "✅ Grok Video Generated!"}</p>
+            <p className="text-xs text-green-500 mt-0.5">{t.grokVideoSub ? t.grokVideoSub(videoRatio) : `10s · 720p · ${videoRatio} · with audio`}</p>
           </div>
           <div className="p-4 space-y-3">
             <video src={videoUrl} controls className="w-full rounded-xl" style={{ maxHeight: 400 }} />
             <div className="flex gap-2">
               <a href={videoUrl} download
                 className="flex-1 py-2.5 rounded-xl bg-indigo-500 text-white text-sm font-medium text-center hover:bg-indigo-600 transition-all">
-                ⬇️ Download Video
+                {t.grokBtnDownload || "⬇️ Download Video"}
               </a>
               <button
                 onClick={() => { setGenStep("idle"); setVideoUrl(""); setGenerating(false); }}
                 className="px-4 py-2.5 rounded-xl border border-gray-200 text-sm text-gray-500 hover:bg-gray-50">
-                🔄 New Video
+                {t.grokBtnNewVideo || "🔄 New Video"}
               </button>
             </div>
           </div>
@@ -801,11 +805,11 @@ const GrokTab = ({ user, userCredits, setUserCredits }) => {
             className={`w-full py-4 rounded-xl font-bold text-sm transition-all ${generating || !prompt
               ? "bg-gray-200 text-gray-400 cursor-not-allowed"
               : "bg-gradient-to-r from-indigo-500 to-purple-500 text-white hover:from-indigo-600 hover:to-purple-600 active:scale-95"}`}>
-            {generating ? "⏳ Generating…" : `🎬 Generate Grok Video · ${creditCost} credits`}
+            {generating ? (t.grokBtnGenerating || "⏳ Generating…") : t.grokBtnGenVideo ? t.grokBtnGenVideo(creditCost) : `🎬 Generate Grok Video · ${creditCost} credits`}
           </button>
           <button onClick={resetAll}
             className="w-full py-2.5 rounded-xl border border-gray-200 text-sm text-gray-500 hover:bg-gray-50 transition-all">
-            Reset All
+            {t.grokResetAll || "Reset All"}
           </button>
         </div>
       )}
@@ -819,14 +823,16 @@ const GrokTab = ({ user, userCredits, setUserCredits }) => {
             setConfirmedStoryline(item.content);
             setSelectedStoryline({ title: item.title, hook: "", content: item.content, cta: "", emotion: "", style: "" });
           }}
-          onClose={() => setShowStorylineLibrary(false)} />
+          onClose={() => setShowStorylineLibrary(false)}
+          t={t} />
       )}
       {showPromptLibrary && (
         <LibraryModal
           type="prompt"
           userId={user.id}
           onSelect={item => setPrompt(item.content)}
-          onClose={() => setShowPromptLibrary(false)} />
+          onClose={() => setShowPromptLibrary(false)}
+          t={t} />
       )}
     </div>
   );

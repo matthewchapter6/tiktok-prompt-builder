@@ -49,18 +49,18 @@ const HistoryTab = ({
     <div className="pb-8">
       <div className="flex items-center justify-between mb-4">
         <div>
-          <h2 className="text-sm font-bold text-gray-800">Generated Videos</h2>
-          <p className="text-xs text-gray-400 mt-0.5">All your AI-generated videos</p>
+          <h2 className="text-sm font-bold text-gray-800">{t.histTitle || "Generated Videos"}</h2>
+          <p className="text-xs text-gray-400 mt-0.5">{t.histSubtitle || "All your AI-generated videos"}</p>
         </div>
         <button onClick={handleRefresh}
           className="text-xs text-indigo-500 border border-indigo-200 rounded-lg px-3 py-1.5 hover:bg-indigo-50 transition-all">
-          🔄 Refresh
+          {t.histRefresh || "🔄 Refresh"}
         </button>
       </div>
 
       {/* Filter tabs */}
       <div className="flex gap-2 mb-4">
-        {[["all", "All Videos"], ["sora", "🎬 Create Video"], ["grok", "🎥 Grok"]].map(([val, label]) => (
+        {[["all", t.histAllVideos || "All Videos"], ["sora", t.histCreateVideoFilter || "🎬 Create Video"], ["grok", t.histGrokFilter || "🎥 Grok"]].map(([val, label]) => (
           <button key={val} onClick={() => setActiveFilter(val)}
             className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${activeFilter === val
               ? "bg-indigo-500 text-white"
@@ -76,18 +76,18 @@ const HistoryTab = ({
             <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/>
             <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"/>
           </svg>
-          Loading history…
+          {t.histLoadingHistory || "Loading history…"}
         </div>
       )}
 
       {!isLoading && filteredVideos.length === 0 && (
         <div className="text-center py-12">
           <p className="text-3xl mb-3">🎬</p>
-          <p className="text-sm text-gray-500">No videos generated yet</p>
-          <p className="text-xs text-gray-400 mt-1">Your generated videos will appear here</p>
+          <p className="text-sm text-gray-500">{t.histEmpty || "No videos generated yet"}</p>
+          <p className="text-xs text-gray-400 mt-1">{t.histEmptySubtitle || "Your generated videos will appear here"}</p>
           <button onClick={() => setTab("sora")}
             className="mt-4 px-4 py-2 rounded-lg bg-indigo-50 text-indigo-500 text-sm font-medium hover:bg-indigo-100 transition-all">
-            Generate your first video →
+            {t.histFirstVideo || "Generate your first video →"}
           </button>
         </div>
       )}
@@ -103,7 +103,7 @@ const HistoryTab = ({
                     <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${item.source === "grok"
                       ? "bg-purple-100 text-purple-700"
                       : "bg-indigo-100 text-indigo-700"}`}>
-                      {item.source === "grok" ? "🎥 Grok" : "🎬 Create Video"}
+                      {item.source === "grok" ? (t.histGrokFilter || "🎥 Grok") : (t.histCreateVideoFilter || "🎬 Create Video")}
                     </span>
                     {item.source === "grok" && item.mode && (
                       <span className="text-xs text-gray-400">{item.mode}</span>
@@ -122,8 +122,8 @@ const HistoryTab = ({
                   item.status === "failed" ? "bg-red-100 text-red-700" :
                   "bg-yellow-100 text-yellow-700"
                 }`}>
-                  {item.status === "completed" ? "✅ Done" :
-                   item.status === "failed" ? "❌ Failed" : "⏳ Processing"}
+                  {item.status === "completed" ? (t.histDone || "✅ Done") :
+                   item.status === "failed" ? (t.histFailed || "❌ Failed") : (t.histProcessing || "⏳ Processing")}
                 </span>
               </div>
 
@@ -135,7 +135,7 @@ const HistoryTab = ({
                   <div className="flex gap-2">
                     <a href={item.video_url} download
                       className="flex-1 py-2 rounded-lg bg-indigo-500 text-white text-xs font-medium text-center hover:bg-indigo-600 transition-all">
-                      ⬇️ Download
+                      {t.histDownload || "⬇️ Download"}
                     </a>
                     {item.source === "sora" && (
                       <button onClick={() => {
@@ -145,13 +145,13 @@ const HistoryTab = ({
                         setTab("sora");
                       }}
                         className="flex-1 py-2 rounded-lg border border-gray-200 text-xs text-gray-600 hover:bg-gray-50 transition-all">
-                        🔄 New Video
+                        {t.histNewVideo || "🔄 New Video"}
                       </button>
                     )}
                     {item.source === "grok" && (
                       <button onClick={() => setTab("grok")}
                         className="flex-1 py-2 rounded-lg border border-gray-200 text-xs text-gray-600 hover:bg-gray-50 transition-all">
-                        🔄 New Grok Video
+                        {t.histNewGrokVideo || "🔄 New Grok Video"}
                       </button>
                     )}
                   </div>
@@ -167,15 +167,15 @@ const HistoryTab = ({
                       <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"/>
                     </svg>
                     <div className="flex-1">
-                      <p className="text-xs font-medium text-blue-700">Video still generating…</p>
+                      <p className="text-xs font-medium text-blue-700">{t.histStillGenerating || "Video still generating…"}</p>
                       <p className="text-xs text-blue-500 mt-0.5">
-                        Started {Math.round((Date.now() - new Date(item.created_at).getTime()) / 60000)} min ago
+                        {t.histMinAgo ? t.histMinAgo(Math.round((Date.now() - new Date(item.created_at).getTime()) / 60000)) : `Started ${Math.round((Date.now() - new Date(item.created_at).getTime()) / 60000)} min ago`}
                       </p>
                     </div>
                     {item.source === "sora" && (
                       <button onClick={() => { setSoraStep("idle"); resumeInProgressJobs(); setTab("sora"); }}
                         className="text-xs text-blue-600 border border-blue-200 rounded-lg px-2 py-1 hover:bg-blue-100 transition-all flex-shrink-0">
-                        Resume
+                        {t.histResume || "Resume"}
                       </button>
                     )}
                   </div>
@@ -186,7 +186,7 @@ const HistoryTab = ({
               {item.status === "failed" && (
                 <div className="p-4 space-y-2">
                   <p className="text-xs text-red-500 bg-red-50 rounded-lg px-3 py-2">
-                    ❌ Generation failed.
+                    {t.histFailed2 || "❌ Generation failed."}
                   </p>
                   {item.source === "sora" && (
                     <button onClick={() => {
@@ -196,7 +196,7 @@ const HistoryTab = ({
                       setTab("sora");
                     }}
                       className="w-full py-2 rounded-lg border border-gray-200 text-xs text-gray-600 hover:bg-gray-50 transition-all">
-                      🔄 Try Again with Same Prompt
+                      {t.histTryAgain || "🔄 Try Again with Same Prompt"}
                     </button>
                   )}
                 </div>

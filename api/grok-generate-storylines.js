@@ -16,6 +16,7 @@ export default async function handler(req, res) {
       productUSP,          // optional
       funnel,              // 'upper' | 'middle' | 'lower'
       images,              // array of { data: base64, mimeType } — for image/reference modes
+      lang,                // 'en' | 'zh' | 'bm'
     } = req.body;
 
     if (!productDescription) {
@@ -30,13 +31,19 @@ export default async function handler(req, res) {
 
     const durationNote = '10 seconds — enough for a Hook (0-3s) + Content (3-8s) + CTA (8-10s) arc';
 
+    const langInstruction = lang === 'zh'
+      ? '\n\nIMPORTANT: Generate ALL text fields (title, hook, content, cta, emotion, style) in Simplified Chinese (简体中文).'
+      : lang === 'bm'
+      ? '\n\nIMPORTANT: Generate ALL text fields (title, hook, content, cta, emotion, style) in Bahasa Malaysia.'
+      : '';
+
     const systemInstruction = `You are a senior social media content producer and creative director with 10 years experience creating viral TikTok and Instagram Reels product ads.
 
 You specialise in Grok AI video generation — you understand exactly what makes a great Grok video prompt: cinematic camera moves, specific lighting, precise character actions, authentic product interaction, and emotional storytelling arcs.
 
 Your job is to propose 5 completely different, creative storyline concepts for a 10-second product video ad. Each storyline must feel totally different — different emotions, different scenes, different hooks, different energy.
 
-Return ONLY valid JSON. No explanation. No markdown. No preamble.`;
+Return ONLY valid JSON. No explanation. No markdown. No preamble.${langInstruction}`;
 
     const userPrompt = `Propose 5 completely different 10-second video storyline concepts for this product.
 

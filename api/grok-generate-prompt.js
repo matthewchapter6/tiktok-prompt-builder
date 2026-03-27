@@ -18,6 +18,7 @@ export default async function handler(req, res) {
       funnel,
       videoRatio,         // '9:16' | '16:9' | '1:1'
       referenceCount,     // number of reference images (for reference mode)
+      lang,               // 'en' | 'zh' | 'bm'
     } = req.body;
 
     if (!storyline || !productDescription) {
@@ -38,7 +39,13 @@ export default async function handler(req, res) {
       reference: `REFERENCE-TO-VIDEO: ${referenceCount} reference image(s) provided. Use @Image1${referenceCount > 1 ? ', @Image2' : ''}${referenceCount > 2 ? ', @Image3' : ''} to refer to each in the prompt. Grok will maintain visual consistency of these elements throughout.`,
     }[mode];
 
-    const systemInstruction = `You are an expert Grok AI video prompt engineer with deep knowledge of xAI's Aurora engine capabilities.
+    const langInstruction = lang === 'zh'
+      ? '\n\nIMPORTANT: Write the entire video prompt in Simplified Chinese (简体中文). All scene descriptions, camera directions, audio cues, and CTA must be in Simplified Chinese.'
+      : lang === 'bm'
+      ? '\n\nIMPORTANT: Write the entire video prompt in Bahasa Malaysia. All scene descriptions, camera directions, audio cues, and CTA must be in Bahasa Malaysia.'
+      : '';
+
+    const systemInstruction = `You are an expert Grok AI video prompt engineer with deep knowledge of xAI's Aurora engine capabilities.${langInstruction}
 
 You understand exactly what parameters produce the best Grok videos:
 - Grok excels at cinematic camera work, physics-accurate motion, and native audio

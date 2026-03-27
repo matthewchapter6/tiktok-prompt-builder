@@ -18,7 +18,7 @@ import {
 export default function App() {
   const [lang, setLang] = useState("en");
   const [f, setF] = useState(init);
-  const [tab, setTab] = useState("sora");
+  const [tab, setTab] = useState("grok");
   const [clips, setClips] = useState([]);
   const [storyline, setStoryline] = useState("");
   const [aiLoading, setAiLoading] = useState(false);
@@ -570,7 +570,7 @@ export default function App() {
       {/* ── Tabs (center aligned, no Help tab) ── */}
       <div className="border-b border-gray-200 bg-white">
         <div className="flex justify-center overflow-x-auto scrollbar-hide" style={{scrollbarWidth:'none',msOverflowStyle:'none'}}>
-          {[["grok", "🎥 Grok"], ["sora", "🎬 Other Models"], ["history", "🎞️ History"]].map(([v, l]) => (
+          {[["grok", t.tabGrok || "🎥 Grok"], ["sora", t.tabSora || "🎬 Other Models"], ["history", t.tabHistory || "🎞️ History"]].map(([v, l]) => (
             <button key={v} onClick={() => setTab(v)}
               className={`flex-shrink-0 px-4 py-2.5 text-xs font-medium border-b-2 transition-all whitespace-nowrap ${tab === v ? "border-blue-500 text-blue-600" : "border-transparent text-gray-400"}`}>
               {l}{v === "output" && clips.length > 0 ? ` (${clips.length})` : ""}
@@ -950,6 +950,7 @@ export default function App() {
             user={user}
             userCredits={userCredits}
             setUserCredits={setUserCredits}
+            lang={lang}
           />
         )}
 
