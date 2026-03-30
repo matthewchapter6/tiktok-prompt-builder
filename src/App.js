@@ -1464,6 +1464,9 @@ export default function App() {
           </div>
         )}
       </div>
+      <footer className="text-center text-xs text-gray-400 py-4 mt-4 border-t border-gray-100">
+        © 2025 CATFAM. All rights reserved.
+      </footer>
     </div>
   );
 }
