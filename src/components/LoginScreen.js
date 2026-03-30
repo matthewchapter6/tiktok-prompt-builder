@@ -36,6 +36,7 @@ const LoginScreen = () => {
         {error && <p className="text-xs text-red-500 mt-3">{error}</p>}
         <p className="text-xs text-gray-400 mt-6">By signing in, you agree to use this tool responsibly.</p>
       </div>
+      <p className="text-xs text-gray-400 mt-6">© 2025 CATFAM. All rights reserved.</p>
     </div>
   );
 };
