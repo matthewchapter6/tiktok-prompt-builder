@@ -60,6 +60,18 @@ export default async function handler(req, res) {
         }
       }
 
+      // Final fallback: fal.queue.result() explicitly fetches the completed output
+      if (!videoUrl) {
+        console.log(`[grok-status] Trying fal.queue.result() fallback...`);
+        try {
+          const result = await fal.queue.result(modelPath, { requestId });
+          videoUrl = extractVideoUrl(result) || extractVideoUrl(result?.data) || extractVideoUrl(result?.output);
+          console.log(`[grok-status] fal.queue.result() videoUrl=${videoUrl ?? "null"}`);
+        } catch (e) {
+          console.log(`[grok-status] fal.queue.result() error: ${e.message}`);
+        }
+      }
+
       console.log(`[grok-status] Final videoUrl=${videoUrl ?? "null"}`);
       return res.status(200).json({ status: "COMPLETED", videoUrl });
     }

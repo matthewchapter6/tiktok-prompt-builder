@@ -223,6 +223,7 @@ const LongVideoTab = ({ user, userCredits, setUserCredits, lang }) => {
   const pollingRef = useRef(null);
   const activeRequestRef = useRef(null);
   const activeModelRef = useRef(null);
+  const nullUrlRetryRef = useRef(0);
 
   // Cleanup polling on unmount
   useEffect(() => {
@@ -459,6 +460,7 @@ const LongVideoTab = ({ user, userCredits, setUserCredits, lang }) => {
   // ── Polling ───────────────────────────────────────────────────────────────
   const startPolling = (phase) => {
     stopPolling();
+    nullUrlRetryRef.current = 0;
     pollingRef.current = setInterval(async () => {
       try {
         const requestId = activeRequestRef.current;
@@ -473,13 +475,19 @@ const LongVideoTab = ({ user, userCredits, setUserCredits, lang }) => {
         if (statusData.queuePosition != null) setQueuePos(statusData.queuePosition);
 
         if (statusData.status === "COMPLETED") {
-          stopPolling();
           const videoUrl = statusData.videoUrl;
           if (!videoUrl) {
-            setGenError("Video completed but no URL returned. Please try again.");
-            setGenStep("error");
+            // URL not ready yet — keep polling up to 8 more times before giving up
+            nullUrlRetryRef.current += 1;
+            if (nullUrlRetryRef.current >= 8) {
+              stopPolling();
+              setGenError("Video completed but URL could not be retrieved. Please try again.");
+              setGenStep("error");
+            }
             return;
           }
+          nullUrlRetryRef.current = 0;
+          stopPolling();
           if (phase === "clip1") {
             await generateClip2(videoUrl);
           } else if (phase === "clip2") {
