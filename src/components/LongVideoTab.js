@@ -260,7 +260,6 @@ const LongVideoTab = ({ user, userCredits, setUserCredits, lang }) => {
     setIdeasError("");
     setStorylines([]);
     setSelectedStory(null);
-    setGenStep("ideas");
 
     try {
       let productImage = null;
@@ -674,7 +673,7 @@ const LongVideoTab = ({ user, userCredits, setUserCredits, lang }) => {
       )}
 
       {/* ── MAIN FORM (shown in idle + story-select + ready-to-generate) ── */}
-      {["idle", "story-select", "ready-to-generate"].includes(genStep) && (
+      {["idle", "story-select", "ready-to-generate", "error"].includes(genStep) && (
         <div className="space-y-4">
 
           {/* ── Section 1: Product Setup ── */}
