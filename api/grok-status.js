@@ -8,10 +8,18 @@ fal.config({ credentials: process.env.FAL_API_KEY });
 const extractVideoUrl = (data) => {
   if (!data) return null;
   return (
+    (typeof data?.video === "string" ? data.video : null) ||
     data?.video?.url         ||
+    data?.video?.uri         ||
     data?.video_url          ||
+    data?.url                ||
     data?.videos?.[0]?.url   ||
+    data?.videos?.[0]?.uri   ||
     data?.output?.video?.url ||
+    data?.output?.video_url  ||
+    data?.output?.url        ||
+    data?.result?.video_url  ||
+    data?.result?.url        ||
     null
   );
 };
@@ -43,6 +51,7 @@ export default async function handler(req, res) {
     console.log(`[grok-status] status=${status.status}`);
 
     if (status.status === "COMPLETED") {
+      console.log(`[grok-status] COMPLETED raw status.data=${JSON.stringify(status.data)}`);
       let videoUrl = extractVideoUrl(status.data);
 
       if (!videoUrl && status.response_url) {
