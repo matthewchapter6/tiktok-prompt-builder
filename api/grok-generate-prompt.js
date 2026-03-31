@@ -45,25 +45,35 @@ export default async function handler(req, res) {
       ? '\n\nIMPORTANT: Write the entire video prompt in Bahasa Malaysia. All scene descriptions, camera directions, audio cues, and CTA must be in Bahasa Malaysia.'
       : '';
 
-    const systemInstruction = `You are an expert Grok AI video prompt engineer with deep knowledge of xAI's Aurora engine capabilities.${langInstruction}
+    const referenceGuidance = mode === 'reference'
+      ? `REFERENCE-TO-VIDEO RULES:
+- Reference image(s) show the product/character. Tag them as ${Array.from({length: referenceCount}, (_, i) => `@Image${i+1}`).join(', ')}.
+- Do NOT re-describe the reference image in full — Grok already sees it.
+- Instead, describe what to ANIMATE (what moves, what the host does with it) and what to PRESERVE (product proportions, colour, host appearance).
+- Example approach: "Host lifts @Image1 and holds it face-on to camera, turning it slowly to reveal the side profile..."`
+      : '';
 
-You understand exactly what parameters produce the best Grok videos:
-- Grok excels at cinematic camera work, physics-accurate motion, and native audio
-- Grok follows detailed instructions precisely — be specific about camera moves, lighting, character actions
-- Grok generates synchronized audio natively — specify music mood, ambient sounds, dialogue
-- Structure prompts as: Opening → Action → Close with audio woven throughout
-- Use real cinematography language: "slow dolly in", "rack focus to product", "handheld tracking shot"
-- For 10-second videos: Hook (0-3s) must stop the scroll, Content (3-8s) shows the benefit, CTA (8-10s) drives action
+    const systemInstruction = `You are an expert Grok AI video prompt engineer with deep knowledge of xAI's Aurora engine (Grok Imagine).${langInstruction}
 
-Your prompt must be a single flowing paragraph — cinematic, specific, and action-focused.
-Always end with negative constraints to prevent common AI video artifacts.`;
+PROMPT FRAMEWORK — always follow this exact order in one flowing paragraph:
+[Subject + Primary Action] → [Location/Scene] → [Camera Movement] → [Lighting/Visual Style] → [Audio/Sound] → [Stability Note] → [Negative Constraints]
 
-    const userPrompt = `Write an expert Grok AI video generation prompt for this 10-second ${ratioLabel} product marketing video.
+NON-NEGOTIABLE RULES:
+1. FRONT-LOAD: The very first sentence must name the subject and their primary action. Grok weights the opening most heavily.
+2. LENGTH: 50–150 words total. Specific and tight — not a stream of consciousness. Every word earns its place.
+3. ONE FOCUS, ONE MOTION: One primary subject, one core action per clip. Do not layer multiple events or scene changes.
+4. PRECISE LANGUAGE: Never write vague words like "cinematic", "beautiful", or "stunning" without context. Instead specify HOW — e.g. "soft rim lighting with warm fill", "dolly-in from hip height", "wet pavement reflections".
+5. AUDIO IS REQUIRED: Grok generates native synchronized audio. Always specify music mood + at least one ambient sound (e.g. "upbeat lo-fi beat, soft product click", "crowd murmur and gentle jazz").
+6. STABILITY NOTE: Before the negative constraints, add one sentence locking in what must stay constant (e.g. "Keep the host's face, outfit and product appearance consistent throughout the clip.").
+7. NEGATIVE CONSTRAINTS (always last): "No text overlays, no scene cuts, no warped hands or faces, product maintains exact size and proportions throughout."`;
+
+    const userPrompt = `Write one expert Grok AI video prompt for this 10-second ${ratioLabel} product marketing video. One flowing paragraph, 50–150 words.
 
 PRODUCT: ${productDescription}
 ${productUSP ? `USP: ${productUSP}` : ''}
 FUNNEL OBJECTIVE: ${funnelGuide}
 MODE: ${modeInstructions}
+${referenceGuidance}
 
 CONFIRMED STORYLINE:
 Title: ${storyline.title}
@@ -73,18 +83,16 @@ CTA (8-10s): ${storyline.cta}
 Emotion: ${storyline.emotion}
 Style: ${storyline.style}
 
-PROMPT REQUIREMENTS:
-1. Opening motion — what moves first, camera start position
-2. Hook execution — exactly how seconds 0-3 grabs attention
-3. Product interaction — how the product is shown and used naturally
-4. Camera progression — specific moves (dolly, rack focus, push in, etc.)
-5. Lighting — specific type that suits the scene and mood
-6. Audio — music mood, ambient sounds, any dialogue or voiceover naturally woven in
-7. CTA moment — closing shot composition and any on-screen action
-8. Negative constraints — end with: "No text overlays, no artificial transitions, no warped hands or faces, product maintains exact size and proportions throughout, no competitor products visible."
-${mode === 'reference' ? `9. Reference usage — naturally weave ${Array.from({length: referenceCount}, (_, i) => `@Image${i+1}`).join(', ')} into the prompt so Grok knows which reference applies to which visual element.` : ''}
+REQUIRED ELEMENTS IN ORDER:
+1. Subject + action (first sentence — who does what)
+2. Location/scene (where it happens, 1–2 specific details)
+3. Camera move (use exact film terms: dolly-in, handheld follow, overhead static, rack focus, etc.)
+4. Lighting (specific and sensory — not just "natural light")
+5. Audio (music mood + ambient sound or dialogue cue)
+6. Stability note (what must stay consistent across the full 10s)
+7. Negative constraints (last sentence)
 
-Write as one flowing cinematic paragraph. Be specific, vivid, and actionable. Do not use bullet points.`;
+Write as one flowing paragraph. No bullet points. No headers. 50–150 words.`;
 
     const response = await fetch(
       `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${process.env.GOOGLE_API_KEY}`,
@@ -97,7 +105,7 @@ Write as one flowing cinematic paragraph. Be specific, vivid, and actionable. Do
           generationConfig: {
             temperature: 0.9,
             topP: 0.95,
-            maxOutputTokens: 800,
+            maxOutputTokens: 300,
           },
         }),
       }

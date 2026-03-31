@@ -177,58 +177,59 @@ async function handlePrompts(req, res) {
       ? "\n\nIMPORTANT: Write ALL three prompts entirely in Bahasa Malaysia."
       : "";
 
-    const systemInstruction = `You are an expert Grok AI video prompt engineer specialising in 18-second chained product marketing videos.${langInstruction}
+    const systemInstruction = `You are an expert Grok AI video prompt engineer specialising in 18-second chained product marketing videos powered by xAI's Aurora engine.${langInstruction}
 
-You understand how the 3-clip chain works technically:
-- Clip 1 (reference-to-video): generates a 6s video using the product image as @Image1 reference. Needs a FULL cinematic brief.
-- Clip 2 (extend-video): extends Clip 1. Grok already knows the scene, host, lighting, and style. Only needs the NEW ACTION for seconds 6-12.
-- Clip 3 (extend-video): extends Clip 2. Only the new action for seconds 12-18.
+HOW THE 3-CLIP CHAIN WORKS:
+- Clip 1 (reference-to-video, 6s): Grok generates from scratch using @Image1 as product reference. Needs a COMPLETE brief covering all visual layers.
+- Clip 2 (extend-video, 6s): Grok INHERITS the full scene, host, lighting, and style from Clip 1. Only the new host action is needed.
+- Clip 3 (extend-video, 6s): Same — Grok inherits everything. Only the CTA action is needed.
 
-CRITICAL for Prompt 2 and Prompt 3:
-- Do NOT repeat camera setup, lighting, style, or character description
-- Only describe what CHANGES or CONTINUES: host actions, movements, product interaction
-- Keep extend prompts SHORT (2-4 sentences max) and action-focused
-- Start extend prompts with "Continue the scene:" to signal continuation
-- Product must remain visible/in-hand for Prompt 2
-- Prompt 3 delivers the CTA with product still visible or placed in shot`;
+PROMPT 1 FRAMEWORK — follow this order in one flowing paragraph (80–150 words):
+[Host + Opening Action] → [Location/Scene] → [Camera Move] → [Lighting] → [Audio] → [Stability Note] → [Negative Constraints]
 
-    const userPrompt = `Write 3 prompts for this 18-second product marketing video chain.
+PROMPT 1 NON-NEGOTIABLE RULES:
+1. FRONT-LOAD: First sentence = host description + primary action. Grok weights the opening most heavily.
+2. REFERENCE USAGE: @Image1 is the product. Do NOT re-describe it in full — focus on what to ANIMATE (what the host does with it) and what to PRESERVE (exact shape, proportions, colour).
+3. PRECISE LANGUAGE: No vague words like "cinematic" or "dynamic" — be specific: "soft top-light with warm rim", "handheld follow at chest height", "upbeat lo-fi beat with light product tap sound".
+4. AUDIO IS REQUIRED: Grok generates native audio. Specify music genre/mood + at least one ambient sound.
+5. STABILITY NOTE: Penultimate sentence must lock in: "Keep the host's face, outfit and @Image1 appearance consistent throughout."
+6. NEGATIVE CONSTRAINTS (always last): "No text overlays, no scene cuts, no warped hands or faces, product maintains exact size and proportions."
+
+PROMPTS 2 & 3 RULES (extend-video — strict):
+- 20–40 words MAXIMUM. One sentence preferred, two sentences at most.
+- Start with "Continue the scene:" — this signals video extension to Grok.
+- Describe ONLY the new host action and any product movement.
+- DO NOT repeat scene, lighting, camera setup, or host appearance — Grok already knows all of this.
+- For Prompt 3: include a clear CTA gesture (e.g. "points to camera", "holds product up with a confident nod").`;
+
+    const userPrompt = `Write 3 Grok video prompts for this 18-second product marketing chain.
 
 PRODUCT: ${productDescription}
 ${productUSP ? `USP: ${productUSP}` : ""}
 ${shapeContext}
 FUNNEL: ${funnelGuide}
 RATIO: ${ratioLabel}
-HOST: ${storyline.host || "To be determined by Grok based on product"}
+HOST: ${storyline.host || "Gemini should decide based on product and funnel"}
 SCENE: ${storyline.scene || "Clean, product-appropriate environment"}
-STYLE: ${storyline.style || "Cinematic"}
 
 CONFIRMED STORYLINE:
-Title: ${storyline.title}
 Act 1 — Hook (0-6s): ${storyline.hook}
 Act 2 — Content (6-12s): ${storyline.content}
 Act 3 — CTA (12-18s): ${storyline.cta}
 Emotion: ${storyline.emotion}
+Style: ${storyline.style}
 
 ---
 
-PROMPT 1 (reference-to-video, 6s):
-- Full cinematic brief as one flowing paragraph
-- Use @Image1 to refer to the product (e.g. "holding @Image1", "showcasing @Image1")
-- Include: host description, opening camera position/motion, Act 1 action, scene/environment, lighting, audio mood
-- End with: "No text overlays, no warped hands or faces, product maintains exact size and proportions, no scene cuts."
+PROMPT 1 — reference-to-video (6s Hook), 80–150 words, one paragraph:
+Order: Host+Action → Scene → Camera → Lighting → Audio → Stability Note → Negative Constraints
+Use @Image1 for the product. Show what the host DOES with it, not what it looks like.
 
-PROMPT 2 (extend-video, 6s):
-- Start with "Continue the scene:"
-- Describe ONLY the new actions for seconds 6-12 (Act 2)
-- 2-4 sentences maximum — action and movement only
-- Do NOT re-describe scene, lighting, host appearance, or camera setup
+PROMPT 2 — extend-video (6s Content), 20–40 words:
+"Continue the scene:" + host action for Act 2 only. Nothing else.
 
-PROMPT 3 (extend-video, 6s):
-- Start with "Continue the scene:"
-- Describe ONLY the new actions for seconds 12-18 (Act 3 CTA)
-- 2-4 sentences maximum
-- Product should still be visible or deliberately placed in shot
+PROMPT 3 — extend-video (6s CTA), 20–40 words:
+"Continue the scene:" + host CTA action + clear call-to-action gesture. Nothing else.
 
 Return exactly this JSON (no markdown, no extra keys):
 {
@@ -245,7 +246,7 @@ Return exactly this JSON (no markdown, no extra keys):
         body: JSON.stringify({
           system_instruction: { parts: [{ text: systemInstruction }] },
           contents: [{ role: "user", parts: [{ text: userPrompt }] }],
-          generationConfig: { temperature: 0.9, topP: 0.95, maxOutputTokens: 1500 },
+          generationConfig: { temperature: 0.9, topP: 0.95, maxOutputTokens: 600 },
         }),
       }
     );
