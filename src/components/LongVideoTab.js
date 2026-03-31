@@ -78,10 +78,22 @@ const StoryCard = ({ story, selected, onSelect, onSave, saving, t }) => (
         </button>
       </div>
     </div>
-    <div className="space-y-1 text-xs text-gray-600">
-      <p><span className="font-medium text-indigo-600">Hook (0-6s):</span> {story.hook}</p>
-      <p><span className="font-medium text-gray-500">Content (6-12s):</span> {story.content}</p>
-      <p><span className="font-medium text-green-600">CTA (12-18s):</span> {story.cta}</p>
+    <div className="space-y-2 text-xs text-gray-600">
+      <div>
+        <p className="font-medium text-indigo-600 mb-0.5">Hook (0-6s)</p>
+        {story.hook_script && <p className="italic text-gray-800">"{story.hook_script}"</p>}
+        <p className="text-gray-400 mt-0.5">{story.hook_visual || story.hook}</p>
+      </div>
+      <div>
+        <p className="font-medium text-gray-500 mb-0.5">Content (6-12s)</p>
+        {story.content_script && <p className="italic text-gray-800">"{story.content_script}"</p>}
+        <p className="text-gray-400 mt-0.5">{story.content_visual || story.content}</p>
+      </div>
+      <div>
+        <p className="font-medium text-green-600 mb-0.5">CTA (12-18s)</p>
+        {story.cta_script && <p className="italic text-gray-800">"{story.cta_script}"</p>}
+        <p className="text-gray-400 mt-0.5">{story.cta_visual || story.cta}</p>
+      </div>
     </div>
     <div className="flex flex-wrap items-center gap-2 mt-2 text-xs text-gray-400">
       {story.host && <span>👤 {story.host}</span>}
@@ -132,7 +144,7 @@ const LibraryModal = ({ userId, onSelect, onClose, t }) => {
     try {
       story = JSON.parse(item.content);
       // If JSON parse succeeds but it's not a story object, fall back
-      if (!story.hook && !story.content) throw new Error("not a story object");
+      if (!story.hook_script && !story.hook && !story.content_script && !story.content) throw new Error("not a story object");
     } catch {
       // Plain-text format from GrokTab — extract fields from text
       const hook    = item.content.match(/Hook:\s*(.+?)(?:\n|$)/i)?.[1] || item.content;
@@ -171,8 +183,8 @@ const LibraryModal = ({ userId, onSelect, onClose, t }) => {
                 </div>
                 {story && (
                   <div className="space-y-0.5 text-xs text-gray-500">
-                    <p><span className="text-indigo-500 font-medium">Hook:</span> {story.hook?.substring(0, 80)}...</p>
-                    <p><span className="text-gray-400 font-medium">Content:</span> {story.content?.substring(0, 80)}...</p>
+                    <p><span className="text-indigo-500 font-medium">Hook:</span> {(story.hook_script || story.hook)?.substring(0, 80)}...</p>
+                    <p><span className="text-gray-400 font-medium">Content:</span> {(story.content_script || story.content)?.substring(0, 80)}...</p>
                   </div>
                 )}
                 <div className="flex items-center justify-between mt-2">
@@ -909,7 +921,7 @@ const LongVideoTab = ({ user, userCredits, setUserCredits, lang }) => {
 
               <div className="bg-indigo-50 rounded-xl p-3 text-xs text-indigo-700 space-y-1">
                 <p className="font-semibold">"{selectedStory.title}"</p>
-                <p><span className="font-medium">Hook:</span> {selectedStory.hook?.substring(0, 80)}...</p>
+                <p><span className="font-medium">Hook:</span> {(selectedStory.hook_script || selectedStory.hook)?.substring(0, 80)}...</p>
               </div>
 
               {!productFiles[0] && (
