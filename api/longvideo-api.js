@@ -63,6 +63,7 @@ async function handleStorylines(req, res) {
 
 HOST-CENTRIC FRAMEWORK (non-negotiable):
 - ONE consistent host carries the entire 18-second video
+- DEFAULT HOST APPEARANCE: East Asian / Chinese-looking host unless the product specifically targets a different demographic
 - The host holds and physically interacts with the product in Acts 1 and 2
 - The same scene/location is maintained throughout — no jump cuts to different locations
 
@@ -152,7 +153,7 @@ Return exactly this JSON:
 
 async function handlePrompts(req, res) {
   try {
-    const { storyline, productDescription, productUSP, funnel, videoRatio, shape, dimensions, lang } = req.body;
+    const { storyline, productDescription, productUSP, funnel, videoRatio, shape, dimensions, productImageCount = 1, hasCharacterImage = false, lang } = req.body;
 
     if (!storyline || !productDescription) return res.status(400).json({ error: "storyline and productDescription are required" });
 
@@ -177,23 +178,43 @@ async function handlePrompts(req, res) {
       ? "\n\nIMPORTANT: Write ALL three prompts entirely in Bahasa Malaysia."
       : "";
 
+    // Build @Image reference tags based on what was uploaded
+    const productTags = Array.from({ length: productImageCount }, (_, i) => `@Image${i + 1}`).join(", ");
+    const characterTag = hasCharacterImage ? `@Image${productImageCount + 1}` : null;
+    const allImageRefs = [
+      `${productTags}: Product reference image${productImageCount > 1 ? "s" : ""} — show what to ANIMATE (host interactions) and PRESERVE (shape, proportions, colour)`,
+      characterTag ? `${characterTag}: Host/character reference — maintain this person's exact face, skin tone, outfit, and energy throughout all clips` : null,
+    ].filter(Boolean).join("\n- ");
+
     const systemInstruction = `You are an expert Grok AI video prompt engineer specialising in 18-second chained product marketing videos powered by xAI's Aurora engine.${langInstruction}
 
 HOW THE 3-CLIP CHAIN WORKS:
-- Clip 1 (reference-to-video, 6s): Grok generates from scratch using @Image1 as product reference. Needs a COMPLETE brief covering all visual layers.
+- Clip 1 (reference-to-video, 6s): Grok generates from scratch using reference images. Needs a COMPLETE brief covering all visual layers.
 - Clip 2 (extend-video, 6s): Grok INHERITS the full scene, host, lighting, and style from Clip 1. Only the new host action is needed.
 - Clip 3 (extend-video, 6s): Same — Grok inherits everything. Only the CTA action is needed.
+
+REFERENCE IMAGES PROVIDED:
+- ${allImageRefs}
+
+HOST DEFAULT: East Asian / Chinese-looking host unless the storyline specifies otherwise.
 
 PROMPT 1 FRAMEWORK — follow this order in one flowing paragraph (80–150 words):
 [Host + Opening Action] → [Location/Scene] → [Camera Move] → [Lighting] → [Audio] → [Stability Note] → [Negative Constraints]
 
 PROMPT 1 NON-NEGOTIABLE RULES:
 1. FRONT-LOAD: First sentence = host description + primary action. Grok weights the opening most heavily.
-2. REFERENCE USAGE: @Image1 is the product. Do NOT re-describe it in full — focus on what to ANIMATE (what the host does with it) and what to PRESERVE (exact shape, proportions, colour).
+2. REFERENCE USAGE: Use ${productTags} for the product. Do NOT re-describe it in full — focus on ANIMATE (what the host does with it) and PRESERVE (exact shape, proportions, colour).${characterTag ? `\n3. CHARACTER: Use ${characterTag} for the host face/appearance. Preserve their exact look throughout.` : ""}
 3. PRECISE LANGUAGE: No vague words like "cinematic" or "dynamic" — be specific: "soft top-light with warm rim", "handheld follow at chest height", "upbeat lo-fi beat with light product tap sound".
 4. AUDIO IS REQUIRED: Grok generates native audio. Specify music genre/mood + at least one ambient sound.
-5. STABILITY NOTE: Penultimate sentence must lock in: "Keep the host's face, outfit and @Image1 appearance consistent throughout."
+5. STABILITY NOTE: Penultimate sentence must lock in: "Keep the host's face, outfit and ${productTags} appearance consistent throughout."
 6. NEGATIVE CONSTRAINTS (always last): "No text overlays, no scene cuts, no warped hands or faces, product maintains exact size and proportions."
+
+PHYSICAL REALISM RULES (critical — prevents AI physics errors):
+- GRIP: If product is large, heavy, or awkward — host must use BOTH hands; no one-handed floating hold
+- WEIGHT: Describe weight cues — e.g. "host lifts the box with a slight effort", "holds bottle firmly with two hands"
+- PRODUCT INTERIOR: If product is a bottle, box, or container — describe what it contains; never show an empty interior
+- NO MAGIC PROPS: Everything in the scene must already exist from the first frame; no new objects appear mid-clip
+- GRAVITY: Liquids flow naturally, objects settle on surfaces, fabric moves with body motion
 
 PROMPTS 2 & 3 RULES (extend-video — strict):
 - 20–40 words MAXIMUM. One sentence preferred, two sentences at most.
@@ -223,7 +244,7 @@ Style: ${storyline.style}
 
 PROMPT 1 — reference-to-video (6s Hook), 80–150 words, one paragraph:
 Order: Host+Action → Scene → Camera → Lighting → Audio → Stability Note → Negative Constraints
-Use @Image1 for the product. Show what the host DOES with it, not what it looks like.
+Use ${productTags} for the product.${characterTag ? ` Use ${characterTag} for the host face.` : ""} Show what the host DOES with it, not what it looks like. Apply physical realism rules.
 
 PROMPT 2 — extend-video (6s Content), 20–40 words:
 "Continue the scene:" + host action for Act 2 only. Nothing else.
@@ -275,19 +296,34 @@ Return exactly this JSON (no markdown, no extra keys):
 
 async function handleClip1(req, res) {
   try {
-    const { prompt, videoRatio, productImageBase64, productImageMime } = req.body;
+    const {
+      prompt, videoRatio,
+      productImagesBase64, productImagesMime,
+      characterImageBase64, characterImageMime,
+    } = req.body;
 
     if (!prompt) return res.status(400).json({ error: "prompt is required" });
-    if (!productImageBase64) return res.status(400).json({ error: "productImageBase64 is required" });
+    if (!productImagesBase64?.length) return res.status(400).json({ error: "productImagesBase64 is required" });
 
-    const imageBlob = base64ToBlob(productImageBase64, productImageMime || "image/jpeg");
-    const imageUrl = await fal.storage.upload(imageBlob);
-    console.log(`[longvideo-api:clip1] Uploaded product image: ${imageUrl}`);
+    // Upload all product images, then optional character image
+    const referenceImageUrls = [];
+    for (let i = 0; i < productImagesBase64.length; i++) {
+      const blob = base64ToBlob(productImagesBase64[i], (productImagesMime?.[i]) || "image/jpeg");
+      const url = await fal.storage.upload(blob);
+      console.log(`[longvideo-api:clip1] Uploaded product image ${i + 1}: ${url}`);
+      referenceImageUrls.push(url);
+    }
+    if (characterImageBase64) {
+      const blob = base64ToBlob(characterImageBase64, characterImageMime || "image/jpeg");
+      const url = await fal.storage.upload(blob);
+      console.log(`[longvideo-api:clip1] Uploaded character image: ${url}`);
+      referenceImageUrls.push(url);
+    }
 
     const modelId = "xai/grok-imagine-video/reference-to-video";
     const input = {
       prompt,
-      reference_image_urls: [imageUrl],
+      reference_image_urls: referenceImageUrls,
       aspect_ratio: videoRatio || "9:16",
       duration: 6,
       resolution: "720p",

@@ -190,8 +190,10 @@ const TRANSLATIONS = {
 
     // Long Video tab (en)
     lvSectionProduct: "Product Setup",
-    lvProductPhoto: "Product Photo",
-    lvProductPhotoHint: "Used as reference in Clip 1 — host will hold and showcase this product",
+    lvProductPhoto: "Product Photos",
+    lvProductPhotoHint: "Upload 1–3 angles for a more accurate product rendering",
+    lvCharacterPhoto: "Character Photo",
+    lvCharacterPhotoHint: "Upload your host's photo — Grok will match their face and appearance",
     lvProductDesc: "Product Description",
     lvProductDescPh: "e.g. A sleek portable 15.6\" USB-C monitor that fits in a laptop bag, perfect for remote workers",
     lvUSP: "USP — Unique Selling Point",
@@ -621,7 +623,9 @@ const TRANSLATIONS = {
     // Long Video tab (zh)
     lvSectionProduct: "产品设置",
     lvProductPhoto: "产品照片",
-    lvProductPhotoHint: "用作片段1的参考图 — 主持人将持有并展示此产品",
+    lvProductPhotoHint: "上传1–3张角度不同的照片，让产品渲染更准确",
+    lvCharacterPhoto: "主持人照片",
+    lvCharacterPhotoHint: "上传主持人照片 — Grok将匹配其面貌和外观",
     lvProductDesc: "产品描述",
     lvProductDescPh: "例如：一款时尚便携的15.6英寸USB-C显示器，适合放入笔记本电脑包",
     lvUSP: "独特卖点（USP）",
@@ -1034,7 +1038,9 @@ const TRANSLATIONS = {
     // Long Video tab (bm)
     lvSectionProduct: "Persediaan Produk",
     lvProductPhoto: "Foto Produk",
-    lvProductPhotoHint: "Digunakan sebagai rujukan dalam Klip 1 — hos akan memegang dan mempamerkan produk ini",
+    lvProductPhotoHint: "Muat naik 1–3 sudut pandang untuk rendering produk yang lebih tepat",
+    lvCharacterPhoto: "Foto Watak",
+    lvCharacterPhotoHint: "Muat naik foto hos anda — Grok akan menyamai penampilan mereka",
     lvProductDesc: "Penerangan Produk",
     lvProductDescPh: "cth. Monitor USB-C mudah alih 15.6 inci yang muat dalam beg laptop",
     lvUSP: "Kelebihan Unik Produk (USP)",

@@ -33,25 +33,27 @@ const CLIP1_MODEL_ID  = "xai/grok-imagine-video/reference-to-video";
 
 // ── Small reusable components ────────────────────────────────────────────────
 
-const ImageUploadBox = ({ label, hint, file, onFile, required }) => {
+const ImageUploadBox = ({ label, hint, file, onFile, required, minH = 100 }) => {
   const ref = useRef();
   const preview = file ? URL.createObjectURL(file) : null;
   return (
     <div>
-      <p className="text-xs font-semibold text-gray-600 mb-1">
-        {label} {required && <span className="text-red-400">*</span>}
-      </p>
+      {label ? (
+        <p className="text-xs font-semibold text-gray-600 mb-1">
+          {label} {required && <span className="text-red-400">*</span>}
+        </p>
+      ) : null}
       {hint && <p className="text-xs text-gray-400 mb-1">{hint}</p>}
       <div
         onClick={() => ref.current.click()}
         className="border-2 border-dashed border-gray-200 rounded-xl overflow-hidden cursor-pointer hover:border-indigo-400 transition-all"
-        style={{ minHeight: 100 }}>
+        style={{ minHeight: minH }}>
         {preview ? (
           <img src={preview} alt="upload" className="w-full object-cover" style={{ maxHeight: 180 }} />
         ) : (
-          <div className="flex flex-col items-center justify-center py-8 text-gray-400">
-            <p className="text-2xl mb-1">📷</p>
-            <p className="text-xs">Click to upload</p>
+          <div className="flex flex-col items-center justify-center py-6 text-gray-400">
+            <p className="text-xl mb-1">📷</p>
+            <p className="text-xs">Upload</p>
           </div>
         )}
       </div>
@@ -110,12 +112,12 @@ const LibraryModal = ({ userId, onSelect, onClose, t }) => {
 
   const loadItems = async () => {
     setLoading(true);
-    const { data } = await supabase
+    const { data, error } = await supabase
       .from("grok_storyline_library")
       .select("*")
       .eq("user_id", userId)
-      .eq("mode", "longvideo")
       .order("created_at", { ascending: false });
+    if (error) console.error("LibraryModal load error:", error);
     setItems(data || []);
     setLoading(false);
   };
@@ -126,12 +128,19 @@ const LibraryModal = ({ userId, onSelect, onClose, t }) => {
   };
 
   const handleSelect = (item) => {
+    let story;
     try {
-      const parsed = JSON.parse(item.content);
-      onSelect(parsed);
+      story = JSON.parse(item.content);
+      // If JSON parse succeeds but it's not a story object, fall back
+      if (!story.hook && !story.content) throw new Error("not a story object");
     } catch {
-      onSelect({ title: item.title, hook: item.content, content: "", cta: "" });
+      // Plain-text format from GrokTab — extract fields from text
+      const hook    = item.content.match(/Hook:\s*(.+?)(?:\n|$)/i)?.[1] || item.content;
+      const content = item.content.match(/Content:\s*(.+?)(?:\n|$)/i)?.[1] || "";
+      const cta     = item.content.match(/CTA:\s*(.+?)(?:\n|$)/i)?.[1] || "";
+      story = { title: item.title, hook, content, cta };
     }
+    onSelect(story);
     onClose();
   };
 
@@ -188,7 +197,8 @@ const LongVideoTab = ({ user, userCredits, setUserCredits, lang }) => {
   const t = (TRANSLATIONS[lang] || TRANSLATIONS.en);
 
   // ── Form fields ──
-  const [productFile, setProductFile]       = useState(null);
+  const [productFiles, setProductFiles]     = useState([null, null, null]); // up to 3 product photos
+  const [characterFile, setCharacterFile]   = useState(null);
   const [productDesc, setProductDesc]       = useState("");
   const [productUSP, setProductUSP]         = useState("");
   const [funnel, setFunnel]                 = useState("");
@@ -204,6 +214,7 @@ const LongVideoTab = ({ user, userCredits, setUserCredits, lang }) => {
   const [ideasError, setIdeasError]             = useState("");
   const [selectedStory, setSelectedStory]       = useState(null);
   const [savingStory, setSavingStory]           = useState(null);
+  const [saveError, setSaveError]               = useState("");
   const [showLibrary, setShowLibrary]           = useState(false);
 
   // ── Prompts ──
@@ -244,6 +255,7 @@ const LongVideoTab = ({ user, userCredits, setUserCredits, lang }) => {
     setGenError("");
     setIdeasError("");
     setPromptError("");
+    setSaveError("");
     setClip1Url(null);
     setClip2Url(null);
     setFinalVideoUrl(null);
@@ -264,7 +276,7 @@ const LongVideoTab = ({ user, userCredits, setUserCredits, lang }) => {
 
     try {
       let productImage = null;
-      if (productFile) productImage = await compressImage(productFile);
+      if (productFiles[0]) productImage = await compressImage(productFiles[0]);
 
       const res = await fetch("/api/longvideo-api", {
         method: "POST",
@@ -294,15 +306,18 @@ const LongVideoTab = ({ user, userCredits, setUserCredits, lang }) => {
   // ── Save story to library ─────────────────────────────────────────────────
   const handleSaveStory = async (story) => {
     setSavingStory(story.id);
-    try {
-      await supabase.from("grok_storyline_library").insert({
-        user_id: user.id,
-        title: story.title,
-        content: JSON.stringify(story),
-        mode: "longvideo",
-      });
-    } catch (e) {
-      console.error("Save story error:", e);
+    setSaveError("");
+    const { error } = await supabase.from("grok_storyline_library").insert({
+      user_id: user.id,
+      title: story.title,
+      content: JSON.stringify(story),
+      mode: "longvideo",
+    });
+    if (error) {
+      console.error("Save story error:", error);
+      setSaveError("Failed to save story: " + (error.message || "Unknown error"));
+      setSavingStory(null);
+      return;
     }
     setTimeout(() => setSavingStory(null), 1500);
   };
@@ -331,6 +346,8 @@ const LongVideoTab = ({ user, userCredits, setUserCredits, lang }) => {
           videoRatio,
           shape: shape || undefined,
           dimensions: (dimH || dimW || dimD) ? { height: dimH, width: dimW, depth: dimD } : undefined,
+          productImageCount: productFiles.filter(Boolean).length || 1,
+          hasCharacterImage: !!characterFile,
           lang,
         }),
       });
@@ -347,7 +364,7 @@ const LongVideoTab = ({ user, userCredits, setUserCredits, lang }) => {
 
   // ── Step 3: Start video generation chain ─────────────────────────────────
   const handleStartGeneration = async () => {
-    if (!productFile) { setGenError(t.lvErrNoImage || "Please upload a product photo."); return; }
+    if (!productFiles[0]) { setGenError(t.lvErrNoImage || "Please upload a product photo."); return; }
 
     const cost = CREDIT_COSTS.longvideo_18s || 28;
     const enough = await hasEnoughCredits(user.id, cost);
@@ -376,7 +393,11 @@ const LongVideoTab = ({ user, userCredits, setUserCredits, lang }) => {
   const generateClip1 = async () => {
     setGenStep("clip1");
     try {
-      const productImage = await compressImage(productFile);
+      // Compress all non-null product images + optional character image
+      const compressedProducts = await Promise.all(
+        productFiles.filter(Boolean).map(f => compressImage(f))
+      );
+      const compressedCharacter = characterFile ? await compressImage(characterFile) : null;
 
       const res = await fetch("/api/longvideo-api", {
         method: "POST",
@@ -385,8 +406,10 @@ const LongVideoTab = ({ user, userCredits, setUserCredits, lang }) => {
           action: "clip1",
           prompt: prompts.p1,
           videoRatio,
-          productImageBase64: productImage.data,
-          productImageMime: productImage.mimeType,
+          productImagesBase64: compressedProducts.map(img => img.data),
+          productImagesMime: compressedProducts.map(img => img.mimeType),
+          characterImageBase64: compressedCharacter?.data || null,
+          characterImageMime: compressedCharacter?.mimeType || null,
         }),
       });
       const data = await res.json();
@@ -555,18 +578,18 @@ const LongVideoTab = ({ user, userCredits, setUserCredits, lang }) => {
 
   const isGenerating = ["clip1", "clip2", "clip3"].includes(genStep);
   const canGenerateIdeas = !!productDesc.trim() && !!funnel;
-  const canProceedToVideo = !!selectedStory && !!productFile;
+  const canProceedToVideo = !!selectedStory && !!productFiles[0];
 
   // ── Render ─────────────────────────────────────────────────────────────────
   return (
     <div className="pb-8 space-y-4">
 
       {/* ── Error banner ── */}
-      {(genError || ideasError) && (
+      {(genError || ideasError || saveError) && (
         <div className="bg-red-50 border border-red-200 rounded-xl px-4 py-3 text-sm text-red-600 flex items-start gap-2">
           <span className="flex-shrink-0 mt-0.5">❌</span>
-          <div className="flex-1">{genError || ideasError}</div>
-          <button onClick={() => { setGenError(""); setIdeasError(""); }} className="text-red-400 hover:text-red-600 flex-shrink-0">✕</button>
+          <div className="flex-1">{genError || ideasError || saveError}</div>
+          <button onClick={() => { setGenError(""); setIdeasError(""); setSaveError(""); }} className="text-red-400 hover:text-red-600 flex-shrink-0">✕</button>
         </div>
       )}
 
@@ -688,13 +711,45 @@ const LongVideoTab = ({ user, userCredits, setUserCredits, lang }) => {
           <div className="bg-white border border-gray-200 rounded-2xl p-4 space-y-4">
             <h2 className="text-sm font-bold text-gray-800">📦 {t.lvSectionProduct || "Product Setup"}</h2>
 
-            <ImageUploadBox
-              label={t.lvProductPhoto || "Product Photo"}
-              hint={t.lvProductPhotoHint || "Used as reference in Clip 1 — host will hold and showcase this product"}
-              file={productFile}
-              onFile={setProductFile}
-              required
-            />
+            {/* Product photos — up to 3 */}
+            <div>
+              <p className="text-xs font-semibold text-gray-600 mb-1">
+                {t.lvProductPhoto || "Product Photos"} <span className="text-red-400">*</span>
+              </p>
+              <p className="text-xs text-gray-400 mb-2">
+                {t.lvProductPhotoHint || "Upload 1–3 angles for a more accurate product rendering"}
+              </p>
+              <div className="grid grid-cols-3 gap-2">
+                {[0, 1, 2].map(idx => (
+                  <div key={idx}>
+                    <p className="text-xs text-gray-400 mb-1 text-center">
+                      {idx === 0 ? "Photo 1 ✦" : `Photo ${idx + 1}`}
+                    </p>
+                    <ImageUploadBox
+                      file={productFiles[idx]}
+                      onFile={(f) => setProductFiles(prev => { const next = [...prev]; next[idx] = f; return next; })}
+                      minH={80}
+                    />
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Character photo — optional */}
+            <div>
+              <p className="text-xs font-semibold text-gray-600 mb-1">
+                {t.lvCharacterPhoto || "Character Photo"}{" "}
+                <span className="text-gray-400 font-normal">(optional)</span>
+              </p>
+              <p className="text-xs text-gray-400 mb-1">
+                {t.lvCharacterPhotoHint || "Upload your host's photo — Grok will match their face and appearance"}
+              </p>
+              <ImageUploadBox
+                file={characterFile}
+                onFile={setCharacterFile}
+                minH={80}
+              />
+            </div>
 
             <div>
               <p className="text-xs font-semibold text-gray-600 mb-1">{t.lvProductDesc || "Product Description"} <span className="text-red-400">*</span></p>
@@ -857,7 +912,7 @@ const LongVideoTab = ({ user, userCredits, setUserCredits, lang }) => {
                 <p><span className="font-medium">Hook:</span> {selectedStory.hook?.substring(0, 80)}...</p>
               </div>
 
-              {!productFile && (
+              {!productFiles[0] && (
                 <p className="text-xs text-amber-600 bg-amber-50 rounded-xl px-3 py-2">
                   ⚠️ {t.lvNeedPhoto || "Please upload a product photo above to continue."}
                 </p>
