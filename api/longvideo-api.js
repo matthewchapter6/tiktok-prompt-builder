@@ -215,12 +215,13 @@ PROMPT 1 FRAMEWORK — follow this order in one flowing paragraph (80–150 word
 
 PROMPT 1 NON-NEGOTIABLE RULES:
 1. FRONT-LOAD: First sentence = host description + primary action. Grok weights the opening most heavily.
-2. REFERENCE USAGE: Use ${productTags} for the product. Do NOT re-describe it in full — focus on ANIMATE (what the host does with it) and PRESERVE (exact shape, proportions, colour).${characterTag ? `\n3. CHARACTER: Use ${characterTag} for the host face/appearance. Preserve their exact look throughout.` : ""}
-3. PRECISE LANGUAGE: No vague words like "cinematic" or "dynamic" — be specific: "soft top-light with warm rim", "handheld follow at chest height".
-4. HOST NARRATION IS REQUIRED: Grok generates native audio including voice. Use the exact hook_script words provided. Format as: Host says in a natural conversational tone: "[exact hook_script text here]". This must appear in the audio section.
-5. BACKGROUND AUDIO: Add soft background music genre/mood + one ambient sound that fits the scene. Keep both subtle so they do not compete with the host's voice.
-6. STABILITY NOTE: Penultimate sentence must lock in: "Keep the host's face, outfit and ${productTags} appearance consistent throughout."
-7. NEGATIVE CONSTRAINTS (always last): "No text overlays, no scene cuts, no warped hands or faces, product maintains exact size and proportions."
+2. PRODUCT MUST BE IN FRAME FROM FRAME 1 (critical): Even though Clip 1 is the pain point scene before the product is introduced, ${productTags} MUST be physically visible somewhere in the scene from the very first frame — sitting on the table beside the host, resting in an open bag, placed on a nearby shelf, or held loosely in the host's hand. Describe its position explicitly using ${productTags}. This anchors the product's exact appearance so Clips 2 and 3 inherit it correctly. A product that appears for the first time in Clip 2 will be hallucinated — not the real product.${characterTag ? `\n3. CHARACTER: Use ${characterTag} for the host face/appearance. Preserve their exact look throughout.` : ""}
+3. REFERENCE USAGE: Do NOT re-describe the product's appearance in full — just describe its position in the scene. Focus on ANIMATE (what the host does with it in later clips) and PRESERVE (exact shape, proportions, colour).
+4. PRECISE LANGUAGE: No vague words like "cinematic" or "dynamic" — be specific: "soft top-light with warm rim", "handheld follow at chest height".
+5. HOST NARRATION IS REQUIRED: Grok generates native audio including voice. Use the exact hook_script words provided. Format as: Host says in a natural conversational tone: "[exact hook_script text here]". This must appear in the audio section.
+6. BACKGROUND AUDIO: Add soft background music genre/mood + one ambient sound that fits the scene. Keep both subtle so they do not compete with the host's voice.
+7. STABILITY NOTE: Penultimate sentence must lock in: "Keep the host's face, outfit and ${productTags} appearance consistent throughout."
+8. NEGATIVE CONSTRAINTS (always last): "No text overlays, no scene cuts, no warped hands or faces, product maintains exact size and proportions."
 
 PHYSICAL REALISM RULES (critical — prevents AI physics errors):
 - GRIP: If product is large, heavy, or awkward — host must use BOTH hands; no one-handed floating hold
@@ -264,7 +265,7 @@ Style: ${storyline.style}
 
 PROMPT 1 — reference-to-video (6s Hook), 80–150 words, one paragraph:
 Order: Host+Action → Scene → Camera → Lighting → Host Narration (use hook_script exactly) + Background Audio → Stability Note → Negative Constraints
-Use ${productTags} for the product.${characterTag ? ` Use ${characterTag} for the host face.` : ""} Show what the host DOES, not what the product looks like. Apply physical realism rules. Host voice must use the exact hook_script words.
+CRITICAL: ${productTags} must appear visibly in the scene from the very first frame — place it on a surface, in a bag, or beside the host even though the host has not picked it up yet. This establishes the product's exact appearance as the visual anchor for Clips 2 and 3.${characterTag ? ` Use ${characterTag} for the host face.` : ""} Apply physical realism rules. Host voice must use the exact hook_script words.
 
 PROMPT 2 — extend-video (6s Content), 30–50 words:
 "Continue the scene:" + Host says: "[exact content_script text]" + brief visual action describing what host does with product.

@@ -336,6 +336,7 @@ const LongVideoTab = ({ user, userCredits, setUserCredits, lang }) => {
 
   // ── Load story from library ───────────────────────────────────────────────
   const handleLoadStory = (story) => {
+    setStorylines([story]);
     setSelectedStory(story);
     setGenStep("story-select");
   };
