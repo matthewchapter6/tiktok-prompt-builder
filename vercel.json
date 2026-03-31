@@ -9,6 +9,10 @@
     "api/grok-generate-storylines.js":  { "maxDuration": 30 },
     "api/grok-generate-prompt.js":      { "maxDuration": 30 },
     "api/grok-generate-video.js":       { "maxDuration": 60 },
-    "api/grok-webhook.js":              { "maxDuration": 30 }
+    "api/grok-webhook.js":              { "maxDuration": 30 },
+    "api/longvideo-generate-storylines.js": { "maxDuration": 30 },
+    "api/longvideo-generate-prompts.js":    { "maxDuration": 30 },
+    "api/longvideo-generate-clip1.js":      { "maxDuration": 60 },
+    "api/longvideo-extend-clip.js":         { "maxDuration": 60 }
   }
 }

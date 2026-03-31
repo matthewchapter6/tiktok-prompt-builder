@@ -25,6 +25,8 @@ export const CREDIT_COSTS = {
   // Hailuo 2.3 Fast Pro 1080p + audio (~52% margin)
   hailuo_5s:         14,  // $0.28 API → 14 credits = $1.40
   hailuo_10s:        28,  // $0.56 API → 28 credits = $2.80
+  // Long Video (18s chain: clip1 ref-to-video + 2x extend)
+  longvideo_18s:     28,  // ~$1.44 API → 28 credits = $2.80
   // Other
   regenerate_frame:   2,
   image_gemini:       0,

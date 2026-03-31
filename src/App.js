@@ -7,6 +7,7 @@ import { Section, Field, TextInput, TextArea, Select, Chips, AdvancedToggle, Lan
 import LoginScreen from "./components/LoginScreen";
 import HistoryTab from "./components/HistoryTab";
 import GrokTab from "./components/GrokTab";
+import LongVideoTab from "./components/LongVideoTab";
 import {
   getClipRole, clipSec, calcClips,
   settingLabel, lightingLabel, optLabel, chipsLabel,
@@ -570,7 +571,7 @@ export default function App() {
       {/* ── Tabs (center aligned, no Help tab) ── */}
       <div className="border-b border-gray-200 bg-white">
         <div className="flex justify-center overflow-x-auto scrollbar-hide" style={{scrollbarWidth:'none',msOverflowStyle:'none'}}>
-          {[["grok", t.tabGrok || "🎥 Grok"], ["sora", t.tabSora || "🎬 Other Models"], ["history", t.tabHistory || "🎞️ History"]].map(([v, l]) => (
+          {[["grok", t.tabGrok || "🎥 Grok"], ["longvideo", t.tabLongVideo || "🎞 Long Video"], ["sora", t.tabSora || "🎬 Other Models"], ["history", t.tabHistory || "🎞️ History"]].map(([v, l]) => (
             <button key={v} onClick={() => setTab(v)}
               className={`flex-shrink-0 px-4 py-2.5 text-xs font-medium border-b-2 transition-all whitespace-nowrap ${tab === v ? "border-blue-500 text-blue-600" : "border-transparent text-gray-400"}`}>
               {l}{v === "output" && clips.length > 0 ? ` (${clips.length})` : ""}
@@ -947,6 +948,16 @@ export default function App() {
                 {/* ── GROK TAB ── */}
         {tab === "grok" && (
           <GrokTab
+            user={user}
+            userCredits={userCredits}
+            setUserCredits={setUserCredits}
+            lang={lang}
+          />
+        )}
+
+        {/* ── LONG VIDEO TAB ── */}
+        {tab === "longvideo" && (
+          <LongVideoTab
             user={user}
             userCredits={userCredits}
             setUserCredits={setUserCredits}
