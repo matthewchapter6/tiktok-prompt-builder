@@ -266,10 +266,11 @@ const LongVideoTab = ({ user, userCredits, setUserCredits, lang }) => {
       let productImage = null;
       if (productFile) productImage = await compressImage(productFile);
 
-      const res = await fetch("/api/longvideo-generate-storylines", {
+      const res = await fetch("/api/longvideo-api", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
+          action: "storylines",
           productDescription: productDesc,
           productUSP,
           funnel,
@@ -318,10 +319,11 @@ const LongVideoTab = ({ user, userCredits, setUserCredits, lang }) => {
     setPromptError("");
     setGenStep("generating-prompts");
     try {
-      const res = await fetch("/api/longvideo-generate-prompts", {
+      const res = await fetch("/api/longvideo-api", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
+          action: "prompts",
           storyline: story,
           productDescription: productDesc,
           productUSP,
@@ -376,10 +378,11 @@ const LongVideoTab = ({ user, userCredits, setUserCredits, lang }) => {
     try {
       const productImage = await compressImage(productFile);
 
-      const res = await fetch("/api/longvideo-generate-clip1", {
+      const res = await fetch("/api/longvideo-api", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
+          action: "clip1",
           prompt: prompts.p1,
           videoRatio,
           productImageBase64: productImage.data,
@@ -404,10 +407,11 @@ const LongVideoTab = ({ user, userCredits, setUserCredits, lang }) => {
     setClip1Url(video1Url);
     setQueuePos(null);
     try {
-      const res = await fetch("/api/longvideo-extend-clip", {
+      const res = await fetch("/api/longvideo-api", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
+          action: "extend",
           videoUrl: video1Url,
           prompt: prompts.p2,
           clipNumber: 2,
@@ -431,10 +435,11 @@ const LongVideoTab = ({ user, userCredits, setUserCredits, lang }) => {
     setClip2Url(video2Url);
     setQueuePos(null);
     try {
-      const res = await fetch("/api/longvideo-extend-clip", {
+      const res = await fetch("/api/longvideo-api", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
+          action: "extend",
           videoUrl: video2Url,
           prompt: prompts.p3,
           clipNumber: 3,
