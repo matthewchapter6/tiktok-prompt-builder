@@ -211,15 +211,16 @@ REFERENCE IMAGES PROVIDED:
 HOST DEFAULT: East Asian / Chinese-looking host unless the storyline specifies otherwise.
 
 PROMPT 1 FRAMEWORK — follow this order in one flowing paragraph (80–150 words):
-[Host + Opening Action] → [Location/Scene] → [Camera Move] → [Lighting] → [Audio] → [Stability Note] → [Negative Constraints]
+[Host + Opening Action] → [Location/Scene] → [Camera Move] → [Lighting] → [Host Narration + Audio] → [Stability Note] → [Negative Constraints]
 
 PROMPT 1 NON-NEGOTIABLE RULES:
 1. FRONT-LOAD: First sentence = host description + primary action. Grok weights the opening most heavily.
 2. REFERENCE USAGE: Use ${productTags} for the product. Do NOT re-describe it in full — focus on ANIMATE (what the host does with it) and PRESERVE (exact shape, proportions, colour).${characterTag ? `\n3. CHARACTER: Use ${characterTag} for the host face/appearance. Preserve their exact look throughout.` : ""}
-3. PRECISE LANGUAGE: No vague words like "cinematic" or "dynamic" — be specific: "soft top-light with warm rim", "handheld follow at chest height", "upbeat lo-fi beat with light product tap sound".
-4. AUDIO IS REQUIRED: Grok generates native audio. Specify music genre/mood + at least one ambient sound.
-5. STABILITY NOTE: Penultimate sentence must lock in: "Keep the host's face, outfit and ${productTags} appearance consistent throughout."
-6. NEGATIVE CONSTRAINTS (always last): "No text overlays, no scene cuts, no warped hands or faces, product maintains exact size and proportions."
+3. PRECISE LANGUAGE: No vague words like "cinematic" or "dynamic" — be specific: "soft top-light with warm rim", "handheld follow at chest height".
+4. HOST NARRATION IS REQUIRED: Grok generates native audio including voice. Use the exact hook_script words provided. Format as: Host says in a natural conversational tone: "[exact hook_script text here]". This must appear in the audio section.
+5. BACKGROUND AUDIO: Add soft background music genre/mood + one ambient sound that fits the scene. Keep both subtle so they do not compete with the host's voice.
+6. STABILITY NOTE: Penultimate sentence must lock in: "Keep the host's face, outfit and ${productTags} appearance consistent throughout."
+7. NEGATIVE CONSTRAINTS (always last): "No text overlays, no scene cuts, no warped hands or faces, product maintains exact size and proportions."
 
 PHYSICAL REALISM RULES (critical — prevents AI physics errors):
 - GRIP: If product is large, heavy, or awkward — host must use BOTH hands; no one-handed floating hold
@@ -229,9 +230,10 @@ PHYSICAL REALISM RULES (critical — prevents AI physics errors):
 - GRAVITY: Liquids flow naturally, objects settle on surfaces, fabric moves with body motion
 
 PROMPTS 2 & 3 RULES (extend-video — strict):
-- 20–40 words MAXIMUM. One sentence preferred, two sentences at most.
+- 30–50 words MAXIMUM. Two sentences at most.
 - Start with "Continue the scene:" — this signals video extension to Grok.
-- Describe ONLY the new host action and any product movement.
+- ALWAYS include the host's spoken line using the provided script: Host says: "[exact script text]"
+- Then briefly describe the visual action in one short phrase.
 - DO NOT repeat scene, lighting, camera setup, or host appearance — Grok already knows all of this.
 - For Prompt 3: include a clear CTA gesture (e.g. "points to camera", "holds product up with a confident nod").`;
 
@@ -261,14 +263,14 @@ Style: ${storyline.style}
 ---
 
 PROMPT 1 — reference-to-video (6s Hook), 80–150 words, one paragraph:
-Order: Host+Action → Scene → Camera → Lighting → Audio → Stability Note → Negative Constraints
-Use ${productTags} for the product.${characterTag ? ` Use ${characterTag} for the host face.` : ""} Show what the host DOES with it, not what it looks like. Apply physical realism rules.
+Order: Host+Action → Scene → Camera → Lighting → Host Narration (use hook_script exactly) + Background Audio → Stability Note → Negative Constraints
+Use ${productTags} for the product.${characterTag ? ` Use ${characterTag} for the host face.` : ""} Show what the host DOES, not what the product looks like. Apply physical realism rules. Host voice must use the exact hook_script words.
 
-PROMPT 2 — extend-video (6s Content), 20–40 words:
-"Continue the scene:" + host action for Act 2 only. Nothing else.
+PROMPT 2 — extend-video (6s Content), 30–50 words:
+"Continue the scene:" + Host says: "[exact content_script text]" + brief visual action describing what host does with product.
 
-PROMPT 3 — extend-video (6s CTA), 20–40 words:
-"Continue the scene:" + host CTA action + clear call-to-action gesture. Nothing else.
+PROMPT 3 — extend-video (6s CTA), 30–50 words:
+"Continue the scene:" + Host says: "[exact cta_script text]" + CTA gesture (e.g. points to camera, holds product up, nods confidently).
 
 Return exactly this JSON (no markdown, no extra keys):
 {
