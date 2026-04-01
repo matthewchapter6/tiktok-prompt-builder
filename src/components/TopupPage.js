@@ -119,9 +119,10 @@ export default function TopupPage({ user, userCredits, setUserCredits }) {
 
   // ── Generate QR ──────────────────────────────────────────────────────────
   const generateQR = async () => {
-    const credits = effectiveCredits;
-    if (credits < 10) { setError("Minimum top-up is 10 credits (SGD $1)."); return; }
-    if (credits > 10000) { setError("Maximum top-up is 10,000 credits (SGD $1,000)."); return; }
+    const credits = totalCredits; // includes bonus (e.g. 110 for the $10 package)
+    const chargeCredits = effectiveCredits; // amount charged in SGD (always effectiveCredits / 10)
+    if (effectiveCredits < 10) { setError("Minimum top-up is 10 credits (SGD $1)."); return; }
+    if (effectiveCredits > 10000) { setError("Maximum top-up is 10,000 credits (SGD $1,000)."); return; }
 
     setLoading(true);
     setError("");
@@ -132,7 +133,7 @@ export default function TopupPage({ user, userCredits, setUserCredits }) {
       const res = await fetch("/api/topup", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ action: "create", userId: user.id, credits }),
+        body: JSON.stringify({ action: "create", userId: user.id, credits, chargeCredits }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Failed to create payment");

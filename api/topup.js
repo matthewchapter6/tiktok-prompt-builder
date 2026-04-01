@@ -25,11 +25,12 @@ export default async function handler(req, res) {
 
   // ── CREATE ────────────────────────────────────────────────────────────────
   if (action === 'create') {
-    const { userId, credits } = req.body;
-    if (!userId || !credits || credits < 10 || credits > 10000) {
+    const { userId, credits, chargeCredits } = req.body;
+    const billableCredits = chargeCredits || credits; // chargeCredits = amount to bill (excl. bonus)
+    if (!userId || !credits || billableCredits < 10 || billableCredits > 10000) {
       return res.status(400).json({ error: 'Invalid request. credits must be between 10 and 10000.' });
     }
-    const amountSgd   = credits / 10;
+    const amountSgd   = billableCredits / 10;  // charge based on billable amount only
     const amountCents = Math.round(amountSgd * 100);
 
     try {
