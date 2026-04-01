@@ -63,12 +63,28 @@ const StorylineCard = ({ story, selected, onSelect, onSave, saving, t }) => (
         </button>
       </div>
     </div>
-    <div className="space-y-1 text-xs text-gray-600">
-      <p><span className="font-medium text-indigo-600">Hook:</span> {story.hook}</p>
-      <p><span className="font-medium text-gray-500">Content:</span> {story.content}</p>
-      <p><span className="font-medium text-green-600">CTA:</span> {story.cta}</p>
+    <div className="space-y-1.5 text-xs text-gray-600">
+      <div>
+        <p className="font-medium text-indigo-600 mb-0.5">Hook (0-3s)</p>
+        {story.hook_script && <p className="italic text-gray-500">"{story.hook_script}"</p>}
+        {story.hook_visual && <p className="text-gray-400">{story.hook_visual}</p>}
+        {!story.hook_script && !story.hook_visual && <p>{story.hook}</p>}
+      </div>
+      <div>
+        <p className="font-medium text-gray-500 mb-0.5">Content (3-8s)</p>
+        {story.content_script && <p className="italic text-gray-500">"{story.content_script}"</p>}
+        {story.content_visual && <p className="text-gray-400">{story.content_visual}</p>}
+        {!story.content_script && !story.content_visual && <p>{story.content}</p>}
+      </div>
+      <div>
+        <p className="font-medium text-green-600 mb-0.5">CTA (8-10s)</p>
+        {story.cta_script && <p className="italic text-gray-500">"{story.cta_script}"</p>}
+        {story.cta_visual && <p className="text-gray-400">{story.cta_visual}</p>}
+        {!story.cta_script && !story.cta_visual && <p>{story.cta}</p>}
+      </div>
     </div>
     <div className="flex items-center gap-2 mt-2">
+      {story.host && <span className="text-xs text-gray-400">👤 {story.host}</span>}
       <span className="text-xs text-gray-400">🎭 {story.emotion}</span>
       {selected && <span className="text-xs text-indigo-600 font-medium ml-auto">{t.grokCardSelected || "✓ Selected"}</span>}
     </div>
@@ -298,7 +314,9 @@ const GrokTab = ({ user, userCredits, setUserCredits, lang }) => {
   // ── Save storyline to library ──────────────────────────────────────────
   const saveStorylineToLibrary = async (story) => {
     setSavingStoryline(story.id);
-    const content = `Hook: ${story.hook}\nContent: ${story.content}\nCTA: ${story.cta}\nEmotion: ${story.emotion}\nStyle: ${story.style}`;
+    const content = story.hook_script
+      ? `Hook: ${story.hook_script}\nContent: ${story.content_script}\nCTA: ${story.cta_script}\nEmotion: ${story.emotion}\nStyle: ${story.style}`
+      : `Hook: ${story.hook}\nContent: ${story.content}\nCTA: ${story.cta}\nEmotion: ${story.emotion}\nStyle: ${story.style}`;
     await supabase.from("grok_storyline_library").insert({
       user_id: user.id,
       title: story.title,
@@ -312,7 +330,9 @@ const GrokTab = ({ user, userCredits, setUserCredits, lang }) => {
   // ── Select storyline ──────────────────────────────────────────────────
   const selectStoryline = async (story) => {
     setSelectedStoryline(story);
-    const content = `Hook: ${story.hook}\nContent: ${story.content}\nCTA: ${story.cta}\nEmotion: ${story.emotion}\nStyle: ${story.style}`;
+    const content = story.hook_script
+      ? `Hook: ${story.hook_script}\nVisual: ${story.hook_visual}\n\nContent: ${story.content_script}\nVisual: ${story.content_visual}\n\nCTA: ${story.cta_script}\nVisual: ${story.cta_visual}\n\nEmotion: ${story.emotion}`
+      : `Hook: ${story.hook}\nContent: ${story.content}\nCTA: ${story.cta}\nEmotion: ${story.emotion}\nStyle: ${story.style}`;
     setConfirmedStoryline(content);
     // Auto-save to library
     await saveStorylineToLibrary(story);
@@ -383,8 +403,8 @@ const GrokTab = ({ user, userCredits, setUserCredits, lang }) => {
     if (!prompt) { setGenError(t.grokErrNeedPrompt || "Please generate or write a prompt first."); return; }
 
     // Credit check
-    const cost = 14;
-    const enough = await hasEnoughCredits(user.id, cost);
+    const cost = 14;
+    const enough = await hasEnoughCredits(user.id, cost);
     if (!enough) {
       setGenError(t.grokErrCredits ? t.grokErrCredits(cost) : `Insufficient credits. You need ${cost} credits for a 10s Grok video.`);
       return;

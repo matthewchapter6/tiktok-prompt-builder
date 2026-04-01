@@ -67,6 +67,14 @@ NON-NEGOTIABLE RULES:
 6. STABILITY NOTE: Before the negative constraints, add one sentence locking in what must stay constant (e.g. "Keep the host's face, outfit and product appearance consistent throughout the clip.").
 7. NEGATIVE CONSTRAINTS (always last): "No text overlays, no scene cuts, no warped hands or faces, product maintains exact size and proportions throughout."`;
 
+    // Support both new narrative fields and legacy flat fields
+    const hookVisual   = storyline.hook_visual   || storyline.hook    || '';
+    const hookScript   = storyline.hook_script   || '';
+    const contentVisual = storyline.content_visual || storyline.content || '';
+    const contentScript = storyline.content_script || '';
+    const ctaVisual    = storyline.cta_visual    || storyline.cta     || '';
+    const ctaScript    = storyline.cta_script    || '';
+
     const userPrompt = `Write one expert Grok AI video prompt for this 10-second ${ratioLabel} product marketing video. One flowing paragraph, 50–150 words.
 
 PRODUCT: ${productDescription}
@@ -75,22 +83,38 @@ FUNNEL OBJECTIVE: ${funnelGuide}
 MODE: ${modeInstructions}
 ${referenceGuidance}
 
-CONFIRMED STORYLINE:
+CONFIRMED STORYLINE (narrative style — host speaks directly to camera):
 Title: ${storyline.title}
-Hook (0-3s): ${storyline.hook}
-Content (3-8s): ${storyline.content}
-CTA (8-10s): ${storyline.cta}
+Host: ${storyline.host || 'East Asian/Chinese-looking host'}
+Scene: ${storyline.scene || 'consistent environment'}
+
+Hook (0-3s):
+  Visual: ${hookVisual}
+  Script: ${hookScript}
+
+Content (3-8s):
+  Visual: ${contentVisual}
+  Script: ${contentScript}
+
+CTA (8-10s):
+  Visual: ${ctaVisual}
+  Script: ${ctaScript}
+
 Emotion: ${storyline.emotion}
-Style: ${storyline.style}
+
+CRITICAL — HOST NARRATION IS REQUIRED:
+Grok generates native audio including the host's voice. Weave the exact script lines above into the audio section of the prompt using this format:
+"Host says in a natural conversational tone: [hook_script]. Then: [content_script]. Closes with: [cta_script]."
+Keep the voice authentic and conversational — not a voiceover, but someone talking directly to camera.
 
 REQUIRED ELEMENTS IN ORDER:
-1. Subject + action (first sentence — who does what)
-2. Location/scene (where it happens, 1–2 specific details)
-3. Camera move (use exact film terms: dolly-in, handheld follow, overhead static, rack focus, etc.)
-4. Lighting (specific and sensory — not just "natural light")
-5. Audio (music mood + ambient sound or dialogue cue)
-6. Stability note (what must stay consistent across the full 10s)
-7. Negative constraints (last sentence)
+1. Subject + opening action (first sentence — who, what they're doing, their emotional state)
+2. Location/scene (one consistent environment, 1–2 specific visual details matching the scene above)
+3. Camera move (use exact film terms: handheld follow, static medium shot, slow dolly-in, etc.)
+4. Lighting (specific and sensory — e.g. "soft window light from left", "warm practical lamp behind host")
+5. Host narration + audio (exact script lines woven in naturally + background music mood + one ambient sound)
+6. Stability note ("Keep the host's face, outfit and product appearance consistent throughout the clip.")
+7. Negative constraints (last sentence — always: "No text overlays, no scene cuts, no warped hands or faces, product maintains exact size and proportions throughout.")
 
 Write as one flowing paragraph. No bullet points. No headers. 50–150 words.`;
 

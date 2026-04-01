@@ -1,6 +1,6 @@
 // grok-generate-storylines.js
-// Gemini Flash with vision — generates 5 storyline ideas for Grok tab
-// Supports text-only, image (first frame), and reference images
+// Gemini Flash with vision — generates 5 narrative storyline ideas for Short Video (Grok) tab
+// Follows the same narrative framework as Long Video for consistency
 
 export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
@@ -29,38 +29,61 @@ export default async function handler(req, res) {
       lower:  'CONVERSION — create urgency, strong desire, clear reason to buy NOW',
     }[funnel] || 'GENERAL — showcase product attractively with a clear benefit';
 
-    const durationNote = '10 seconds — enough for a Hook (0-3s) + Content (3-8s) + CTA (8-10s) arc';
-
     const langInstruction = lang === 'zh'
-      ? '\n\nIMPORTANT: Generate ALL text fields (title, hook, content, cta, emotion, style) in Simplified Chinese (简体中文).'
+      ? '\n\nIMPORTANT: Generate ALL text fields in Simplified Chinese (简体中文).'
       : lang === 'bm'
-      ? '\n\nIMPORTANT: Generate ALL text fields (title, hook, content, cta, emotion, style) in Bahasa Malaysia.'
+      ? '\n\nIMPORTANT: Generate ALL text fields in Bahasa Malaysia.'
       : '';
 
-    const systemInstruction = `You are a senior social media content producer and creative director with 10 years experience creating viral TikTok and Instagram Reels product ads.
+    const modeContext = mode === 'image'
+      ? '\nMODE NOTE: The first frame image is fixed — the story must animate naturally FROM that exact scene.'
+      : mode === 'reference'
+      ? '\nMODE NOTE: Reference image(s) show the product/character — they must appear consistently throughout.'
+      : '';
 
-You specialise in Grok AI video generation — you understand exactly what makes a great Grok video prompt: cinematic camera moves, specific lighting, precise character actions, authentic product interaction, and emotional storytelling arcs.
+    const systemInstruction = `You are a short-form video scriptwriter specialising in narrative-style product stories for TikTok and Instagram Reels.
 
-Your job is to propose 5 completely different, creative storyline concepts for a 10-second product video ad. Each storyline must feel totally different — different emotions, different scenes, different hooks, different energy.
+STORYTELLING FORMAT (non-negotiable):
+- The host is a STORYTELLER, not an advertiser. They speak directly to camera like a trusted friend sharing a genuine discovery.
+- SAME SCENE throughout — one location, one consistent environment, no cuts to different places.
+- MINIMAL HOST MOVEMENT — host stays seated or standing in frame. Only allowed movements: holding product up to show, placing it on a surface, picking it up. No walking, no dramatic transitions.
+- Host NARRATES the entire video in first-person voice ("I was so tired of...", "Then I found...", "Now I never...").
+- NEVER use advertiser language: no "amazing", "incredible", "game-changer", "life-changing". Use honest, specific, conversational words.
+- DEFAULT HOST APPEARANCE: East Asian / Chinese-looking host unless the product specifically targets a different demographic.
 
-Return ONLY valid JSON. No explanation. No markdown. No preamble.${langInstruction}`;
+NARRATIVE ARC for 10-second video (strict):
+- Hook (0-3s): Open mid-frustration. Host expresses a real, relatable pain point in first person. The scene reflects the "before" state visually. Viewer should think "that's exactly me."
+- Content (3-8s): Host introduces the product as a natural discovery. Shows it simply — holds it up, demonstrates one key thing. Narrates what it does in plain, honest language.
+- CTA (8-10s): Host describes the "after" state — relief, satisfaction, improvement. Ends with a low-pressure, natural CTA ("link in bio", "I'll leave it below").
 
-    const userPrompt = `Propose 5 completely different 10-second video storyline concepts for this product.
+TONE RULES:
+- Conversational, authentic, slightly vulnerable — NOT polished ad energy
+- The pain point must feel REAL and relatable before the product is introduced
+- Script lines must sound like something a real person would actually say out loud
+
+Return ONLY valid JSON. No explanation. No markdown.${langInstruction}`;
+
+    const userPrompt = `Propose 5 completely different 10-second narrative product stories for this product.
 
 PRODUCT: ${productDescription}
 ${productUSP ? `USP: ${productUSP}` : ''}
 OBJECTIVE: ${funnelGuide}
-DURATION: ${durationNote}
-MODE: ${mode === 'image' ? 'Image-to-video — the first frame image is provided, animate FROM this scene' : mode === 'reference' ? 'Reference-to-video — reference images provided, use them as character/product references throughout' : 'Text-to-video — generate from scratch'}
+DURATION: 10 seconds = Hook (0-3s) + Content (3-8s) + CTA (8-10s)${modeContext}
 
-RULES:
-- Each storyline must have a completely different emotional hook
-- Each must suggest a different scene or environment
-- Each must feel like a different type of ad (lifestyle, demo, testimonial, cinematic, UGC)
-- For 10s videos: structure as Hook (0-3s) + Content (3-8s) + CTA (8-10s)
-- Be specific and cinematic — describe exactly what the camera sees
-- ${mode === 'image' ? 'The first frame image is fixed — your storyline must animate naturally FROM that scene' : ''}
-- ${mode === 'reference' ? 'Reference images show the product/character — they must appear consistently throughout' : ''}
+DIFFERENTIATION RULES — each story must differ by:
+- A completely different pain point or life situation that creates the problem
+- A different life context (e.g. travelling, at home, at work, with family, morning routine, etc.)
+- A different emotional angle (frustration, embarrassment, exhaustion, overwhelm, anxiety, etc.)
+- A different type of person whose life this story belongs to
+
+REFERENCE EXAMPLE (match this tone and format exactly):
+Product: Desk organizer
+hook_visual: "Host sits at a cluttered desk, sighs, gestures at the mess around them"
+hook_script: "I was so sick of my desk looking like a disaster zone every single morning..."
+content_visual: "Host picks up organizer, slots items in one by one while talking to camera"
+content_script: "Then I found this — everything just clicks into place. Took me five minutes to set up."
+cta_visual: "Host leans back satisfied, tidy desk visible behind them, product sitting on desk"
+cta_script: "Now everything has a place. If your desk looks like mine did — link in bio."
 
 Return exactly this JSON:
 {
@@ -68,28 +91,29 @@ Return exactly this JSON:
     {
       "id": 1,
       "title": "3-5 word catchy title",
-      "hook": "What happens in seconds 0-3 (camera, action, emotion)",
-      "content": "What happens in seconds 3-8 (product interaction, benefit shown)",
-      "cta": "What happens in seconds 8-10 (closing shot, call to action)",
-      "emotion": "Primary emotion targeted",
-      "style": "e.g. UGC, cinematic, lifestyle, testimonial"
+      "style": "narrative",
+      "host": "gender, age range, look/energy that fits this specific pain point and person",
+      "scene": "One consistent location and setup used across all 3 beats",
+      "emotion": "Primary emotion targeted (e.g. relief, relatability, satisfaction)",
+      "hook_visual": "What is physically visible in Hook (0-3s) — the before state and host body language",
+      "hook_script": "Exact words the host says in Hook — first-person, pain point, conversational tone",
+      "content_visual": "Minimal visual action in Content (3-8s) — host holds/shows/uses product while talking",
+      "content_script": "Exact words in Content — what the product does, plain language, no hype",
+      "cta_visual": "Final visual in CTA (8-10s) — after state, product visible, host looks satisfied",
+      "cta_script": "Exact words in CTA — satisfying resolution + natural low-pressure CTA"
     }
   ]
 }`;
 
-    // Build Gemini request parts
     const parts = [];
 
-    // Add images if provided (vision capability)
     if (images && images.length > 0) {
       images.forEach((img, idx) => {
-        parts.push({
-          inline_data: { mime_type: img.mimeType, data: img.data }
-        });
+        parts.push({ inline_data: { mime_type: img.mimeType, data: img.data } });
         if (mode === 'image') {
           parts.push({ text: `This is the first frame image. The video will animate FROM this exact scene.` });
         } else {
-          parts.push({ text: `Reference image ${idx + 1} (@reference${idx + 1}): Use this as a visual reference for the ${idx === 0 ? 'product' : 'character/element'} throughout the video.` });
+          parts.push({ text: `Reference image ${idx + 1}: Use this as a visual reference for the ${idx === 0 ? 'product' : 'character/element'} — ensure host interactions are physically realistic.` });
         }
       });
     }
@@ -104,11 +128,7 @@ Return exactly this JSON:
         body: JSON.stringify({
           system_instruction: { parts: [{ text: systemInstruction }] },
           contents: [{ role: 'user', parts }],
-          generationConfig: {
-            temperature: 1.2,
-            topP: 0.97,
-            maxOutputTokens: 1500,
-          },
+          generationConfig: { temperature: 1.1, topP: 0.97, maxOutputTokens: 3500 },
         }),
       }
     );
