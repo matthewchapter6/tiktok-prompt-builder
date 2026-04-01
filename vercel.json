@@ -1,15 +1,16 @@
 {
   "functions": {
-    "api/generate-sora-video.js":       { "maxDuration": 60 },
-    "api/sora-status.js":               { "maxDuration": 30 },
-    "api/generate-image.js":            { "maxDuration": 60 },
-    "api/generate-storylines.js":       { "maxDuration": 30 },
-    "api/generate-video-prompt.js":     { "maxDuration": 30 },
-    "api/fal-webhook.js":               { "maxDuration": 30 },
-    "api/grok-generate-storylines.js":  { "maxDuration": 30 },
-    "api/grok-generate-prompt.js":      { "maxDuration": 30 },
-    "api/grok-generate-video.js":       { "maxDuration": 60 },
-    "api/grok-webhook.js":              { "maxDuration": 30 },
-    "api/longvideo-api.js":             { "maxDuration": 60 }
+    "api/generate-sora-video.js":      { "maxDuration": 60 },
+    "api/video-status.js":             { "maxDuration": 30 },
+    "api/generate-image.js":           { "maxDuration": 60 },
+    "api/generate.js":                 { "maxDuration": 30 },
+    "api/fal-webhook.js":              { "maxDuration": 30 },
+    "api/grok-generate-storylines.js": { "maxDuration": 30 },
+    "api/grok-generate-prompt.js":     { "maxDuration": 30 },
+    "api/grok-generate-video.js":      { "maxDuration": 60 },
+    "api/grok-webhook.js":             { "maxDuration": 30 },
+    "api/longvideo-api.js":            { "maxDuration": 60 },
+    "api/topup.js":                    { "maxDuration": 30 },
+    "api/stripe-webhook.js":           { "maxDuration": 30 }
   }
 }
