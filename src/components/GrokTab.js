@@ -193,7 +193,7 @@ const LibraryModal = ({ type, userId, onSelect, onClose, t }) => {
 };
 
 // ── Main GrokTab component ─────────────────────────────────────────────────
-const GrokTab = ({ user, userCredits, setUserCredits, lang }) => {
+const GrokTab = ({ user, userCredits, setUserCredits, lang, onInsufficientCredits }) => {
   const t = TRANSLATIONS[lang] || TRANSLATIONS.en;
   // ── Mode & basic settings ──
   const [mode, setMode] = useState("text");
@@ -406,7 +406,8 @@ const GrokTab = ({ user, userCredits, setUserCredits, lang }) => {
     const cost = CREDIT_COSTS.grok_10s;
     const enough = await hasEnoughCredits(user.id, cost);
     if (!enough) {
-      setGenError(t.grokErrCredits ? t.grokErrCredits(cost) : `Insufficient credits. You need ${cost} credits for a 10s Grok video.`);
+      setGenError(t.grokErrCredits ? t.grokErrCredits(cost) : `Insufficient credits. You need ${cost} credits.`);
+      if (onInsufficientCredits) onInsufficientCredits();
       return;
     }
 

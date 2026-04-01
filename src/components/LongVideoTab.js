@@ -205,7 +205,7 @@ const LibraryModal = ({ userId, onSelect, onClose, t }) => {
 
 // ── Main LongVideoTab ────────────────────────────────────────────────────────
 
-const LongVideoTab = ({ user, userCredits, setUserCredits, lang }) => {
+const LongVideoTab = ({ user, userCredits, setUserCredits, lang, onInsufficientCredits }) => {
   const t = (TRANSLATIONS[lang] || TRANSLATIONS.en);
 
   // ── Form fields ──
@@ -382,7 +382,8 @@ const LongVideoTab = ({ user, userCredits, setUserCredits, lang }) => {
     const cost = CREDIT_COSTS.longvideo_18s || 28;
     const enough = await hasEnoughCredits(user.id, cost);
     if (!enough) {
-      setGenError(`Insufficient credits. You need ${cost} credits for an 18s video. Please contact admin to top up.`);
+      setGenError(`Insufficient credits. You need ${cost} credits for an 18s video.`);
+      if (onInsufficientCredits) onInsufficientCredits();
       return;
     }
 

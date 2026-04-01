@@ -8,6 +8,7 @@ import LoginScreen from "./components/LoginScreen";
 import HistoryTab from "./components/HistoryTab";
 import GrokTab from "./components/GrokTab";
 import LongVideoTab from "./components/LongVideoTab";
+import TopupPage from "./components/TopupPage";
 import {
   getClipRole, clipSec, calcClips,
   settingLabel, lightingLabel, optLabel, chipsLabel,
@@ -543,8 +544,9 @@ export default function App() {
               ❓
             </button>
             <LangSelector lang={lang} setLang={setLang} />
-            {/* ── Credit balance ── */}
-            <div className="flex items-center gap-1.5 bg-amber-50 border border-amber-200 rounded-lg px-2.5 py-1">
+            {/* ── Credit balance (clickable → topup) ── */}
+            <button onClick={() => setTab("topup")}
+              className="flex items-center gap-1.5 bg-amber-50 border border-amber-200 rounded-lg px-2.5 py-1 hover:bg-amber-100 transition-colors">
               <span className="text-sm">⚡</span>
               {creditsLoading ? (
                 <span className="text-xs text-amber-500">…</span>
@@ -554,7 +556,8 @@ export default function App() {
                 </span>
               )}
               <span className="text-xs text-amber-500">credits</span>
-            </div>
+              <span className="text-xs text-amber-400">+</span>
+            </button>
             <div className="flex items-center gap-2 ml-1 pl-2 border-l border-gray-200">
               {user.user_metadata?.avatar_url && (
                 <img src={user.user_metadata.avatar_url} alt="avatar"
@@ -572,7 +575,7 @@ export default function App() {
       {/* ── Tabs (center aligned, no Help tab) ── */}
       <div className="border-b border-gray-200 bg-white">
         <div className="flex justify-center overflow-x-auto scrollbar-hide" style={{scrollbarWidth:'none',msOverflowStyle:'none'}}>
-          {[["grok", t.tabGrok || "🎥 Short Video"], ["longvideo", t.tabLongVideo || "🎞 Long Video"], ["history", t.tabHistory || "🎞️ History"]].map(([v, l]) => (
+          {[["grok", t.tabGrok || "🎥 Short Video"], ["longvideo", t.tabLongVideo || "🎞 Long Video"], ["history", t.tabHistory || "🎞️ History"], ["topup", "⚡ Top Up"]].map(([v, l]) => (
             <button key={v} onClick={() => setTab(v)}
               className={`flex-shrink-0 px-4 py-2.5 text-xs font-medium border-b-2 transition-all whitespace-nowrap ${tab === v ? "border-blue-500 text-blue-600" : "border-transparent text-gray-400"}`}>
               {l}{v === "output" && clips.length > 0 ? ` (${clips.length})` : ""}
@@ -692,8 +695,12 @@ export default function App() {
                     </div>
                   </div>
                   {userCredits !== null && userCredits < getVideoCreditCost(sora.videoLength, sora.videoModel) && (
-                    <div className="mb-2 bg-red-50 border border-red-200 rounded-lg px-3 py-2 text-xs text-red-600 text-center">
-                      ⚠️ You have <strong>{userCredits}</strong> credits but need <strong>{getVideoCreditCost(sora.videoLength, sora.videoModel)}</strong>. Contact admin to top up.
+                    <div className="mb-2 bg-red-50 border border-red-200 rounded-lg px-3 py-2 text-xs text-red-600 text-center flex items-center justify-center gap-2">
+                      <span>⚠️ Need <strong>{getVideoCreditCost(sora.videoLength, sora.videoModel)}</strong> credits (you have <strong>{userCredits}</strong>)</span>
+                      <button onClick={() => setTab("topup")}
+                        className="underline font-semibold text-blue-600 hover:text-blue-800 whitespace-nowrap">
+                        Top Up Now
+                      </button>
                     </div>
                   )}
                   <button onClick={handleGenerateVideo}
@@ -947,12 +954,21 @@ export default function App() {
         )}
 
                 {/* ── GROK TAB ── */}
+        {tab === "topup" && (
+          <TopupPage
+            user={user}
+            userCredits={userCredits}
+            setUserCredits={setUserCredits}
+          />
+        )}
+
         {tab === "grok" && (
           <GrokTab
             user={user}
             userCredits={userCredits}
             setUserCredits={setUserCredits}
             lang={lang}
+            onInsufficientCredits={() => setTab("topup")}
           />
         )}
 
@@ -963,6 +979,7 @@ export default function App() {
             userCredits={userCredits}
             setUserCredits={setUserCredits}
             lang={lang}
+            onInsufficientCredits={() => setTab("topup")}
           />
         )}
 
