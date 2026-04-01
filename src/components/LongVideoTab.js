@@ -505,7 +505,7 @@ const LongVideoTab = ({ user, userCredits, setUserCredits, lang, onInsufficientC
         if (!requestId) return;
 
         const statusRes = await fetch(
-          `/api/grok-status?requestId=${requestId}&modelId=${encodeURIComponent(modelId)}&t=${Date.now()}`
+          `/api/video-status?requestId=${requestId}&modelId=${encodeURIComponent(modelId)}&t=${Date.now()}`
         );
         const statusData = await statusRes.json();
 

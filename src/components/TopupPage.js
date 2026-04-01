@@ -89,10 +89,10 @@ export default function TopupPage({ user, userCredits, setUserCredits }) {
     stopPolling();
     pollRef.current = setInterval(async () => {
       try {
-        const res = await fetch("/api/check-topup", {
+        const res = await fetch("/api/topup", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ paymentIntentId, userId: user.id }),
+          body: JSON.stringify({ action: "check", paymentIntentId, userId: user.id }),
         });
         const data = await res.json();
         if (data.status === "succeeded") {
@@ -129,10 +129,10 @@ export default function TopupPage({ user, userCredits, setUserCredits }) {
     setQrStatus("idle");
 
     try {
-      const res = await fetch("/api/create-topup", {
+      const res = await fetch("/api/topup", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ userId: user.id, credits }),
+        body: JSON.stringify({ action: "create", userId: user.id, credits }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Failed to create payment");

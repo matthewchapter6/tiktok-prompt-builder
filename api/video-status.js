@@ -1,6 +1,6 @@
-// grok-status.js
-// Polls fal.ai for Grok video generation status
-// Same pattern as sora-status.js
+// api/video-status.js
+// Merged: grok-status + sora-status
+// Polls fal.ai for video generation status (used by Kling, Wan, Hailuo, Grok models)
 
 import { fal } from "@fal-ai/client";
 fal.config({ credentials: process.env.FAL_API_KEY });
@@ -36,52 +36,41 @@ export default async function handler(req, res) {
 
   const modelPath = modelId
     ? decodeURIComponent(modelId)
-    : "xai/grok-imagine-video/text-to-video";
+    : "fal-ai/kling-video/v2.1/pro/image-to-video";
 
-  console.log(`[grok-status] model=${modelPath} requestId=${requestId}`);
+  console.log(`[video-status] model=${modelPath} requestId=${requestId}`);
 
   try {
     const status = await Promise.race([
       fal.queue.status(modelPath, { requestId, logs: false }),
-      new Promise((_, reject) =>
-        setTimeout(() => reject(new Error("timeout")), 20000)
-      ),
+      new Promise((_, reject) => setTimeout(() => reject(new Error("timeout")), 20000)),
     ]);
 
-    console.log(`[grok-status] status=${status.status}`);
+    console.log(`[video-status] status=${status.status}`);
 
     if (status.status === "COMPLETED") {
-      console.log(`[grok-status] COMPLETED raw status.data=${JSON.stringify(status.data)}`);
       let videoUrl = extractVideoUrl(status.data);
 
       if (!videoUrl && status.response_url) {
-        console.log(`[grok-status] Fetching response_url: ${status.response_url}`);
         try {
           const r = await fetch(status.response_url, {
             headers: { Authorization: `Key ${process.env.FAL_API_KEY}` },
           });
-          if (r.ok) {
-            const body = await r.json();
-            videoUrl = extractVideoUrl(body);
-          }
+          if (r.ok) videoUrl = extractVideoUrl(await r.json());
         } catch (e) {
-          console.log(`[grok-status] response_url fetch error: ${e.message}`);
+          console.log(`[video-status] response_url fetch error: ${e.message}`);
         }
       }
 
-      // Final fallback: fal.queue.result() explicitly fetches the completed output
       if (!videoUrl) {
-        console.log(`[grok-status] Trying fal.queue.result() fallback...`);
         try {
           const result = await fal.queue.result(modelPath, { requestId });
           videoUrl = extractVideoUrl(result) || extractVideoUrl(result?.data) || extractVideoUrl(result?.output);
-          console.log(`[grok-status] fal.queue.result() videoUrl=${videoUrl ?? "null"}`);
         } catch (e) {
-          console.log(`[grok-status] fal.queue.result() error: ${e.message}`);
+          console.log(`[video-status] fal.queue.result() error: ${e.message}`);
         }
       }
 
-      console.log(`[grok-status] Final videoUrl=${videoUrl ?? "null"}`);
       return res.status(200).json({ status: "COMPLETED", videoUrl });
     }
 
@@ -89,13 +78,10 @@ export default async function handler(req, res) {
       return res.status(200).json({ status: "FAILED", error: "Generation failed" });
     }
 
-    return res.status(200).json({
-      status: status.status || "IN_QUEUE",
-      queuePosition: status.queue_position ?? null,
-    });
+    return res.status(200).json({ status: status.status || "IN_QUEUE", queuePosition: status.queue_position ?? null });
 
   } catch (error) {
-    console.error(`[grok-status] Exception: ${error.message}`);
+    console.error(`[video-status] Exception: ${error.message}`);
     return res.status(500).json({ error: "Status check failed", details: error.message });
   }
 }

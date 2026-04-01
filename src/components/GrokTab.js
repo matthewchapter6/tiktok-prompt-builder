@@ -472,7 +472,7 @@ const GrokTab = ({ user, userCredits, setUserCredits, lang, onInsufficientCredit
       pollingRef.current = setInterval(async () => {
         try {
           const statusRes = await fetch(
-            `/api/grok-status?requestId=${data.requestId}&modelId=${encodeURIComponent(data.modelId)}`
+            `/api/video-status?requestId=${data.requestId}&modelId=${encodeURIComponent(data.modelId)}`
           );
           const statusData = await statusRes.json();
           if (statusData.queuePosition != null) setQueuePos(statusData.queuePosition);

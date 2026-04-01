@@ -158,7 +158,7 @@ export default function App() {
     const modelPath = job.model_id || 'fal-ai/kling-video/v2.6/pro/text-to-video';
     soraPollingRef.current = setInterval(async () => {
       try {
-        const statusRes = await fetch(`/api/sora-status?requestId=${job.request_id}&modelId=${encodeURIComponent(modelPath)}&t=${Date.now()}`);
+        const statusRes = await fetch(`/api/video-status?requestId=${job.request_id}&modelId=${encodeURIComponent(modelPath)}&t=${Date.now()}`);
         const statusData = await statusRes.json();
         if (statusData.queuePosition != null) setSoraQueuePos(statusData.queuePosition);
         if (statusData.status === 'COMPLETED') {
@@ -223,10 +223,11 @@ export default function App() {
     setSoraSelectedStoryline(null);
     setSoraError("");
     try {
-      const res = await fetch("/api/generate-storylines", {
+      const res = await fetch("/api/generate", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
+          type: "storylines",
           productDescription: sora.productDescription,
           productUSP: sora.productUSP,
           productCategory: sora.productCategory,
@@ -234,7 +235,7 @@ export default function App() {
           videoLength: sora.videoLength,
           hasProductImage: !!soraProductFile,
           hasCharacterImage: !!soraCharacterFile,
-          lang, // pass language for localized output
+          lang,
         }),
       });
       const data = await res.json();
@@ -256,10 +257,11 @@ export default function App() {
     setSoraStep("generating-frame");
     try {
       // Step 1: Get image prompt + animation prompt + config (3 parallel API calls)
-      const promptRes = await fetch("/api/generate-video-prompt", {
+      const promptRes = await fetch("/api/generate", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
+          type: "prompt",
           productDescription: sora.productDescription,
           productUSP: sora.productUSP,
           productCategory: sora.productCategory,
@@ -391,7 +393,7 @@ export default function App() {
       setSoraStep("polling");
       soraPollingRef.current = setInterval(async () => {
         try {
-          const statusRes = await fetch(`/api/sora-status?requestId=${videoData.requestId}&modelId=${encodeURIComponent(modelPath)}&t=${Date.now()}`);
+          const statusRes = await fetch(`/api/video-status?requestId=${videoData.requestId}&modelId=${encodeURIComponent(modelPath)}&t=${Date.now()}`);
           const statusData = await statusRes.json();
           if (statusData.queuePosition != null) setSoraQueuePos(statusData.queuePosition);
           if (statusData.status === "COMPLETED") {
