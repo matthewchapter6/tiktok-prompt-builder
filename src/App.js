@@ -961,6 +961,7 @@ export default function App() {
             user={user}
             userCredits={userCredits}
             setUserCredits={setUserCredits}
+            lang={lang}
           />
         )}
 

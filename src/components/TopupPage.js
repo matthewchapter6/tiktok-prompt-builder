@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef, useCallback } from "react";
 import { supabase } from "../lib/supabase";
+import TRANSLATIONS from "../constants/translations";
 
 const PACKAGES = [
   { credits: 20,  label: "Starter",  price: "$2",  desc: "20 credits" },
@@ -21,7 +22,8 @@ function formatDate(iso) {
   });
 }
 
-export default function TopupPage({ user, userCredits, setUserCredits }) {
+export default function TopupPage({ user, userCredits, setUserCredits, lang = "en" }) {
+  const t = TRANSLATIONS[lang] || TRANSLATIONS.en;
   const [selectedCredits, setSelectedCredits] = useState(50);
   const [customCredits, setCustomCredits] = useState("");
   const [isCustom, setIsCustom] = useState(false);
@@ -169,14 +171,14 @@ export default function TopupPage({ user, userCredits, setUserCredits }) {
         .label { color: #666; } .status { color: #16a34a; font-weight: bold; }
         .footer { margin-top: 32px; font-size: 12px; color: #999; text-align: center; }
       </style></head><body>
-      <h2>⚡ hookgen.app — Credit Top-Up Receipt</h2>
-      <div class="row"><span class="label">Date</span><span>${formatDate(order.paid_at || order.created_at)}</span></div>
-      <div class="row"><span class="label">Reference</span><span>${order.stripe_payment_intent_id?.slice(-12)?.toUpperCase()}</span></div>
-      <div class="row"><span class="label">Payment Method</span><span>PayNow</span></div>
-      <div class="row"><span class="label">Amount Paid</span><span>${formatSGD(order.amount_sgd)}</span></div>
-      <div class="row"><span class="label">Credits Added</span><span>${order.credits} credits</span></div>
-      <div class="row"><span class="label">Status</span><span class="status">Paid</span></div>
-      <div class="footer">Thank you for your purchase · hookgen.app</div>
+      <h2>⚡ hookgen.app — ${t.topupReceiptTitle || "Credit Top-Up Receipt"}</h2>
+      <div class="row"><span class="label">${t.topupReceiptDate || "Date"}</span><span>${formatDate(order.paid_at || order.created_at)}</span></div>
+      <div class="row"><span class="label">${t.topupReceiptRef || "Reference"}</span><span>${order.stripe_payment_intent_id?.slice(-12)?.toUpperCase()}</span></div>
+      <div class="row"><span class="label">${t.topupReceiptMethod || "Payment Method"}</span><span>PayNow</span></div>
+      <div class="row"><span class="label">${t.topupReceiptAmount || "Amount Paid"}</span><span>${formatSGD(order.amount_sgd)}</span></div>
+      <div class="row"><span class="label">${t.topupReceiptCredits || "Credits Added"}</span><span>${order.credits} credits</span></div>
+      <div class="row"><span class="label">${t.topupReceiptStatus || "Status"}</span><span class="status">${t.topupStatusPaid || "Paid"}</span></div>
+      <div class="footer">${t.topupReceiptFooter || "Thank you for your purchase · hookgen.app"}</div>
       <script>window.print();</script>
       </body></html>
     `);
@@ -191,10 +193,10 @@ export default function TopupPage({ user, userCredits, setUserCredits }) {
 
       {/* ── Header ── */}
       <div>
-        <h2 className="text-xl font-bold text-gray-900">Top Up Credits</h2>
+        <h2 className="text-xl font-bold text-gray-900">{t.topupTitle || "Top Up Credits"}</h2>
         <p className="text-sm text-gray-500 mt-1">
-          Current balance: <span className="font-bold text-amber-600">⚡ {userCredits ?? 0} credits</span>
-          &nbsp;· 10 credits = SGD $1.00
+          {t.topupBalance ? t.topupBalance(userCredits ?? 0) : `Current balance: ⚡ ${userCredits ?? 0} credits`}
+          &nbsp;· {t.topupRate || "10 credits = SGD $1.00"}
         </p>
       </div>
 
@@ -202,16 +204,16 @@ export default function TopupPage({ user, userCredits, setUserCredits }) {
       {qrStatus === "succeeded" && (
         <div className="bg-green-50 border border-green-200 rounded-2xl p-6 text-center space-y-3">
           <div className="text-5xl">🎉</div>
-          <h3 className="text-lg font-bold text-green-800">Payment Successful!</h3>
+          <h3 className="text-lg font-bold text-green-800">{t.topupSuccessTitle || "Payment Successful!"}</h3>
           <p className="text-sm text-green-700">
-            <strong>{qrData?.credits + (qrData?.credits === 100 ? 10 : 0)} credits</strong> have been added to your account.
+            <strong>{t.topupSuccessCredits ? t.topupSuccessCredits(qrData?.credits) : `${qrData?.credits} credits have been added to your account.`}</strong>
           </p>
           <p className="text-sm text-green-700">
-            New balance: <strong>⚡ {newBalance ?? userCredits} credits</strong>
+            {t.topupSuccessBalance ? t.topupSuccessBalance(newBalance ?? userCredits) : `New balance: ⚡ ${newBalance ?? userCredits} credits`}
           </p>
           <button onClick={handleReset}
             className="mt-2 px-5 py-2 bg-green-600 text-white rounded-xl text-sm font-medium hover:bg-green-700 transition-colors">
-            Top Up Again
+            {t.topupSuccessBtn || "Top Up Again"}
           </button>
         </div>
       )}
@@ -220,31 +222,29 @@ export default function TopupPage({ user, userCredits, setUserCredits }) {
       {qrStatus === "pending" && qrData && (
         <div className="bg-white border border-gray-200 rounded-2xl p-6 space-y-4">
           <div className="text-center space-y-1">
-            <h3 className="font-bold text-gray-900">Scan to Pay via PayNow</h3>
+            <h3 className="font-bold text-gray-900">{t.topupQrTitle || "Scan to Pay via PayNow"}</h3>
             <p className="text-sm text-gray-500">
               {formatSGD(qrData.amountSgd)} · {totalCredits} credits
             </p>
           </div>
 
-          {/* QR Code */}
           <div className="flex justify-center">
             {qrData.qrImageUrl ? (
               <img src={qrData.qrImageUrl} alt="PayNow QR Code"
                 className="w-56 h-56 border border-gray-200 rounded-xl" />
             ) : (
               <div className="w-56 h-56 border-2 border-dashed border-gray-200 rounded-xl flex items-center justify-center text-gray-400 text-sm">
-                QR unavailable — use PayNow ref below
+                {t.topupQrUnavailable || "QR unavailable — use PayNow ref below"}
               </div>
             )}
           </div>
 
           {qrData.paynowRef && (
             <p className="text-center text-xs text-gray-500">
-              PayNow Ref: <span className="font-mono font-bold">{qrData.paynowRef}</span>
+              {t.topupQrRef || "PayNow Ref:"} <span className="font-mono font-bold">{qrData.paynowRef}</span>
             </p>
           )}
 
-          {/* Countdown */}
           <div className="flex items-center justify-center gap-2">
             <div className={`text-2xl font-mono font-bold ${timeLeft < 60 ? "text-red-500" : "text-amber-600"}`}>
               {mins}:{secs}
@@ -253,13 +253,13 @@ export default function TopupPage({ user, userCredits, setUserCredits }) {
           </div>
 
           <p className="text-center text-xs text-gray-400">
-            Waiting for payment confirmation…
+            {t.topupQrWaiting || "Waiting for payment confirmation…"}
             <span className="ml-1 animate-pulse">●</span>
           </p>
 
           <button onClick={handleReset}
             className="w-full py-2 border border-gray-200 text-gray-500 rounded-xl text-sm hover:bg-gray-50 transition-colors">
-            Cancel
+            {t.topupQrCancel || "Cancel"}
           </button>
         </div>
       )}
@@ -269,16 +269,16 @@ export default function TopupPage({ user, userCredits, setUserCredits }) {
         <div className="bg-red-50 border border-red-200 rounded-2xl p-5 text-center space-y-3">
           <div className="text-3xl">{qrStatus === "expired" ? "⏰" : "❌"}</div>
           <h3 className="font-bold text-red-800">
-            {qrStatus === "expired" ? "QR Code Expired" : "Payment Failed"}
+            {qrStatus === "expired" ? (t.topupExpiredTitle || "QR Code Expired") : (t.topupFailedTitle || "Payment Failed")}
           </h3>
           <p className="text-sm text-red-600">
             {qrStatus === "expired"
-              ? "The QR code has expired. Please generate a new one."
-              : "The payment was not completed. Please try again."}
+              ? (t.topupExpiredMsg || "The QR code has expired. Please generate a new one.")
+              : (t.topupFailedMsg || "The payment was not completed. Please try again.")}
           </p>
           <button onClick={handleReset}
             className="px-5 py-2 bg-red-600 text-white rounded-xl text-sm font-medium hover:bg-red-700 transition-colors">
-            Try Again
+            {t.topupRetryBtn || "Try Again"}
           </button>
         </div>
       )}
@@ -286,7 +286,7 @@ export default function TopupPage({ user, userCredits, setUserCredits }) {
       {/* ── Package selector (hidden while QR is shown) ── */}
       {qrStatus === "idle" && (
         <div className="bg-white border border-gray-200 rounded-2xl p-5 space-y-4">
-          <h3 className="font-semibold text-gray-800 text-sm">Select Amount</h3>
+          <h3 className="font-semibold text-gray-800 text-sm">{t.topupSelectAmount || "Select Amount"}</h3>
 
           <div className="grid grid-cols-3 gap-3">
             {PACKAGES.map(pkg => (
@@ -299,7 +299,7 @@ export default function TopupPage({ user, userCredits, setUserCredits }) {
                 }`}>
                 {pkg.badge && (
                   <span className="absolute -top-2 left-1/2 -translate-x-1/2 bg-blue-500 text-white text-[10px] font-bold px-2 py-0.5 rounded-full whitespace-nowrap">
-                    {pkg.badge}
+                    {t.topupBestValue || pkg.badge}
                   </span>
                 )}
                 <div className="font-bold text-gray-900 text-sm mt-1">{pkg.price}</div>
@@ -311,40 +311,40 @@ export default function TopupPage({ user, userCredits, setUserCredits }) {
             ))}
           </div>
 
-          {/* Custom option */}
           <button
             onClick={() => { setIsCustom(true); setError(""); }}
             className={`w-full rounded-xl border-2 p-3 text-center transition-all ${
               isCustom ? "border-blue-500 bg-blue-50" : "border-gray-200 hover:border-blue-300"
             }`}>
-            <span className="text-sm font-medium text-gray-700">✏️ Custom amount</span>
+            <span className="text-sm font-medium text-gray-700">{t.topupCustom || "✏️ Custom amount"}</span>
           </button>
 
           {isCustom && (
             <div className="space-y-1">
-              <label className="text-xs text-gray-500">Enter amount in SGD (min $1)</label>
+              <label className="text-xs text-gray-500">{t.topupCustomLabel || "Enter amount in SGD (min $1)"}</label>
               <div className="flex items-center gap-2">
                 <span className="text-sm text-gray-500 font-medium">SGD $</span>
                 <input
                   type="number" min="1" max="1000" step="1"
                   value={customCredits}
                   onChange={e => { setCustomCredits(e.target.value); setError(""); }}
-                  placeholder="e.g. 15"
+                  placeholder={t.topupCustomPlaceholder || "e.g. 15"}
                   className="flex-1 border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-300"
                 />
               </div>
               {customCredits && parseFloat(customCredits) >= 1 && (
-                <p className="text-xs text-blue-600">= {Math.round(parseFloat(customCredits)) * 10} credits</p>
+                <p className="text-xs text-blue-600">
+                  {t.topupCustomHint ? t.topupCustomHint(Math.round(parseFloat(customCredits)) * 10) : `= ${Math.round(parseFloat(customCredits)) * 10} credits`}
+                </p>
               )}
             </div>
           )}
 
-          {/* Summary */}
           <div className="bg-amber-50 border border-amber-100 rounded-xl p-3 flex items-center justify-between">
-            <span className="text-sm text-amber-700">You get</span>
+            <span className="text-sm text-amber-700">{t.topupSummaryGet || "You get"}</span>
             <span className="font-bold text-amber-800">
               ⚡ {totalCredits} credits
-              {bonusCredits > 0 && <span className="text-green-600 text-xs ml-1">(+{bonusCredits} bonus)</span>}
+              {bonusCredits > 0 && <span className="text-green-600 text-xs ml-1">{t.topupSummaryBonus ? t.topupSummaryBonus(bonusCredits) : `(+${bonusCredits} bonus)`}</span>}
             </span>
             <span className="font-bold text-gray-800">{formatSGD(priceSgd)}</span>
           </div>
@@ -357,18 +357,18 @@ export default function TopupPage({ user, userCredits, setUserCredits }) {
             onClick={generateQR}
             disabled={loading || (isCustom && (!customCredits || parseFloat(customCredits) < 1))}
             className="w-full py-3 bg-blue-600 text-white rounded-xl font-semibold text-sm hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors">
-            {loading ? "Generating QR…" : `Generate PayNow QR · ${formatSGD(priceSgd)}`}
+            {loading ? (t.topupBtnLoading || "Generating QR…") : (t.topupBtn ? t.topupBtn(formatSGD(priceSgd)) : `Generate PayNow QR · ${formatSGD(priceSgd)}`)}
           </button>
         </div>
       )}
 
       {/* ── Top-up History ── */}
       <div className="bg-white border border-gray-200 rounded-2xl p-5 space-y-3">
-        <h3 className="font-semibold text-gray-800 text-sm">Top-Up History</h3>
+        <h3 className="font-semibold text-gray-800 text-sm">{t.topupHistoryTitle || "Top-Up History"}</h3>
         {historyLoading ? (
-          <p className="text-xs text-gray-400 text-center py-4">Loading…</p>
+          <p className="text-xs text-gray-400 text-center py-4">{t.topupHistoryLoading || "Loading…"}</p>
         ) : history.length === 0 ? (
-          <p className="text-xs text-gray-400 text-center py-4">No top-ups yet.</p>
+          <p className="text-xs text-gray-400 text-center py-4">{t.topupHistoryEmpty || "No top-ups yet."}</p>
         ) : (
           <div className="space-y-2">
             {history.map(order => (
@@ -381,7 +381,7 @@ export default function TopupPage({ user, userCredits, setUserCredits }) {
                       : order.status === "pending"  ? "bg-amber-100 text-amber-700"
                       : "bg-red-100 text-red-600"
                     }`}>
-                      {order.status === "succeeded" ? "Paid" : order.status === "pending" ? "Pending" : order.status}
+                      {order.status === "succeeded" ? (t.topupStatusPaid || "Paid") : order.status === "pending" ? (t.topupStatusPending || "Pending") : order.status}
                     </span>
                     <span className="text-xs font-semibold text-gray-800">⚡ +{order.credits} credits</span>
                     <span className="text-xs text-gray-500">{formatSGD(order.amount_sgd)}</span>
@@ -392,7 +392,7 @@ export default function TopupPage({ user, userCredits, setUserCredits }) {
                   <button
                     onClick={() => handlePrintReceipt(order)}
                     className="flex-shrink-0 text-[11px] text-blue-500 hover:text-blue-700 underline">
-                    Receipt
+                    {t.topupReceipt || "Receipt"}
                   </button>
                 )}
               </div>
