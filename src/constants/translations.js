@@ -184,7 +184,7 @@ const TRANSLATIONS = {
     storylineLabel: (n, cs) => `Storyline (${n} clips × ${cs}s) — Hook → Content → CTA`,
 
     // Tab labels
-    tabGrok: "🎥 Grok",
+    tabGrok: "🎥 Short Video",
     tabLongVideo: "🎞 Long Video",
     tabHistory: "🎞️ History",
 
@@ -617,7 +617,7 @@ const TRANSLATIONS = {
     storylineLabel: (n, cs) => `故事线（${n} 个片段 × ${cs} 秒）— 钩子 → 内容 → CTA`,
 
     // Tab labels
-    tabGrok: "🎥 Grok",
+    tabGrok: "🎥 Short Video",
     tabLongVideo: "🎞 长视频",
 
     // Long Video tab (zh)
@@ -1032,7 +1032,7 @@ const TRANSLATIONS = {
     histViewPrompt: "Lihat arahan yang digunakan",
 
     // Tab labels
-    tabGrok: "🎥 Grok",
+    tabGrok: "🎥 Short Video",
     tabLongVideo: "🎞 Video Panjang",
 
     // Long Video tab (bm)
