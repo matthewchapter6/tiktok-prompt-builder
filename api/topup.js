@@ -41,7 +41,7 @@ export default async function handler(req, res) {
       });
 
       const confirmed = await stripe.paymentIntents.confirm(paymentIntent.id, {
-        payment_method: { type: 'paynow' },
+        payment_method_data: { type: 'paynow' },
         return_url: 'https://hookgen.app',
       });
 
