@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect } from "react";
 import { supabase } from "../lib/supabase";
 import { compressImage } from "../utils/helpers";
-import { deductCredits, hasEnoughCredits } from "../lib/supabase";
+import { deductCredits, hasEnoughCredits, CREDIT_COSTS } from "../lib/supabase";
 import TRANSLATIONS from "../constants/translations";
 
 // ── Mode selector ──────────────────────────────────────────────────────────
@@ -403,7 +403,7 @@ const GrokTab = ({ user, userCredits, setUserCredits, lang }) => {
     if (!prompt) { setGenError(t.grokErrNeedPrompt || "Please generate or write a prompt first."); return; }
 
     // Credit check
-    const cost = 14;
+    const cost = CREDIT_COSTS.grok_10s;
     const enough = await hasEnoughCredits(user.id, cost);
     if (!enough) {
       setGenError(t.grokErrCredits ? t.grokErrCredits(cost) : `Insufficient credits. You need ${cost} credits for a 10s Grok video.`);
@@ -520,7 +520,7 @@ const GrokTab = ({ user, userCredits, setUserCredits, lang }) => {
     setStorylinesError(""); setPromptError("");
   };
 
-  const creditCost = 14;
+  const creditCost = CREDIT_COSTS.grok_10s;
 
   return (
     <div className="pb-12">

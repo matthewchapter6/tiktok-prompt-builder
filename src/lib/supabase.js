@@ -14,7 +14,7 @@ export const logUsage = async (userId, action) => {
   }
 };
 
-// ── Credit costs ──────────────────────────────────────────────────────────
+// ── Credit costs (hard-coded defaults, overridden by DB on loadCreditCosts()) ─
 export const CREDIT_COSTS = {
   // Kling v3 Pro image-to-video + audio (~52% margin)
   kling_5s:          20,  // $0.84 API → 20 credits = $2.00
@@ -27,6 +27,8 @@ export const CREDIT_COSTS = {
   hailuo_10s:        28,  // $0.56 API → 28 credits = $2.80
   // Long Video (18s chain: clip1 ref-to-video + 2x extend)
   longvideo_18s:     28,  // ~$1.44 API → 28 credits = $2.80
+  // Grok video
+  grok_10s:          14,  // $0.28 API → 14 credits = $1.40
   // Other
   regenerate_frame:   2,
   image_gemini:       0,
@@ -37,6 +39,24 @@ export const CREDIT_COSTS = {
   // Legacy aliases
   video_5s:          10,
   video_10s:         20,
+};
+
+// ── Load credit costs from DB (overwrites defaults above) ────────────────
+// Call once on app startup. Falls back silently to hard-coded defaults.
+export const loadCreditCosts = async () => {
+  try {
+    const { data, error } = await supabase
+      .from('credit_costs')
+      .select('key, credits');
+    if (error) throw error;
+    if (data) {
+      data.forEach(({ key, credits }) => {
+        CREDIT_COSTS[key] = credits;
+      });
+    }
+  } catch (e) {
+    console.warn('loadCreditCosts: failed to fetch from DB, using defaults.', e);
+  }
 };
 
 export const getVideoCreditCost = (videoLength, model = 'wan') => {

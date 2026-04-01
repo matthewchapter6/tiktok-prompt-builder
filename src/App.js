@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from "react";
-import { supabase, logUsage, fetchCredits, deductCredits, hasEnoughCredits, CREDIT_COSTS, getVideoCreditCost } from "./lib/supabase";
+import { supabase, logUsage, fetchCredits, deductCredits, hasEnoughCredits, CREDIT_COSTS, getVideoCreditCost, loadCreditCosts } from "./lib/supabase";
 import TRANSLATIONS from "./constants/translations";
 import { FUNNEL_OPTIONS, PLATFORM_ASPECT, o, OPTS } from "./constants/options";
 import { init, soraInit } from "./constants/init";
@@ -66,6 +66,7 @@ export default function App() {
   const soraPollingRef = useRef(null);
 
   useEffect(() => {
+    loadCreditCosts(); // fetch DB-configured costs; falls back to defaults if unavailable
     supabase.auth.getSession().then(({ data: { session } }) => {
       setUser(session?.user ?? null);
       setAuthLoading(false);
