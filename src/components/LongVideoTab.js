@@ -598,6 +598,12 @@ const LongVideoTab = ({ user, userCredits, setUserCredits, lang, onInsufficientC
   return (
     <div className="pb-8 space-y-4">
 
+      {/* ── Duration badge ── */}
+      <div className="flex items-center gap-2 bg-indigo-50 border border-indigo-100 rounded-xl px-3 py-2">
+        <span className="text-xs font-bold text-indigo-600">🎞 18s Video</span>
+        <span className="text-xs text-indigo-400">· Generates a 3-clip, 18-second video chain</span>
+      </div>
+
       {/* ── Error banner ── */}
       {(genError || ideasError || saveError) && (
         <div className="bg-red-50 border border-red-200 rounded-xl px-4 py-3 text-sm text-red-600 flex items-start gap-2">

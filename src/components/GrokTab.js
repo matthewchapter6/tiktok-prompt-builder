@@ -526,6 +526,12 @@ const GrokTab = ({ user, userCredits, setUserCredits, lang, onInsufficientCredit
   return (
     <div className="pb-12">
 
+      {/* ── Duration badge ── */}
+      <div className="flex items-center gap-2 mb-5 bg-blue-50 border border-blue-100 rounded-xl px-3 py-2">
+        <span className="text-xs font-bold text-blue-600">🎬 10s Video</span>
+        <span className="text-xs text-blue-400">· Generates a single 10-second short video</span>
+      </div>
+
       {/* ── Mode selector ── */}
       <div className="mb-5">
         <p className="text-xs font-bold text-gray-500 uppercase tracking-widest mb-3">{t.grokModeTitle || "Generation Mode"}</p>

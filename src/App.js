@@ -577,10 +577,11 @@ export default function App() {
       {/* ── Tabs (center aligned, no Help tab) ── */}
       <div className="border-b border-gray-200 bg-white">
         <div className="flex justify-center overflow-x-auto scrollbar-hide" style={{scrollbarWidth:'none',msOverflowStyle:'none'}}>
-          {[["grok", t.tabGrok || "🎥 Short Video"], ["longvideo", t.tabLongVideo || "🎞 Long Video"], ["history", t.tabHistory || "🎞️ History"], ["topup", "⚡ Top Up"]].map(([v, l]) => (
+          {[["grok", t.tabGrok || "🎥 Short Video", "10s"], ["longvideo", t.tabLongVideo || "🎞 Long Video", "18s"], ["history", t.tabHistory || "🎞️ History", null], ["topup", "⚡ Top Up", null]].map(([v, l, dur]) => (
             <button key={v} onClick={() => setTab(v)}
               className={`flex-shrink-0 px-4 py-2.5 text-xs font-medium border-b-2 transition-all whitespace-nowrap ${tab === v ? "border-blue-500 text-blue-600" : "border-transparent text-gray-400"}`}>
-              {l}{v === "output" && clips.length > 0 ? ` (${clips.length})` : ""}
+              <span className="block">{l}{v === "output" && clips.length > 0 ? ` (${clips.length})` : ""}</span>
+              {dur && <span className={`block text-center text-[10px] font-semibold mt-0.5 ${tab === v ? "text-blue-400" : "text-gray-300"}`}>{dur}</span>}
             </button>
           ))}
         </div>
