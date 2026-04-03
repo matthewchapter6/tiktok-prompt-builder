@@ -701,7 +701,7 @@ const LongVideoTab = ({ user, userCredits, setUserCredits, lang, onInsufficientC
             onClick={handleStartGeneration}
             disabled={!prompts.p1 || !prompts.p2 || !prompts.p3}
             className="w-full py-3 bg-indigo-600 text-white text-sm font-bold rounded-xl hover:bg-indigo-700 transition-all disabled:opacity-40">
-            🎬 {t.lvStartGen || `Generate 18s Video · ${CREDIT_COSTS.longvideo_18s || 28} credits`}
+            🎬 {t.lvStartGen || `Generate Long Video (${CREDIT_COSTS.longvideo_18s || 28} Credits)`}
           </button>
         </div>
       )}
@@ -972,7 +972,7 @@ const LongVideoTab = ({ user, userCredits, setUserCredits, lang, onInsufficientC
                 ) : showPromptEditor ? (
                   <>📝 {t.lvReviewPrompts || "Review Prompts"}</>
                 ) : (
-                  <>🎬 {t.lvGenerateVideo || `Generate 18s Video · ${CREDIT_COSTS.longvideo_18s || 28} credits`}</>
+                  <>🎬 {t.lvGenerateVideo || `Generate Long Video (${CREDIT_COSTS.longvideo_18s || 28} Credits)`}</>
                 )}
               </button>
 

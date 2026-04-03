@@ -832,7 +832,7 @@ const GrokTab = ({ user, userCredits, setUserCredits, lang, onInsufficientCredit
             className={`w-full py-4 rounded-xl font-bold text-sm transition-all ${generating || !prompt
               ? "bg-gray-200 text-gray-400 cursor-not-allowed"
               : "bg-gradient-to-r from-indigo-500 to-purple-500 text-white hover:from-indigo-600 hover:to-purple-600 active:scale-95"}`}>
-            {generating ? (t.grokBtnGenerating || "⏳ Generating…") : t.grokBtnGenVideo ? t.grokBtnGenVideo(creditCost) : `🎬 Generate Grok Video · ${creditCost} credits`}
+            {generating ? (t.grokBtnGenerating || "⏳ Generating…") : t.grokBtnGenVideo ? t.grokBtnGenVideo(creditCost) : `🎬 Generate Short Video (${creditCost} Credits)`}
           </button>
           <button onClick={resetAll}
             className="w-full py-2.5 rounded-xl border border-gray-200 text-sm text-gray-500 hover:bg-gray-50 transition-all">
