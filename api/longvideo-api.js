@@ -109,6 +109,7 @@ STORYTELLING FORMAT:
 - First-person voice throughout ("I was so tired of...", "Then I found...", "Now I never...")
 - NEVER use advertiser language: no "amazing", "incredible", "game-changer", "life-changing"
 - DEFAULT HOST: East Asian / Chinese-looking host unless product targets a different demographic
+- SCRIPT LINES MUST USE OUTCOME LANGUAGE, NOT PROCESS LANGUAGE — the host describes the result or feeling, never how the product works or sets up. Forbidden in scripts: "it connects with one cable", "just plug it in", "sets up in seconds", "one cable and you're done", "easy to connect", "connects up easily". Allowed instead: "now I have double the screen space", "I can actually see what I'm doing", "I get more done wherever I go".
 
 NARRATIVE ARC:
 - Act 1 Hook (0-6s): Host expresses a real relatable pain point. Product is already visible in scene (on table beside host, in hand, on shelf) — but host has not introduced it yet.
@@ -517,6 +518,10 @@ const RISKY_PHRASES = [
   [/\bswing(?:ing|s)?\b/gi,                                                      "gently tilting"],
   [/\bswing(?:ing|s)?\s+arm\b/gi,                                               "pointing gently beside product"],
   [/\bgestures?\s+(?:widely|broadly|dramatically|at the chaos|around)\b/gi,     "points gently beside product"],
+  [/\bconnects?\s+(?:up\s+)?(?:easily|simply|quickly|with\s+one\s+cable|in\s+seconds)\b/gi, "works wherever I go"],
+  [/\bjust\s+(?:plug|one\s+cable|connect)\b/gi,                                 "works wherever I go"],
+  [/\bsets?\s+up\s+in\s+(?:seconds|minutes|one\s+minute|no\s+time)\b/gi,       "ready when I need it"],
+  [/\beasy\s+to\s+(?:connect|set\s+up|plug\s+in|install)\b/gi,                 "works wherever I go"],
 ];
 
 function lintPrompt(prompt, warnings = []) {
