@@ -59,48 +59,86 @@ async function handleStorylines(req, res) {
       ? "\n\nIMPORTANT: Generate ALL text fields in Bahasa Malaysia."
       : "";
 
-    const systemInstruction = `You are a short-form video scriptwriter specialising in narrative-style product stories for TikTok and Instagram Reels.
+    const systemInstruction = `You are a short-form video scriptwriter AND video generation safety planner for TikTok and Instagram Reels.
 
-STORYTELLING FORMAT (non-negotiable):
-- The host is a STORYTELLER, not an advertiser. They speak directly to camera like a trusted friend sharing a genuine discovery.
-- SAME SCENE throughout all 3 acts — one location, one consistent environment, no cuts to different places.
-- MINIMAL HOST MOVEMENT — host stays seated or standing in frame. Only allowed movements: holding product up to show, placing it on a surface, picking it up. No walking, no dramatic transitions.
-- Host NARRATES the entire 18 seconds in first-person voice ("I was so tired of...", "Then I found...", "Now I never...").
-- NEVER use advertiser language: no "amazing", "incredible", "game-changer", "life-changing". Use honest, specific, conversational words.
-- DEFAULT HOST APPEARANCE: East Asian / Chinese-looking host unless the product specifically targets a different demographic.
+You write for Grok AI video generation (Aurora engine). Your primary constraint is NOT creativity — it is VIDEO GENERATION SAFETY. Physical glitches, product inconsistency, and object drift are the #1 failure mode. Every creative decision must be filtered through generation safety first.
 
-NARRATIVE ARC (strict):
-- Act 1 Hook (0-6s): Open mid-frustration. Host expresses a real, relatable pain point in first person. The scene reflects the "before" state visually. Viewer should think "that's exactly me."
-- Act 2 Content (6-12s): Host introduces the product as a natural discovery. Shows it simply — holds it up, demonstrates one key thing. Narrates what it does in plain, honest language.
-- Act 3 CTA (12-18s): Host describes the "after" state — relief, satisfaction, improvement. Ends with a low-pressure, natural CTA ("link in bio", "I'll leave it below").
+GENERATION SAFETY RULES (non-negotiable — override any creative preference):
+- SAME SCENE throughout all 3 acts — one location, one consistent environment, no cuts
+- HOST STAYS STILL — seated or standing in one spot. Only allowed: slow lift of product, gentle tilt toward camera, place on surface, small nod
+- PRODUCT IS ALWAYS VISIBLE — never hidden behind body, never off-screen, never emerging from nowhere
+- ONE PRODUCT ONLY — no duplicates, no new props appearing mid-scene
+- NO COMPLEX INTERACTION — no opening packages, no pouring liquids, no tearing, no biting
 
-TONE RULES:
-- Conversational, authentic, slightly vulnerable — NOT polished ad energy
-- The pain point must feel REAL and relatable before the product is introduced
-- Script lines must sound like something a real person would actually say out loud
+FORBIDDEN ACTIONS (auto-reject any scene containing these):
+- throwing, tossing, catching
+- fast movement, dramatic movement, spinning, dancing, jumping, running
+- walking while holding product
+- revealing product from behind the back or body
+- product flying, floating, or appearing mid-air
+- liquid pouring, splashing, or dripping
+- product morphing, resizing, or changing appearance
+- multiple objects colliding
+- complex hand gestures or finger articulation
+- large body turns (more than 30 degrees)
+- transitions between locations
+
+ALLOWED ACTIONS ONLY:
+- host holds product steadily at chest or waist level
+- host slowly lifts product from table to camera level
+- host gently tilts product less than 20 degrees toward camera
+- host places product on table surface
+- host holds product with both hands if it is large or heavy
+- host makes eye contact with camera while holding product still
+- host gives a small confident nod
+- host points gently beside product toward camera
+
+SCENE RISK CLASSIFICATION — you must assign each scene a risk level:
+- low: product on table, hand holding still, close-up, slow push-in, studio background
+- medium: presenter holds product and talks, one slow reposition, one subtle camera move
+- high: walking, product moving behind body, multiple props, opening/tearing/pouring, complex body movement
+Only LOW and MEDIUM risk scenes are acceptable. HIGH risk scenes must be rewritten.
+
+STORYTELLING FORMAT:
+- Host is a STORYTELLER speaking directly to camera like a trusted friend
+- First-person voice throughout ("I was so tired of...", "Then I found...", "Now I never...")
+- NEVER use advertiser language: no "amazing", "incredible", "game-changer", "life-changing"
+- DEFAULT HOST: East Asian / Chinese-looking host unless product targets a different demographic
+
+NARRATIVE ARC:
+- Act 1 Hook (0-6s): Host expresses a real relatable pain point. Product is already visible in scene (on table beside host, in hand, on shelf) — but host has not introduced it yet.
+- Act 2 Content (6-12s): Host picks up or gestures to product. Shows one key thing simply. No complex demonstration.
+- Act 3 CTA (12-18s): Host describes the after state. Product held steady. Ends with natural low-pressure CTA.
 
 Return ONLY valid JSON. No explanation. No markdown.${langInstruction}`;
 
-    const userPrompt = `Propose 5 completely different 18-second narrative product stories for this product.
+    const userPrompt = `Propose 5 completely different 18-second narrative product stories for Grok AI video generation.
 
 PRODUCT: ${productDescription}
 ${productUSP ? `USP: ${productUSP}` : ""}
 ${shapeContext}
 OBJECTIVE: ${funnelGuide}
 
-DIFFERENTIATION RULES — each story must differ by:
-- A completely different pain point or life situation that creates the problem
-- A different life context (e.g. travelling, at home, at work, with family, morning routine, etc.)
-- A different emotional angle (frustration, embarrassment, exhaustion, overwhelm, anxiety, etc.)
-- A different type of person whose life this story belongs to
+SAFETY-FIRST REQUIREMENT: Each storyline must be a simple 3-shot commerce video designed for AI video generation controllability. Prioritize product consistency, simple motion, single product focus, stable environment, and minimal object interaction. Every proposed action must be from the ALLOWED ACTIONS list.
 
-REFERENCE EXAMPLE (match this tone and format exactly):
+DIFFERENTIATION RULES — each story must differ by:
+- A completely different pain point or life situation
+- A different life context (e.g. travelling, at home, at work, morning routine)
+- A different emotional angle (frustration, embarrassment, exhaustion, overwhelm)
+- A different type of person
+
+For each storyline, also output:
+- scene_risk: "low" or "medium" only (never high)
+- allowed_actions: list of specific actions used from the allowed list
+- forbidden_check: confirm none of the forbidden actions are present (true/false)
+
+REFERENCE EXAMPLE (match this format exactly):
 Product: Desk organizer
-hook_visual: "Host sits at a cluttered desk, sighs, gestures at the mess around them"
+hook_visual: "Host sits at tidy desk with product placed visibly beside keyboard, sighs, gestures at clutter on one side"
 hook_script: "I was so sick of my desk looking like a disaster zone every single morning..."
-content_visual: "Host picks up organizer, slots items in one by one while talking to camera"
+content_visual: "Host slowly picks up organizer with both hands, tilts it gently toward camera"
 content_script: "Then I found this — everything just clicks into place. Took me five minutes to set up."
-cta_visual: "Host leans back satisfied, tidy desk visible behind them, product sitting on desk"
+cta_visual: "Host places organizer back on desk, leans back slightly, satisfied look, product fully visible"
 cta_script: "Now everything has a place. If your desk looks like mine did — link in bio."
 
 Return exactly this JSON:
@@ -111,14 +149,17 @@ Return exactly this JSON:
       "title": "3-5 word catchy title",
       "style": "narrative",
       "host": "gender, age range, look/energy that fits this specific pain point and person",
-      "scene": "One consistent location and setup used across all 3 acts",
-      "emotion": "Primary emotion targeted (e.g. relief, relatability, satisfaction)",
-      "hook_visual": "What is physically visible in Act 1 — the before state and host body language",
-      "hook_script": "Exact words the host says in Act 1 — first-person, pain point, conversational tone",
-      "content_visual": "Minimal visual action in Act 2 — host holds/shows/uses product while talking",
-      "content_script": "Exact words in Act 2 — what the product does, plain language, no hype",
-      "cta_visual": "Final visual in Act 3 — after state, product visible, host looks satisfied",
-      "cta_script": "Exact words in Act 3 — satisfying resolution + natural low-pressure CTA"
+      "scene": "One consistent low-risk location used across all 3 acts",
+      "emotion": "Primary emotion targeted",
+      "scene_risk": "low or medium",
+      "allowed_actions": ["list of specific allowed actions used"],
+      "forbidden_check": true,
+      "hook_visual": "What is physically visible — product already in scene, host body language (no forbidden actions)",
+      "hook_script": "Exact words the host says in Act 1",
+      "content_visual": "Simple allowed action with product in Act 2",
+      "content_script": "Exact words in Act 2",
+      "cta_visual": "Final visual — product held steady or on surface, host satisfied",
+      "cta_script": "Exact words in Act 3 + natural CTA"
     }
   ]
 }`;
@@ -202,41 +243,73 @@ async function handlePrompts(req, res) {
 
 HOW THE 3-CLIP CHAIN WORKS:
 - Clip 1 (reference-to-video, 6s): Grok generates from scratch using reference images. Needs a COMPLETE brief covering all visual layers.
-- Clip 2 (extend-video, 6s): Grok INHERITS the full scene, host, lighting, and style from Clip 1. Only the new host action is needed.
-- Clip 3 (extend-video, 6s): Same — Grok inherits everything. Only the CTA action is needed.
+- Clip 2 (extend-video, 6s): Grok INHERITS the full scene, host, lighting, and style from Clip 1. Only the new host action + product lock is needed.
+- Clip 3 (extend-video, 6s): Same — Grok inherits everything. Only the CTA action + product lock is needed.
 
 REFERENCE IMAGES PROVIDED:
 - ${allImageRefs}
 
 HOST DEFAULT: East Asian / Chinese-looking host unless the storyline specifies otherwise.
 
-PROMPT 1 FRAMEWORK — follow this order in one flowing paragraph (80–150 words):
-[Host + Opening Action] → [Location/Scene] → [Camera Move] → [Lighting] → [Host Narration + Audio] → [Stability Note] → [Negative Constraints]
+═══════════════════════════════════════════
+ALWAYS-ON GUARDRAILS — inject into ALL 3 prompts automatically, every time:
+═══════════════════════════════════════════
 
-PROMPT 1 NON-NEGOTIABLE RULES:
-1. FRONT-LOAD: First sentence = host description + primary action. Grok weights the opening most heavily.
-2. PRODUCT MUST BE IN FRAME FROM FRAME 1 (critical): Even though Clip 1 is the pain point scene before the product is introduced, ${productTags} MUST be physically visible somewhere in the scene from the very first frame — sitting on the table beside the host, resting in an open bag, placed on a nearby shelf, or held loosely in the host's hand. Describe its position explicitly using ${productTags}. This anchors the product's exact appearance so Clips 2 and 3 inherit it correctly. A product that appears for the first time in Clip 2 will be hallucinated — not the real product.${characterTag ? `\n3. CHARACTER: Use ${characterTag} for the host face/appearance. Preserve their exact look throughout.` : ""}
-3. REFERENCE USAGE: Do NOT re-describe the product's appearance in full — just describe its position in the scene. Focus on ANIMATE (what the host does with it in later clips) and PRESERVE (exact shape, proportions, colour).
-4. PRECISE LANGUAGE: No vague words like "cinematic" or "dynamic" — be specific: "soft top-light with warm rim", "handheld follow at chest height".
-5. HOST NARRATION IS REQUIRED: Grok generates native audio including voice. Use the exact hook_script words provided. Format as: Host says in a natural conversational tone: "[exact hook_script text here]". This must appear in the audio section.
-6. BACKGROUND AUDIO: Add soft background music genre/mood + one ambient sound that fits the scene. Keep both subtle so they do not compete with the host's voice.
-7. STABILITY NOTE: Penultimate sentence must lock in: "Keep the host's face, outfit and ${productTags} appearance consistent throughout."
-8. NEGATIVE CONSTRAINTS (always last): "No text overlays, no scene cuts, no warped hands or faces, product maintains exact size and proportions."
+PRODUCT LOCK (repeat in every prompt):
+- One product only — same exact product as ${productTags}
+- Same shape, same color, same packaging, same label, same size as reference image
+- Product remains solid and fully opaque — no transparency, no ghosting
+- Product stays proportional to the hand, table, or body at all times
+- No duplicate product
 
-PHYSICAL REALISM RULES (critical — prevents AI physics errors):
-- GRIP: If product is large, heavy, or awkward — host must use BOTH hands; no one-handed floating hold
-- WEIGHT: Describe weight cues — e.g. "host lifts the box with a slight effort", "holds bottle firmly with two hands"
-- PRODUCT INTERIOR: If product is a bottle, box, or container — describe what it contains; never show an empty interior
-- NO MAGIC PROPS: Everything in the scene must already exist from the first frame; no new objects appear mid-clip
-- GRAVITY: Liquids flow naturally, objects settle on surfaces, fabric moves with body motion
+PHYSICS LOCK (repeat in every prompt):
+- No morphing, no deformation, no transparency
+- No sudden appearance or disappearance of objects
+- No object penetration (product does not pass through hands or body)
+- No floating — product rests on surfaces or is gripped by hand
+- No scale drift between clips
 
+MOTION LOCK — only these actions are permitted:
+- Host holds product steadily at chest or waist level
+- Host slowly lifts product from surface to camera level
+- Host gently tilts product less than 20 degrees toward camera
+- Host places product on table
+- Host gives a small confident nod
+- Host points gently beside product
+NEVER include: throwing, fast movement, spinning, walking, behind-body reveal, product flying, liquid pouring, large body turns
+
+SCENE LOCK (repeat in every prompt):
+- Same background, same lighting, same environment, same host clothing
+- No extra props appearing that were not in Clip 1
+- Camera stays at consistent height and distance
+
+═══════════════════════════════════════════
+PROMPT 1 RULES (reference-to-video, 80–150 words, one paragraph):
+═══════════════════════════════════════════
+Framework order: [Host + Opening Action] → [Location/Scene] → [Camera] → [Lighting] → [Host Narration + Audio] → [Product Lock Statement] → [Negative Constraints]
+
+1. FRONT-LOAD: First sentence = host description + primary action.
+2. PRODUCT MUST BE IN FRAME FROM FRAME 1: ${productTags} MUST be physically visible from the very first frame — on the table beside the host, in an open bag, on a shelf, or held loosely. Describe its exact position. This anchors product appearance so Clips 2 and 3 inherit it correctly.${characterTag ? `\n3. CHARACTER: Use ${characterTag} for the host face/appearance.` : ""}
+3. PRECISE LANGUAGE: No vague words like "cinematic" or "dynamic" — be specific: "soft top-light with warm rim", "locked-off shot at chest height".
+4. HOST NARRATION: Format as: Host says in a natural conversational tone: "[exact hook_script text]"
+5. BACKGROUND AUDIO: Soft background music genre + one ambient sound. Keep subtle.
+6. PRODUCT LOCK STATEMENT (second-to-last sentence): "Keep the host's face, outfit, and ${productTags} — same shape, color, packaging, and size — consistent and unchanged throughout."
+7. NEGATIVE CONSTRAINTS (always last): "No text overlays, no scene cuts, no warped hands or faces, no new objects, product maintains exact size and proportions, no transparency."
+
+PHYSICAL REALISM RULES:
+- GRIP: Large or heavy product = host uses BOTH hands
+- WEIGHT: Describe weight cues — "holds bottle firmly", "lifts box with slight effort"
+- PRODUCT INTERIOR: If bottle/box/container — describe contents; never show empty interior
+- NO MAGIC PROPS: All objects must exist from frame 1
+
+═══════════════════════════════════════════
 PROMPTS 2 & 3 RULES (extend-video — strict):
-- 30–50 words MAXIMUM. Two sentences at most.
-- Start with "Continue the scene:" — this signals video extension to Grok.
-- ALWAYS include the host's spoken line using the provided script: Host says: "[exact script text]"
-- Then briefly describe the visual action in one short phrase.
-- DO NOT repeat scene, lighting, camera setup, or host appearance — Grok already knows all of this.
-- For Prompt 3: include a clear CTA gesture (e.g. "points to camera", "holds product up with a confident nod").`;
+═══════════════════════════════════════════
+- 50–80 words. Three sentences max.
+- Sentence 1: "Continue the scene exactly:"
+- Sentence 2: Host says: "[exact script text]" + brief simple visual action (allowed actions only)
+- Sentence 3 (PRODUCT LOCK — mandatory in every extension): "Maintain exact continuity: same host face, same outfit, same background, same lighting — ${productTags} must remain identical in shape, color, packaging, label, size, and opacity. No drift, no morphing, no new objects."
+- For Prompt 3 only: add a CTA gesture in sentence 2 (e.g. "holds product toward camera with a confident nod").`;
 
     const userPrompt = `Write 3 Grok video prompts for this 18-second product marketing chain.
 
@@ -245,8 +318,9 @@ ${productUSP ? `USP: ${productUSP}` : ""}
 ${shapeContext}
 FUNNEL: ${funnelGuide}
 RATIO: ${ratioLabel}
-HOST: ${storyline.host || "Gemini should decide based on product and funnel"}
+HOST: ${storyline.host || "decide based on product and funnel"}
 SCENE: ${storyline.scene || "Clean, product-appropriate environment"}
+SCENE RISK: ${storyline.scene_risk || "low"}
 
 CONFIRMED STORYLINE:
 Act 1 — Hook (0-6s):
@@ -264,14 +338,14 @@ Style: ${storyline.style}
 ---
 
 PROMPT 1 — reference-to-video (6s Hook), 80–150 words, one paragraph:
-Order: Host+Action → Scene → Camera → Lighting → Host Narration (use hook_script exactly) + Background Audio → Stability Note → Negative Constraints
-CRITICAL: ${productTags} must appear visibly in the scene from the very first frame — place it on a surface, in a bag, or beside the host even though the host has not picked it up yet. This establishes the product's exact appearance as the visual anchor for Clips 2 and 3.${characterTag ? ` Use ${characterTag} for the host face.` : ""} Apply physical realism rules. Host voice must use the exact hook_script words.
+Order: Host+Action → Scene → Camera → Lighting → Host Narration (use hook_script exactly) + Background Audio → Product Lock Statement → Negative Constraints
+CRITICAL: ${productTags} must appear visibly in the scene from the very first frame (on a surface, in a bag, or beside the host). Apply all Always-On Guardrails. Host voice must use the exact hook_script words.${characterTag ? ` Use ${characterTag} for the host face.` : ""}
 
-PROMPT 2 — extend-video (6s Content), 30–50 words:
-"Continue the scene:" + Host says: "[exact content_script text]" + brief visual action describing what host does with product.
+PROMPT 2 — extend-video (6s Content), 50–80 words:
+"Continue the scene exactly:" + Host says: "[exact content_script text]" + one simple allowed action with product + mandatory Product Lock sentence.
 
-PROMPT 3 — extend-video (6s CTA), 30–50 words:
-"Continue the scene:" + Host says: "[exact cta_script text]" + CTA gesture (e.g. points to camera, holds product up, nods confidently).
+PROMPT 3 — extend-video (6s CTA), 50–80 words:
+"Continue the scene exactly:" + Host says: "[exact cta_script text]" + CTA gesture (holds product toward camera, confident nod) + mandatory Product Lock sentence.
 
 Return exactly this JSON (no markdown, no extra keys):
 {
@@ -304,8 +378,15 @@ Return exactly this JSON (no markdown, no extra keys):
 
     if (!parsed.prompt1 || !parsed.prompt2 || !parsed.prompt3) return res.status(500).json({ error: "Incomplete prompts returned", raw });
 
+    // ── Prompt safety linter: rewrite risky phrases before sending to Grok ──
+    const lintWarnings = [];
+    parsed.prompt1 = lintPrompt(parsed.prompt1, lintWarnings);
+    parsed.prompt2 = lintPrompt(parsed.prompt2, lintWarnings);
+    parsed.prompt3 = lintPrompt(parsed.prompt3, lintWarnings);
+    if (lintWarnings.length) console.warn(`[longvideo-api:prompts] Safety linter rewrote ${lintWarnings.length} phrase(s):`, lintWarnings);
+
     console.log(`[longvideo-api:prompts] funnel=${funnel} ratio=${videoRatio} title="${storyline.title}"`);
-    return res.status(200).json(parsed);
+    return res.status(200).json({ ...parsed, _lintWarnings: lintWarnings.length ? lintWarnings : undefined });
 
   } catch (error) {
     console.error("[longvideo-api:prompts] Exception:", error.message);
@@ -384,6 +465,53 @@ async function handleExtend(req, res) {
     console.error("[longvideo-api:extend] Error:", error.message);
     return res.status(500).json({ error: error.message || "Video extension failed" });
   }
+}
+
+// ── Prompt Safety Linter ─────────────────────────────────────────────────────
+// Detects and rewrites risky motion/physics phrases before sending to Grok API.
+// Each entry: [regex, safeReplacement]
+
+const RISKY_PHRASES = [
+  [/\bfast(?:ly)?\s+(?:mov(?:es?|ing)|motion|action|pan|zoom|cut)\b/gi,         "controlled smooth movement"],
+  [/\bdramatic\s+(?:mov(?:es?|ing)|motion|action|reveal|turn)\b/gi,             "gentle controlled movement"],
+  [/\bdynamic\s+(?:mov(?:es?|ing)|motion|action|energy|shot)\b/gi,              "steady controlled shot"],
+  [/\bcinematic\s+(?:mov(?:es?|ing)|motion|action|energy)\b/gi,                 "steady locked-off shot"],
+  [/\bspinn?(?:ing|s|ed)?\b/gi,                                                  "gently tilting less than 20 degrees"],
+  [/\bdanc(?:ing|es?|ed)\b/gi,                                                   "standing still"],
+  [/\bjump(?:ing|s|ed)?\b/gi,                                                    "standing still"],
+  [/\brunn?(?:ing|s|ed)?\b/gi,                                                   "standing still"],
+  [/\bwalk(?:ing|s|ed)?\s+(?:while|with|toward|forward)\b/gi,                   "standing still while holding product"],
+  [/\bthrow(?:ing|s|n|ew)?\b/gi,                                                 "slowly lifting"],
+  [/\btoss(?:ing|es|ed)?\b/gi,                                                   "gently placing"],
+  [/\bcatch(?:ing|es|ed)?\b/gi,                                                  "holding steadily"],
+  [/\bfli(?:p|ps|pping|pped)\b/gi,                                               "gently tilting"],
+  [/\bspray(?:ing|s|ed)?\b/gi,                                                   "holding product steadily"],
+  [/\bpour(?:ing|s|ed)?\b/gi,                                                    "holding product steadily"],
+  [/\bsplash(?:ing|es|ed)?\b/gi,                                                 "holding product steadily"],
+  [/\btear(?:ing|s)?\s+(?:open|apart|package)\b/gi,                             "holding package steadily"],
+  [/\bopen(?:ing|s|ed)?\s+(?:the\s+)?(?:package|box|bottle|lid|cap)\b/gi,       "holding product with packaging intact"],
+  [/\bbite?(?:s|ing|ten)?\b/gi,                                                  "holding product near face"],
+  [/\bexplod(?:ing|es?|ed)?\b/gi,                                                "steady held shot"],
+  [/\bmagically\b/gi,                                                             "smoothly"],
+  [/\bsuddenly\b/gi,                                                              "smoothly"],
+  [/\bappears?\s+(?:from\s+)?(?:nowhere|behind|thin\s+air)\b/gi,                "is already visible in scene"],
+  [/\bbehind\s+(?:the\s+)?(?:back|body)\b/gi,                                    "at chest level"],
+  [/\bflyies?\s+(?:through|across|into)\b/gi,                                    "is held steadily"],
+  [/\bfloating?\b/gi,                                                             "held steadily by hand"],
+  [/\bmorphing?\b/gi,                                                             "remaining unchanged"],
+  [/\bdeform(?:ing|s|ed)?\b/gi,                                                  "remaining solid and unchanged"],
+];
+
+function lintPrompt(prompt, warnings = []) {
+  let result = prompt;
+  for (const [pattern, replacement] of RISKY_PHRASES) {
+    const before = result;
+    result = result.replace(pattern, replacement);
+    if (result !== before) {
+      warnings.push({ pattern: pattern.source, replacement });
+    }
+  }
+  return result;
 }
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
