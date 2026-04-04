@@ -269,7 +269,7 @@ ALWAYS-ON GUARDRAILS — inject into ALL 3 prompts automatically, every time:
 
 PRODUCT LOCK (repeat in every prompt):
 - One product only — same exact product as ${productTags}
-- Same shape, same color, same packaging, same label, same size as reference image
+- Same shape, same color, same finish, same size as reference image
 - Product remains solid and fully opaque — no transparency, no ghosting
 - Product stays proportional to the hand, table, or body at all times
 - No duplicate product
@@ -306,7 +306,7 @@ Framework order: [Host + Opening Action] → [Location/Scene] → [Camera] → [
 3. PRECISE LANGUAGE: No vague words like "cinematic" or "dynamic" — be specific: "soft top-light with warm rim", "locked-off shot at chest height".
 4. HOST NARRATION: Format as: Host says in a natural conversational tone: "[exact hook_script text]"
 5. BACKGROUND AUDIO: Soft background music genre + one ambient sound. Keep subtle.
-6. PRODUCT LOCK STATEMENT (second-to-last sentence): "Keep the host's face, outfit, and ${productTags} — same shape, color, packaging, and size — consistent and unchanged throughout."
+6. PRODUCT LOCK STATEMENT (second-to-last sentence): "Keep the host's face, outfit, and ${productTags} — same shape, color, finish, and size — consistent and unchanged throughout."${characterTag ? ` Always reference ${characterTag} for the host's face to ensure Grok uses the uploaded character.` : ""}
 7. NEGATIVE CONSTRAINTS (always last): "No text overlays, no scene cuts, no warped hands or faces, no new objects, product maintains exact size and proportions, no transparency."
 
 PHYSICAL REALISM RULES:
@@ -321,8 +321,8 @@ PROMPTS 2 & 3 RULES (extend-video — strict):
 - 50–80 words. Three sentences max.
 - Sentence 1: "Continue the scene exactly:"
 - Sentence 2: Host says: "[exact script text]" + brief simple visual action (allowed actions only)
-- Sentence 3 (PRODUCT LOCK — mandatory in every extension): "Maintain exact continuity: same host face, same outfit, same background, same lighting — ${productTags} must remain identical in shape, color, packaging, label, size, and opacity. No drift, no morphing, no new objects."
-- For Prompt 3 only: add a CTA gesture in sentence 2 (e.g. "holds product toward camera with a confident nod").`;
+- Sentence 3 (PRODUCT LOCK — mandatory in every extension): "Maintain exact continuity: same host face, same outfit, same background, same lighting — ${productTags} must remain identical in shape, color, finish, size, and opacity. No drift, no morphing, no new objects."
+- For Prompt 3 only: sentence 2 must explicitly state the product is visible on the table or held by the host — Grok must not drop it from frame. Add CTA gesture (e.g. "monitor visible on table beside host, host gives a confident nod toward camera").`;
 
     const userPrompt = `Write 3 Grok video prompts for this 18-second product marketing chain.
 
