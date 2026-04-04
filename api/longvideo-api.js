@@ -301,12 +301,12 @@ PROMPT 1 RULES (reference-to-video, 80–150 words, one paragraph):
 ═══════════════════════════════════════════
 Framework order: [Host + Opening Action] → [Location/Scene] → [Camera] → [Lighting] → [Host Narration + Audio] → [Product Lock Statement] → [Negative Constraints]
 
-1. FRONT-LOAD: First sentence = host description + primary action.
-2. PRODUCT MUST BE IN FRAME FROM FRAME 1: ${productTags} MUST be physically visible from the very first frame — on the table beside the host, in an open bag, on a shelf, or held loosely. Describe its exact position. This anchors product appearance so Clips 2 and 3 inherit it correctly.${characterTag ? `\n3. CHARACTER: Use ${characterTag} for the host face/appearance.` : ""}
+1. FRONT-LOAD: First sentence = host description + primary action.${characterTag ? ` Always write "${characterTag}" inline when first describing the host — e.g. "A young East Asian woman (${characterTag}) sits at..."` : ""}
+2. PRODUCT MUST BE IN FRAME FROM FRAME 1: Write the product image tags ${productTags} inline in the prompt when first describing the product position — e.g. "the portable monitor (${productTags}) sits on the desk beside the host". Do NOT describe the product in plain text only — the tags MUST appear in the sentence so Grok links the uploaded images as the visual anchor. This anchors product appearance so Clips 2 and 3 inherit it correctly.
 3. PRECISE LANGUAGE: No vague words like "cinematic" or "dynamic" — be specific: "soft top-light with warm rim", "locked-off shot at chest height".
 4. HOST NARRATION: Format as: Host says in a natural conversational tone: "[exact hook_script text]"
 5. BACKGROUND AUDIO: Soft background music genre + one ambient sound. Keep subtle.
-6. PRODUCT LOCK STATEMENT (second-to-last sentence): "Keep the host's face, outfit, and ${productTags} — same shape, color, finish, and size — consistent and unchanged throughout."${characterTag ? ` Always reference ${characterTag} for the host's face to ensure Grok uses the uploaded character.` : ""}
+6. PRODUCT LOCK STATEMENT (second-to-last sentence): "Keep the host's face${characterTag ? ` (${characterTag})` : ""}, outfit, and ${productTags} — same shape, color, finish, and size — consistent and unchanged throughout."
 7. NEGATIVE CONSTRAINTS (always last): "No text overlays, no scene cuts, no warped hands or faces, no new objects, product maintains exact size and proportions, no transparency."
 
 PHYSICAL REALISM RULES:
@@ -352,8 +352,10 @@ Style: ${storyline.style}
 
 PROMPT 1 — reference-to-video (6s Hook), 80–150 words, one paragraph:
 Order: Host+Action → Scene → Camera → Lighting → Host Narration (use hook_script exactly) + Background Audio → Product Lock Statement → Negative Constraints
-CRITICAL: ${productTags} must appear visibly in the scene from the very first frame (on a surface, in a bag, or beside the host). Apply all Always-On Guardrails. Host voice must use the exact hook_script words.${characterTag ? ` Use ${characterTag} for the host face.` : ""}
-DIMENSIONS: If product shape and dimensions are provided, you MUST include them explicitly in Prompt 1 to anchor physical scale — e.g. "the [product] measures approximately [H]cm × [W]cm × [D]cm, [shape]-shaped". This prevents Grok from hallucinating the wrong size. Use the exact values from the PRODUCT SHAPE & SIZE field above.
+CRITICAL — IMAGE TAGS MUST APPEAR INLINE IN THE PROMPT TEXT:
+- Write ${productTags} directly in the sentence describing the product — e.g. "the portable monitor (${productTags}) sits on the desk". Never describe the product without the tags.${characterTag ? `\n- Write ${characterTag} directly in the sentence describing the host — e.g. "A young East Asian woman (${characterTag}) sits at her desk". Never describe the host without the tag.` : ""}
+- These tags are how Grok links your uploaded images — missing tags = Grok hallucinates the product and host appearance.
+DIMENSIONS: If product shape and dimensions are provided, include them explicitly — e.g. "the monitor (${productTags}) measures approximately [H]cm × [W]cm × [D]cm, [shape]-shaped".
 
 PROMPT 2 — extend-video (6s Content), 50–80 words:
 "Continue the scene exactly:" + Host says: "[exact content_script text]" + one simple allowed action with product + mandatory Product Lock sentence.
