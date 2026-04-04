@@ -112,9 +112,9 @@ STORYTELLING FORMAT:
 - SCRIPT LINES MUST USE OUTCOME LANGUAGE, NOT PROCESS LANGUAGE — the host describes the result or feeling, never how the product works or sets up. Forbidden in scripts: "it connects with one cable", "just plug it in", "sets up in seconds", "one cable and you're done", "easy to connect", "connects up easily". Allowed instead: "now I have double the screen space", "I can actually see what I'm doing", "I get more done wherever I go".
 
 NARRATIVE ARC:
-- Act 1 Hook (0-6s): Host expresses a real relatable pain point. Product is already visible in scene (on table beside host, in hand, on shelf) — but host has not introduced it yet.
-- Act 2 Content (6-12s): Host picks up or gestures to product. Shows one key thing simply. No complex demonstration.
-- Act 3 CTA (12-18s): Host describes the after state. Product held steady. Ends with natural low-pressure CTA.
+- Act 1 Hook (0-6s): Host expresses a real relatable pain point. Product is already visible in scene (on table beside host, in hand, on shelf) — but host has not introduced it yet. Product appears ready-to-use, never in a box or packaging.
+- Act 2 Content (6-12s): Host picks up or gestures to product. Shows one key thing simply. No complex demonstration. No unboxing, no setup.
+- Act 3 CTA (12-18s): Host describes the after state. Product held steady or placed on surface. Host always visible. Ends with natural low-pressure CTA.
 
 Return ONLY valid JSON. No explanation. No markdown.${langInstruction}`;
 
@@ -267,6 +267,7 @@ PRODUCT LOCK (repeat in every prompt):
 - Product remains solid and fully opaque — no transparency, no ghosting
 - Product stays proportional to the hand, table, or body at all times
 - No duplicate product
+- Product must always appear READY-TO-USE — never in a box, never in packaging, never wrapped. It sits on the desk or table as an already-owned item from frame 1.
 
 PHYSICS LOCK (repeat in every prompt):
 - No morphing, no deformation, no transparency
@@ -504,8 +505,8 @@ const RISKY_PHRASES = [
   [/\bbehind\s+(?:the\s+)?(?:back|body)\b/gi,                                    "at chest level"],
   [/\bflyies?\s+(?:through|across|into)\b/gi,                                    "is held steadily"],
   [/\bfloating?\b/gi,                                                             "held steadily by hand"],
-  [/\bmorphing?\b/gi,                                                             "remaining unchanged"],
-  [/\bdeform(?:ing|s|ed)?\b/gi,                                                  "remaining solid and unchanged"],
+  [/(?<!no\s)(?<!no,\s)\bmorphing?\b/gi,                                         "remaining unchanged"],
+  [/(?<!no\s)(?<!no,\s)\bdeform(?:ing|s|ed)?\b/gi,                              "remaining solid and unchanged"],
   [/\bplug(?:ging|s|ged)?\s+in\b/gi,                                             "holding product steadily"],
   [/\bconnect(?:ing|s|ed)?\s+(?:the\s+)?cable\b/gi,                             "holding product steadily"],
   [/\bset(?:ting)?\s+up\b/gi,                                                    "holding product toward camera"],
