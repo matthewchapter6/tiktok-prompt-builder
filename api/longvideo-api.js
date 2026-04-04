@@ -322,7 +322,7 @@ PROMPTS 2 & 3 RULES (extend-video — strict):
 - Sentence 1: "Continue the scene exactly:"
 - Sentence 2: Host says: "[exact script text]" + brief simple visual action (allowed actions only)
 - Sentence 3 (PRODUCT LOCK — mandatory in every extension): "Maintain exact continuity: same host face, same outfit, same background, same lighting — ${productTags} must remain identical in shape, color, finish, size, and opacity. No drift, no morphing, no new objects."
-- For Prompt 3 only: sentence 2 must explicitly state the product is visible on the table or held by the host — Grok must not drop it from frame. Add CTA gesture (e.g. "monitor visible on table beside host, host gives a confident nod toward camera").`;
+- For Prompt 3 only: you MUST describe the physical transition from Clip 2's ending state to Clip 3's state. If Clip 2 ended with the host holding the product, Clip 3 MUST start with the host gently placing the product back on the surface FIRST — then the CTA gesture. Never skip the placing action and jump straight to "product on table" — Grok will hallucinate a duplicate product materializing on the table while the host is still holding the original. Correct format: "Host gently places ${productTags} back on the desk, then gives a confident nod toward camera." Wrong format: "Monitor visible on table, host nods" — this causes the magic appearance glitch.`;
 
     const userPrompt = `Write 3 Grok video prompts for this 18-second product marketing chain.
 
