@@ -34,6 +34,7 @@ async function handleStorylines(req, res) {
       shape,
       dimensions,
       productImage,
+      hasCharacterImage,
       lang,
     } = req.body;
 
@@ -108,7 +109,7 @@ STORYTELLING FORMAT:
 - Host is a STORYTELLER speaking directly to camera like a trusted friend
 - First-person voice throughout ("I was so tired of...", "Then I found...", "Now I never...")
 - NEVER use advertiser language: no "amazing", "incredible", "game-changer", "life-changing"
-- DEFAULT HOST: East Asian / Chinese-looking host unless product targets a different demographic
+- HOST APPEARANCE: ${hasCharacterImage ? 'The user has uploaded a character reference image. Set the host field to "matches uploaded character reference" — do NOT invent or specify gender, age, or ethnicity. The actual character appearance will be supplied to the video model separately.' : "Default to East Asian / Chinese-looking host unless the product specifically targets a different demographic."}
 - SCRIPT LINES MUST USE OUTCOME LANGUAGE, NOT PROCESS LANGUAGE — the host describes the result or feeling, never how the product works or sets up. Forbidden in scripts: "it connects with one cable", "just plug it in", "sets up in seconds", "one cable and you're done", "easy to connect", "connects up easily". Allowed instead: "now I have double the screen space", "I can actually see what I'm doing", "I get more done wherever I go".
 
 NARRATIVE ARC:

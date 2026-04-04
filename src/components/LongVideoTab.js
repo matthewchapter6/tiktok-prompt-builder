@@ -301,6 +301,7 @@ const LongVideoTab = ({ user, userCredits, setUserCredits, lang, onInsufficientC
           shape: shape || undefined,
           dimensions: (dimH || dimW || dimD) ? { height: dimH, width: dimW, depth: dimD } : undefined,
           productImage,
+          hasCharacterImage: !!characterFile,
           lang,
         }),
       });
