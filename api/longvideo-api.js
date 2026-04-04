@@ -82,6 +82,11 @@ FORBIDDEN ACTIONS (auto-reject any scene containing these):
 - complex hand gestures or finger articulation
 - large body turns (more than 30 degrees)
 - transitions between locations
+- product rotation beyond 20 degrees
+- wide arm gestures or sweeping hand movements
+- product setup, assembly, or installation demonstration (no plugging in cables, connecting parts, unboxing, or configuring)
+- product feature demo requiring physical interaction (no opening lids, pressing buttons, adjusting stands, unfolding)
+- host absent from the CTA scene — host must always be visible holding or beside the product in every act
 
 ALLOWED ACTIONS ONLY:
 - host holds product steadily at chest or waist level
@@ -96,8 +101,8 @@ ALLOWED ACTIONS ONLY:
 SCENE RISK CLASSIFICATION — you must assign each scene a risk level:
 - low: product on table, hand holding still, close-up, slow push-in, studio background
 - medium: presenter holds product and talks, one slow reposition, one subtle camera move
-- high: walking, product moving behind body, multiple props, opening/tearing/pouring, complex body movement
-Only LOW and MEDIUM risk scenes are acceptable. HIGH risk scenes must be rewritten.
+- high: walking, product moving behind body, multiple props, opening/tearing/pouring, complex body movement, product setup or demo, host absent from frame
+Only LOW and MEDIUM risk scenes are acceptable. HIGH risk scenes must be rewritten to LOW or MEDIUM before output.
 
 STORYTELLING FORMAT:
 - Host is a STORYTELLER speaking directly to camera like a trusted friend
@@ -500,6 +505,18 @@ const RISKY_PHRASES = [
   [/\bfloating?\b/gi,                                                             "held steadily by hand"],
   [/\bmorphing?\b/gi,                                                             "remaining unchanged"],
   [/\bdeform(?:ing|s|ed)?\b/gi,                                                  "remaining solid and unchanged"],
+  [/\bplug(?:ging|s|ged)?\s+in\b/gi,                                             "holding product steadily"],
+  [/\bconnect(?:ing|s|ed)?\s+(?:the\s+)?cable\b/gi,                             "holding product steadily"],
+  [/\bset(?:ting)?\s+up\b/gi,                                                    "holding product toward camera"],
+  [/\bunbox(?:ing|es|ed)?\b/gi,                                                  "holding product steadily"],
+  [/\bunfold(?:ing|s|ed)?\b/gi,                                                  "holding product steadily"],
+  [/\badjust(?:ing|s|ed)?\s+(?:the\s+)?(?:stand|angle|screen|monitor)\b/gi,     "holding product steadily"],
+  [/\bpress(?:ing|es|ed)?\s+(?:the\s+)?button\b/gi,                             "pointing gently beside product"],
+  [/\bopen(?:ing|s|ed)?\s+(?:the\s+)?(?:lid|box|flap|cover)\b/gi,              "holding product with packaging intact"],
+  [/\brotate?(?:s|ing|d)?\b/gi,                                                  "gently tilting less than 20 degrees"],
+  [/\bswing(?:ing|s)?\b/gi,                                                      "gently tilting"],
+  [/\bswing(?:ing|s)?\s+arm\b/gi,                                               "pointing gently beside product"],
+  [/\bgestures?\s+(?:widely|broadly|dramatically|at the chaos|around)\b/gi,     "points gently beside product"],
 ];
 
 function lintPrompt(prompt, warnings = []) {
