@@ -34,7 +34,7 @@ async function handleStorylines(req, res) {
       shape,
       dimensions,
       productImage,
-      hasCharacterImage,
+      characterImage,
       lang,
     } = req.body;
 
@@ -87,6 +87,7 @@ FORBIDDEN ACTIONS (auto-reject any scene containing these):
 - wide arm gestures or sweeping hand movements
 - product setup, assembly, or installation demonstration (no plugging in cables, connecting parts, unboxing, or configuring)
 - product feature demo requiring physical interaction (no opening lids, pressing buttons, adjusting stands, unfolding)
+- unfolding, folding, opening, or closing the product — the product appears exactly as shown in the reference image, already in its ready-to-use state. Do NOT invent foldable or openable behaviors unless they are clearly visible in the product reference image.
 - host absent from the CTA scene — host must always be visible holding or beside the product in every act
 
 ALLOWED ACTIONS ONLY:
@@ -109,7 +110,7 @@ STORYTELLING FORMAT:
 - Host is a STORYTELLER speaking directly to camera like a trusted friend
 - First-person voice throughout ("I was so tired of...", "Then I found...", "Now I never...")
 - NEVER use advertiser language: no "amazing", "incredible", "game-changer", "life-changing"
-- HOST APPEARANCE: ${hasCharacterImage ? 'The user has uploaded a character reference image. Set the host field to "matches uploaded character reference" — do NOT invent or specify gender, age, or ethnicity. The actual character appearance will be supplied to the video model separately.' : "Default to East Asian / Chinese-looking host unless the product specifically targets a different demographic."}
+- HOST APPEARANCE: ${characterImage ? 'A character reference image has been provided (see image). You MUST base the host description on this exact person — match their gender, approximate age, and ethnicity precisely. Set the host field to describe this specific person (e.g. "Young East Asian woman, approximately 25, as per uploaded character reference"). Do NOT invent a different gender or appearance.' : "Default to East Asian / Chinese-looking host unless the product specifically targets a different demographic."}
 - SCRIPT LINES MUST USE OUTCOME LANGUAGE, NOT PROCESS LANGUAGE — the host describes the result or feeling, never how the product works or sets up. Forbidden in scripts: "it connects with one cable", "just plug it in", "sets up in seconds", "one cable and you're done", "easy to connect", "connects up easily". Allowed instead: "now I have double the screen space", "I can actually see what I'm doing", "I get more done wherever I go".
 
 NARRATIVE ARC:
@@ -174,7 +175,11 @@ Return exactly this JSON:
     const parts = [];
     if (productImage?.data) {
       parts.push({ inline_data: { mime_type: productImage.mimeType || "image/jpeg", data: productImage.data } });
-      parts.push({ text: "This is the product reference image. Use it to understand the product's appearance, colour, and real-world size so host interactions are physically realistic." });
+      parts.push({ text: "This is the product reference image. Study the product's exact physical form — its shape, whether it is one solid piece or has moving parts, its proportions and size. All storyline actions must be physically consistent with what you see in this image. Do NOT invent product behaviors (folding, unfolding, opening, detaching) that are not visible in this image." });
+    }
+    if (characterImage?.data) {
+      parts.push({ inline_data: { mime_type: characterImage.mimeType || "image/jpeg", data: characterImage.data } });
+      parts.push({ text: "This is the character reference image. You MUST describe the host in all storylines to match this exact person — same gender, approximate age, and ethnicity. Do not invent a different character." });
     }
     parts.push({ text: userPrompt });
 

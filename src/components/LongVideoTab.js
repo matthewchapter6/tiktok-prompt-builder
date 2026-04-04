@@ -290,6 +290,9 @@ const LongVideoTab = ({ user, userCredits, setUserCredits, lang, onInsufficientC
       let productImage = null;
       if (productFiles[0]) productImage = await compressImage(productFiles[0]);
 
+      let characterImage = null;
+      if (characterFile) characterImage = await compressImage(characterFile);
+
       const res = await fetch("/api/longvideo-api", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -301,7 +304,7 @@ const LongVideoTab = ({ user, userCredits, setUserCredits, lang, onInsufficientC
           shape: shape || undefined,
           dimensions: (dimH || dimW || dimD) ? { height: dimH, width: dimW, depth: dimD } : undefined,
           productImage,
-          hasCharacterImage: !!characterFile,
+          characterImage,
           lang,
         }),
       });
