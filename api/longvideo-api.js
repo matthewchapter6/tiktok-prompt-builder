@@ -347,6 +347,7 @@ Style: ${storyline.style}
 PROMPT 1 — reference-to-video (6s Hook), 80–150 words, one paragraph:
 Order: Host+Action → Scene → Camera → Lighting → Host Narration (use hook_script exactly) + Background Audio → Product Lock Statement → Negative Constraints
 CRITICAL: ${productTags} must appear visibly in the scene from the very first frame (on a surface, in a bag, or beside the host). Apply all Always-On Guardrails. Host voice must use the exact hook_script words.${characterTag ? ` Use ${characterTag} for the host face.` : ""}
+DIMENSIONS: If product shape and dimensions are provided, you MUST include them explicitly in Prompt 1 to anchor physical scale — e.g. "the [product] measures approximately [H]cm × [W]cm × [D]cm, [shape]-shaped". This prevents Grok from hallucinating the wrong size. Use the exact values from the PRODUCT SHAPE & SIZE field above.
 
 PROMPT 2 — extend-video (6s Content), 50–80 words:
 "Continue the scene exactly:" + Host says: "[exact content_script text]" + one simple allowed action with product + mandatory Product Lock sentence.
