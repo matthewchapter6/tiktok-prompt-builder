@@ -281,6 +281,8 @@ PHYSICS LOCK (repeat in every prompt):
 - No object penetration (product does not pass through hands or body)
 - No floating — product rests on surfaces or is gripped by hand
 - No scale drift between clips
+- One person only — no duplicate or secondary person in frame
+- When host holds product: one hand visible only, five fingers fully visible and natural, no warped or fused fingers
 
 MOTION LOCK — only these actions are permitted:
 - Host holds product steadily at chest or waist level
@@ -307,7 +309,7 @@ Framework order: [Host + Opening Action] → [Location/Scene] → [Camera] → [
 4. HOST NARRATION: Format as: Host says in a natural conversational tone: "[exact hook_script text]"
 5. BACKGROUND AUDIO: Soft background music genre + one ambient sound. Keep subtle.
 6. PRODUCT LOCK STATEMENT (second-to-last sentence): "Keep the host's face${characterTag ? ` (${characterTag})` : ""}, outfit, and ${productTags} — same shape, color, finish, and size — consistent and unchanged throughout."
-7. NEGATIVE CONSTRAINTS (always last): "No text overlays, no scene cuts, no warped hands or faces, no new objects, product maintains exact size and proportions, no transparency."
+7. NEGATIVE CONSTRAINTS (always last): "No text overlays, no scene cuts, no warped or fused fingers, no warped faces, no duplicate person, no phantom second hand, no new objects, product maintains exact size and proportions, no transparency."
 
 PHYSICAL REALISM RULES:
 - GRIP: Large or heavy product = host uses BOTH hands
@@ -321,7 +323,7 @@ PROMPTS 2 & 3 RULES (extend-video — strict):
 - 50–80 words. Three sentences max.
 - Sentence 1: "Continue the scene exactly:"
 - Sentence 2: Host says: "[exact script text]" + brief simple visual action (allowed actions only)
-- Sentence 3 (PRODUCT LOCK — mandatory in every extension): "Maintain exact continuity: same host face, same outfit, same background, same lighting — ${productTags} must remain identical in shape, color, finish, size, and opacity. No drift, no morphing, no new objects."
+- Sentence 3 (PRODUCT LOCK — mandatory in every extension): "Maintain exact continuity: same host face, same outfit, same background, same lighting — ${productTags} must remain identical in shape, color, finish, size, and opacity. One person only, one hand visible, five fingers natural. No drift, no morphing, no new objects."
 - For Prompt 3 only: you MUST describe the physical transition from Clip 2's ending state to Clip 3's state. If Clip 2 ended with the host holding the product, Clip 3 MUST start with the host gently placing the product back on the surface FIRST — then the CTA gesture. Never skip the placing action and jump straight to "product on table" — Grok will hallucinate a duplicate product materializing on the table while the host is still holding the original. Correct format: "Host gently places ${productTags} back on the desk, then gives a confident nod toward camera." Wrong format: "Monitor visible on table, host nods" — this causes the magic appearance glitch.`;
 
     const userPrompt = `Write 3 Grok video prompts for this 18-second product marketing chain.
