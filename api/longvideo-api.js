@@ -91,14 +91,22 @@ FORBIDDEN ACTIONS (auto-reject any scene containing these):
 - host absent from the CTA scene — host must always be visible holding or beside the product in every act
 
 ALLOWED ACTIONS ONLY:
-- host holds product steadily at chest or waist level
-- host slowly lifts product from table to camera level
+- host holds product steadily at chest level, facing camera — always specify "chest level, facing camera"
+- host slowly lifts product from table to chest level, facing camera
 - host gently tilts product less than 20 degrees toward camera
-- host places product on table surface
+- host places product back on the same surface it started on
 - host holds product with both hands if it is large or heavy
 - host makes eye contact with camera while holding product still
 - host gives a small confident nod
 - host points gently beside product toward camera
+
+SURFACE CONSISTENCY RULE — critical:
+- The product must start and end on the SAME surface in every act (e.g. if it starts on the desk, it must return to the desk — never move it to a different table, shelf, or surface between clips)
+- Never describe the product on the host's lap — always on a flat stable surface (desk, table)
+
+PRODUCT ORIENTATION RULE:
+- Always show the FRONT FACE of the product toward camera — never show the back, side panel, or bottom
+- "Showing the slim profile" is allowed only as a very slight tilt — never a full side-on view
 
 SCENE RISK CLASSIFICATION — you must assign each scene a risk level:
 - low: product on table, hand holding still, close-up, slow push-in, studio background
@@ -205,6 +213,18 @@ Return exactly this JSON:
     try { parsed = JSON.parse(raw.replace(/```json|```/g, "").trim()); }
     catch (e) { return res.status(500).json({ error: "Failed to parse storylines", raw }); }
 
+    // ── Safety scoring pass ──────────────────────────────────────────────────
+    try {
+      const scores = await scoreStorylines(parsed.storylines);
+      parsed.storylines = parsed.storylines.map(s => ({
+        ...s,
+        safety_score: scores[s.id]?.score ?? null,
+        safety_note:  scores[s.id]?.note  ?? null,
+      }));
+    } catch (scoreErr) {
+      console.warn("[longvideo-api:storylines] Scoring failed (non-fatal):", scoreErr.message);
+    }
+
     console.log(`[longvideo-api:storylines] funnel=${funnel} stories=${parsed.storylines?.length}`);
     return res.status(200).json(parsed);
 
@@ -212,6 +232,67 @@ Return exactly this JSON:
     console.error("[longvideo-api:storylines] Exception:", error.message);
     return res.status(500).json({ error: "Storyline generation failed", details: error.message });
   }
+}
+
+// ── Safety scoring helper ─────────────────────────────────────────────────────
+
+async function scoreStorylines(storylines) {
+  const scoringPrompt = `You are a Grok AI video generation safety expert. Score each storyline for AI video generation safety.
+
+SCORING CRITERIA (deduct stars for each issue found):
+5 stars — fully safe: product beside host from frame 1, allowed actions only, host present all 3 acts, same surface throughout, front face of product always toward camera, outcome-based scripts
+4 stars — minor risk: one slightly vague action description, or minor script issue, but no forbidden actions
+3 stars — moderate risk: one forbidden action present (rotation, vague "holds up", surface change, feature/process language in script)
+2 stars — high risk: multiple forbidden actions, or one severe issue (showing product back, product on lap, host absent in CTA, scene location change)
+1 star  — very high risk: multiple severe issues, or actions that will almost certainly cause physics glitches (unfolding, setup demo, walking, behind-body reveal)
+
+FORBIDDEN ACTIONS (any of these = deduct at least 1 star):
+- rotation beyond 20 degrees / showing product back or side
+- unfolding, opening, assembling, setup demo
+- walking, running, large body turns
+- product on lap or unstable surface
+- surface change between acts
+- host absent from any act
+- process language in scripts ("connects with", "sets up", "plugs in")
+- vague hold description ("holds it up" with no direction specified)
+
+Storylines to score:
+${storylines.map(s => `
+ID: ${s.id}
+Title: ${s.title}
+Hook visual: ${s.hook_visual}
+Content visual: ${s.content_visual}
+Content script: "${s.content_script}"
+CTA visual: ${s.cta_visual}
+Scene: ${s.scene}
+`).join("\n---\n")}
+
+Return ONLY valid JSON, no markdown:
+{
+  "scores": {
+    "1": { "score": 5, "note": "one-line reason" },
+    "2": { "score": 4, "note": "one-line reason" },
+    "3": { "score": 3, "note": "one-line reason" },
+    "4": { "score": 2, "note": "one-line reason" },
+    "5": { "score": 1, "note": "one-line reason" }
+  }
+}`;
+
+  const response = await fetch(
+    `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${process.env.GOOGLE_API_KEY}`,
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        contents: [{ role: "user", parts: [{ text: scoringPrompt }] }],
+        generationConfig: { temperature: 0.2, maxOutputTokens: 800 },
+      }),
+    }
+  );
+  const data = await response.json();
+  const raw = data?.candidates?.[0]?.content?.parts?.[0]?.text?.trim() || "";
+  const parsed = JSON.parse(raw.replace(/```json|```/g, "").trim());
+  return parsed.scores;
 }
 
 // ── ACTION: Generate 3-part prompts ──────────────────────────────────────────

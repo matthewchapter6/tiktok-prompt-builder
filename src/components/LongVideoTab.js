@@ -63,10 +63,26 @@ const ImageUploadBox = ({ label, hint, file, onFile, required, minH = 100 }) => 
   );
 };
 
+const SafetyStars = ({ score }) => {
+  if (!score) return null;
+  const color = score >= 4 ? "text-green-500" : score === 3 ? "text-yellow-500" : "text-red-400";
+  const label = score === 5 ? "Recommended" : score === 4 ? "Safe" : score === 3 ? "Moderate Risk" : score === 2 ? "High Risk" : "Very High Risk";
+  return (
+    <div className={`flex items-center gap-1 ${color}`}>
+      {[1,2,3,4,5].map(i => (
+        <svg key={i} className={`w-3 h-3 ${i <= score ? "fill-current" : "fill-none stroke-current"}`} viewBox="0 0 20 20">
+          <path strokeWidth="1.5" d="M10 1l2.39 4.84 5.34.78-3.86 3.76.91 5.32L10 13.27l-4.78 2.51.91-5.32L2.27 6.62l5.34-.78z"/>
+        </svg>
+      ))}
+      <span className="text-xs font-semibold ml-0.5">{label}</span>
+    </div>
+  );
+};
+
 const StoryCard = ({ story, selected, onSelect, onSave, saving, t }) => (
   <div
     onClick={() => onSelect(story)}
-    className={`border-2 rounded-xl p-4 cursor-pointer transition-all ${selected ? "border-indigo-500 bg-indigo-50" : "border-gray-200 bg-white hover:border-indigo-300"}`}>
+    className={`border-2 rounded-xl p-4 cursor-pointer transition-all ${selected ? "border-indigo-500 bg-indigo-50" : story.safety_score >= 4 ? "border-green-200 bg-white hover:border-green-400" : story.safety_score <= 2 ? "border-red-100 bg-white hover:border-red-300" : "border-gray-200 bg-white hover:border-indigo-300"}`}>
     <div className="flex items-start justify-between gap-2 mb-2">
       <p className="text-sm font-bold text-gray-800">{story.title}</p>
       <div className="flex items-center gap-1 flex-shrink-0">
@@ -78,6 +94,17 @@ const StoryCard = ({ story, selected, onSelect, onSave, saving, t }) => (
         </button>
       </div>
     </div>
+
+    {/* Safety score */}
+    {story.safety_score && (
+      <div className="mb-2 flex items-start gap-2 flex-wrap">
+        <SafetyStars score={story.safety_score} />
+        {story.safety_note && (
+          <span className="text-xs text-gray-400 leading-tight">{story.safety_note}</span>
+        )}
+      </div>
+    )}
+
     <div className="space-y-2 text-xs text-gray-600">
       <div>
         <p className="font-medium text-indigo-600 mb-0.5">Hook (0-6s)</p>
