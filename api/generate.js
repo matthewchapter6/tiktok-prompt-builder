@@ -145,7 +145,7 @@ Return this exact JSON structure:
       const [imgRes, animRes, cfgRes] = await Promise.all([
         fetch(geminiUrl, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ system_instruction: { parts: [{ text: imagePromptSystem }] }, contents: [{ role: 'user', parts: [{ text: imagePromptUser }] }], generationConfig: { temperature: 0.9, maxOutputTokens: 350 } }) }),
         fetch(geminiUrl, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ system_instruction: { parts: [{ text: animationSystem }] }, contents: [{ role: 'user', parts: [{ text: animationUser }] }], generationConfig: { temperature: 1.0, maxOutputTokens: durationSec === '5' ? 300 : 550 } }) }),
-        fetch('https://api.anthropic.com/v1/messages', { method: 'POST', headers: { 'Content-Type': 'application/json', 'x-api-key': process.env.ANTHROPIC_API_KEY, 'anthropic-version': '2023-06-01' }, body: JSON.stringify({ model: 'claude-sonnet-4-20250514', max_tokens: 400, system: claudeConfigSystem, messages: [{ role: 'user', content: claudeConfigUser }] }) }),
+        fetch('https://api.anthropic.com/v1/messages', { method: 'POST', headers: { 'Content-Type': 'application/json', 'x-api-key': process.env.ANTHROPIC_API_KEY, 'anthropic-version': '2023-06-01' }, body: JSON.stringify({ model: 'claude-sonnet-4-5', max_tokens: 400, system: claudeConfigSystem, messages: [{ role: 'user', content: claudeConfigUser }] }) }),
       ]);
 
       const [imgData, animData, cfgData] = await Promise.all([imgRes.json(), animRes.json(), cfgRes.json()]);
@@ -156,7 +156,7 @@ Return this exact JSON structure:
 
       if (!animationPrompt) {
         try {
-          const fb = await fetch('https://api.anthropic.com/v1/messages', { method: 'POST', headers: { 'Content-Type': 'application/json', 'x-api-key': process.env.ANTHROPIC_API_KEY, 'anthropic-version': '2023-06-01' }, body: JSON.stringify({ model: 'claude-sonnet-4-20250514', max_tokens: 600, system: animationSystem, messages: [{ role: 'user', content: animationUser }] }) });
+          const fb = await fetch('https://api.anthropic.com/v1/messages', { method: 'POST', headers: { 'Content-Type': 'application/json', 'x-api-key': process.env.ANTHROPIC_API_KEY, 'anthropic-version': '2023-06-01' }, body: JSON.stringify({ model: 'claude-sonnet-4-5', max_tokens: 600, system: animationSystem, messages: [{ role: 'user', content: animationUser }] }) });
           animationPrompt = (await fb.json()).content?.find(b => b.type === 'text')?.text?.trim() || '';
         } catch (e) { console.error('Claude fallback error:', e.message); }
       }
