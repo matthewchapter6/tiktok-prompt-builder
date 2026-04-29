@@ -62,7 +62,7 @@ Return this exact JSON structure:
 }`;
 
       const response = await fetch(
-        `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${process.env.GOOGLE_API_KEY}`,
+        `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-lite:generateContent?key=${process.env.GOOGLE_API_KEY}`,
         {
           method: 'POST', headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
@@ -131,7 +131,7 @@ Return this exact JSON structure:
       const cat = categoryStyles[productCategory] || { env: 'clean relevant environment matching the product', mood: 'aspirational yet authentic', avoid: 'no artificial effects' };
       const durationNote = durationSec === '5' ? '5 seconds — single continuous shot, one cinematic moment, one smooth camera move, 1 dialogue line max' : '10 seconds — 3 beats: Hook(0-2s) + Reveal(2-7s) + Close(7-10s), max 1 cut, 2-3 dialogue lines';
 
-      const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${process.env.GOOGLE_API_KEY}`;
+      const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-lite:generateContent?key=${process.env.GOOGLE_API_KEY}`;
 
       const imagePromptSystem = `You are a visual director writing Gemini image generation prompts for product ad first frames. Write a precise, vivid single paragraph describing the perfect opening frame. This is a STILL IMAGE — describe exactly what to render. Output only the prompt, no explanation. Always write the image prompt in English regardless of language setting (image generation models work best with English prompts).`;
       const imagePromptUser = `Write a Gemini image generation prompt for the first frame of this product ad.\n\nSTORYLINE: ${selectedStoryline}\nPRODUCT: ${productDescription} | USP: ${productUSP}\nCATEGORY ENVIRONMENT: ${cat.env}\nMOOD: ${cat.mood}\nFORMAT: ${ratioLabel}\n${hasProductImage ? 'PRODUCT PHOTO: Provided — include the exact product in the scene' : 'NO PRODUCT PHOTO — describe product visually'}\n${hasCharacterImage ? 'CHARACTER PHOTO: Provided — include this exact character in the scene in the opening position described by the storyline' : 'NO CHARACTER PHOTO — if storyline requires a person, describe a suitable realistic character'}\n${lightingStyle ? `LIGHTING: ${lightingStyle}` : ''}\n${backgroundSetting ? `BACKGROUND: ${backgroundSetting}` : ''}\n\nWrite the first frame scene as a single vivid paragraph. Include subject positioning, expression, product placement, lighting, composition. End with: "Ultra-realistic, cinematic photography, high detail, ${ratioLabel}. ${cat.avoid}."`;
