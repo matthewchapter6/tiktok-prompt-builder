@@ -192,7 +192,7 @@ Return exactly this JSON:
     parts.push({ text: userPrompt });
 
     const response = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${process.env.GOOGLE_API_KEY}`,
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-lite:generateContent?key=${process.env.GOOGLE_API_KEY}`,
       {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -279,7 +279,7 @@ Return ONLY valid JSON, no markdown:
 }`;
 
   const response = await fetch(
-    `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${process.env.GOOGLE_API_KEY}`,
+    `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-lite:generateContent?key=${process.env.GOOGLE_API_KEY}`,
     {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -454,7 +454,7 @@ Return exactly this JSON (no markdown, no extra keys):
 }`;
 
     const response = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${process.env.GOOGLE_API_KEY}`,
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-lite:generateContent?key=${process.env.GOOGLE_API_KEY}`,
       {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -506,7 +506,6 @@ async function handleClip1(req, res) {
     if (!prompt) return res.status(400).json({ error: "prompt is required" });
     if (!productImagesBase64?.length) return res.status(400).json({ error: "productImagesBase64 is required" });
 
-    // Upload all product images, then optional character image
     const referenceImageUrls = [];
     for (let i = 0; i < productImagesBase64.length; i++) {
       const blob = base64ToBlob(productImagesBase64[i], (productImagesMime?.[i]) || "image/jpeg");
@@ -567,8 +566,6 @@ async function handleExtend(req, res) {
 }
 
 // ── Prompt Safety Linter ─────────────────────────────────────────────────────
-// Detects and rewrites risky motion/physics phrases before sending to Grok API.
-// Each entry: [regex, safeReplacement]
 
 const RISKY_PHRASES = [
   [/\bfast(?:ly)?\s+(?:mov(?:es?|ing)|motion|action|pan|zoom|cut)\b/gi,         "controlled smooth movement"],
